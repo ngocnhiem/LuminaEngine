@@ -147,27 +147,29 @@ namespace Lumina::Physics
     void FJoltPhysicsScene::Update(double DeltaTime)
     {
         LUMINA_PROFILE_SCOPE();
-        
-        if (Accumulator > FixedTimeStep)
-        {
-            Accumulator = 0.0f;
-        }
 
+        constexpr double MaxDeltaTime = 0.25;
+        constexpr int MaxSteps = 5;
+    
+        DeltaTime = std::min(DeltaTime, MaxDeltaTime);
         Accumulator += DeltaTime;
-        if (Accumulator < FixedTimeStep)
-        {
-            CollisionSteps = 0;
-            return;
-        }
 
-        CollisionSteps = (int)(Accumulator / FixedTimeStep);
-        Accumulator -= (float)CollisionSteps * FixedTimeStep;
-
+        CollisionSteps = static_cast<int>(Accumulator / FixedTimeStep);
+        CollisionSteps = std::min(CollisionSteps, MaxSteps);
+    
         if (CollisionSteps > 0)
         {
             PreUpdate();
             JoltSystem->Update(FixedTimeStep, CollisionSteps, FJoltPhysicsContext::GetAllocator(), FJoltPhysicsContext::GetThreadPool());
             PostUpdate();
+        
+            Accumulator -= CollisionSteps * FixedTimeStep;
+        
+            // Clamp accumulator if we hit max steps
+            if (CollisionSteps >= MaxSteps)
+            {
+                Accumulator = std::min(Accumulator, FixedTimeStep);
+            }
         }
     }
 

@@ -33,7 +33,7 @@ enum class EFormatKind : uint8
 	DepthStencil
 };
 
-LUMINA_API struct FFormatInfo
+struct LUMINA_API FFormatInfo
 {
 	EFormat Format;
 	const char* Name;

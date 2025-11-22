@@ -75,8 +75,8 @@ namespace Lumina
         GTaskSystem = nullptr;
     }
 
-    FLambdaTask* Task::AsyncTask(uint32 Num, uint32 MinRange, TaskSetFunction&& Function, ETaskPriority Priority)
+    void Task::AsyncTask(uint32 Num, uint32 MinRange, TaskSetFunction&& Function, ETaskPriority Priority)
     {
-        return GTaskSystem->ScheduleLambda(Num, MinRange, std::move(Function), Priority);
+        GTaskSystem->ScheduleLambda(Num, MinRange, Move(Function), Priority);
     }
 }

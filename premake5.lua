@@ -1,5 +1,5 @@
 workspace "Lumina"
-	configurations { "Debug", "Release", "Shipping" }
+	configurations { "Debug", "Development", "Shipping" }
 	targetdir "Build"
 	startproject "Editor"
 	conformancemode "On"
@@ -23,6 +23,12 @@ workspace "Lumina"
 		"GLM_FORCE_LEFT_HANDED",
 		"IMGUI_DEFINE_MATH_OPERATORS",
         "IMGUI_IMPL_VULKAN_USE_VOLK",
+        "SOL_DEFAULT_PASS_ON_ERROR",
+
+        "TRACY_ENABLE",
+    	"TRACY_CALLSTACK",
+    	"TRACY_ON_DEMAND",
+		"TRACY_EXPORTS",
 	}
 
 	filter "action:vs"
@@ -33,6 +39,7 @@ workspace "Lumina"
 	buildoptions 
     {
 		"/Zm2000",
+        "/bigobj"
 	}
 
 	disablewarnings
@@ -61,34 +68,29 @@ workspace "Lumina"
 
     -- Debug Configuration
     filter "configurations:Debug"
-        runtime "Debug"
-        links { "%{VULKAN_SDK}/lib/shaderc_combinedd.lib" }
         optimize "Debug"
         symbols "On"
         editandcontinue "Off"
-        defines { "LE_DEBUG", "_DEBUG" }
+        defines { "LE_DEBUG", "_DEBUG", "JPH_DEBUG", }
 
     -- Release Configuration (Developer build with symbols)
-    filter "configurations:Release"
-        runtime "Release"
+    filter "configurations:Development"
         vectorextensions "AVX2"
         isaextensions { "BMI", "POPCNT", "LZCNT", "F16C" }
-        links { "%{VULKAN_SDK}/lib/shaderc_combined.lib" }
         optimize "Speed"
         symbols "On" -- Keep symbols for profiling
-        defines { "LE_RELEASE", "NDEBUG" }
+        defines { "LE_RELEASE", "NDEBUG", "LUMINA_DEVELOPMENT" }
         flags { "LinkTimeOptimization" }
         
 
     -- Shipping Configuration (Maximum optimization, no symbols)
     filter "configurations:Shipping"
-        runtime "Release"
         vectorextensions "AVX2"
         isaextensions { "BMI", "POPCNT", "LZCNT", "F16C" }
-        links { "%{VULKAN_SDK}/lib/shaderc_combined.lib" }
         optimize "Full"
         symbols "Off"
         defines { "LE_SHIP", "NDEBUG" }
+        removedefines { "TRACY_ENABLE" }
         flags { "LinkTimeOptimization" }
         
 
@@ -99,7 +101,6 @@ workspace "Lumina"
 		include "Lumina/Engine/ThirdParty/glfw"
 		include "Lumina/Engine/ThirdParty/imgui"
 		include "Lumina/Engine/Thirdparty/Tracy"
-		include "Lumina/Engine/ThirdParty/xxhash"
 	group ""
 
 	group "Core"

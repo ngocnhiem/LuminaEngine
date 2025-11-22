@@ -47,7 +47,6 @@ void FMeshEditorTool::OnInitialize()
         const FMeshResource& Resource = StaticMesh->GetMeshResource();
         const FAABB& BoundingBox = StaticMesh->GetAABB();
         
-        // === Mesh Statistics Overview ===
         ImGuiX::Font::PushFont(ImGuiX::Font::EFont::Large);
         ImGui::SeparatorText("Mesh Statistics");
         ImGuiX::Font::PopFont();
@@ -116,7 +115,6 @@ void FMeshEditorTool::OnInitialize()
         ImGui::Spacing();
         ImGui::Spacing();
 
-        // === Geometry Surfaces ===
         ImGuiX::Font::PushFont(ImGuiX::Font::EFont::Large);
         ImGui::SeparatorText("Geometry Surfaces");
         ImGuiX::Font::PopFont();
@@ -176,7 +174,6 @@ void FMeshEditorTool::OnInitialize()
         ImGui::Spacing();
         ImGui::Spacing();
 
-        // === Asset Properties ===
         ImGuiX::Font::PushFont(ImGuiX::Font::EFont::Large);
         ImGui::SeparatorText("Asset Details");
         ImGuiX::Font::PopFont();

@@ -30,7 +30,7 @@ namespace Lumina
         void OnDependenciesComplete(enki::TaskScheduler* pTaskScheduler_, uint32_t threadNum_ ) override;
     };
 
-    typedef TMoveOnlyFunction<void (uint32 Start, uint32 End, uint32 Thread)> TaskSetFunction;
+    typedef TMoveOnlyFunction<void(uint32 Start, uint32 End, uint32 Thread)> TaskSetFunction;
     class FLambdaTask : public ITaskSet
     {
     public:
@@ -60,6 +60,7 @@ namespace Lumina
             Function = Move(TaskFunctor);
         }
 
+        
         TaskSetFunction             Function;
         CompletionActionDelete      TaskRecycle;
     };

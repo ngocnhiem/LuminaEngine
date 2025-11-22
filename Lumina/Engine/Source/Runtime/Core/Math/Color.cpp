@@ -1,7 +1,5 @@
 #include "Color.h"
 
-#include "glm/glm.hpp"
-
 namespace Lumina
 {
     constexpr FColor FColor::Red        = FColor(1.0f, 0.0f, 0.0f);

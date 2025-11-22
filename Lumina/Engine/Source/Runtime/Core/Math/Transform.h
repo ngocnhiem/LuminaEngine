@@ -47,9 +47,14 @@ namespace Lumina
             Rotation = glm::quat(glm::radians(eulerAngles));
         }
 
-        void Translate(const glm::vec3& translation)
+        void Translate(const glm::vec3& Translation)
         {
-            Location += translation;
+            Location += Translation;
+        }
+
+        void SetLocation(const glm::vec3& NewLocation)
+        {
+            Location = NewLocation;
         }
 
         void Rotate(const glm::vec3& eulerAngles)

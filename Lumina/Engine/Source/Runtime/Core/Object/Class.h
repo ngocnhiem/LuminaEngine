@@ -118,16 +118,13 @@ namespace Lumina
         }
 
         template<typename PropertyType, typename TFunc>
-        requires std::is_base_of_v<FProperty, PropertyType>
+        requires eastl::is_base_of_v<FProperty, PropertyType>
         void ForEachProperty(TFunc&& Func)
         {
             PropertyType* Current = (PropertyType*)LinkedProperty;
             while (Current != nullptr)
             {
-                if (typeid(PropertyType) == typeid(*Current))
-                {
-                    std::forward<TFunc>(Func)(Current);
-                }
+                eastl::forward<TFunc>(Func)(Current);
                 Current = (PropertyType*)Current->Next;
             }
         }

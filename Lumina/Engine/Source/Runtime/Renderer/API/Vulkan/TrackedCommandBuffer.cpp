@@ -15,7 +15,7 @@ namespace Lumina
         {
             std::scoped_lock Lock(InQueue->Mutex);
             LockMark(InQueue->Mutex);
-            TracyContext = TracyVkContext(InDevice->GetPhysicalDevice(), InDevice->GetDevice(), Queue->Queue, CommandBuffer)
+            TracyContext = TracyVkContext(InDevice->GetPhysicalDevice(), InDevice->GetDevice(), Queue->Queue, CommandBuffer);
         }
     }
 

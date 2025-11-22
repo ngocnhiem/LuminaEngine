@@ -68,7 +68,7 @@ namespace Lumina
          */
         void ShutdownWorld();
 
-        bool RegisterSystem(CEntitySystem* NewSystem);
+        bool RegisterSystem(CEntitySystem* NewSystem, bool bInitialize);
 
         Entity ConstructEntity(const FName& Name, const FTransform& Transform = FTransform());
         
@@ -122,6 +122,28 @@ namespace Lumina
 
         void SetSelectedEntity(entt::entity EntityID) { SelectedEntity = EntityID; }
         FORCEINLINE entt::entity GetSelectedEntity() const { return SelectedEntity; }
+
+        template<typename TFunc, EUpdateStage StageFilter = EUpdateStage::Max>
+        void ForEachSystem(TFunc&& Func)
+        {
+            if constexpr (StageFilter == EUpdateStage::Max)
+            {
+                for (uint8 i = 0; i < (uint8)EUpdateStage::Max; ++i)
+                {
+                    for (CEntitySystem* System : SystemUpdateList[i])
+                    {
+                        Func(System);
+                    }
+                }
+            }
+            else
+            {
+                for (CEntitySystem* System : SystemUpdateList[(uint8)StageFilter])
+                {
+                    Func(System);
+                }
+            }
+        }
         
     private:
         
@@ -146,8 +168,9 @@ namespace Lumina
         uint32                                          bPaused:1=1;
         uint32                                          bActive:1=1;
         uint32                                          bIsPlayWorld:1=0;
+        uint32                                          bDuplicatePIEWorld:1=0;
         entt::entity                                    SelectedEntity;
-        entt::entity                                    ThumbnailCaptureEntity;
-        
+
+        TVector<TObjectPtr<CEntitySystem>>              SystemsDuplicatedFromPIE;
     };
 }

@@ -123,18 +123,35 @@ namespace Lumina
         RenderScene = Memory::New<FForwardRenderScene>(this);
         RenderScene->Init();
 
-        TVector<TObjectPtr<CEntitySystem>> Systems;
-        CEntitySystemRegistry::Get().GetRegisteredSystems(Systems);
-        
-        for (CEntitySystem* System : Systems)
+
+        if (!bDuplicatePIEWorld)
         {
-            if (System->GetRequiredUpdatePriorities())
+            TVector<TObjectPtr<CEntitySystem>> Systems;
+            CEntitySystemRegistry::Get().GetRegisteredSystems(Systems);
+        
+            for (CEntitySystem* System : Systems)
             {
-                CEntitySystem* DuplicateSystem = NewObject<CEntitySystem>(System->GetClass());
-                RegisterSystem(DuplicateSystem);
+                if (System->GetRequiredUpdatePriorities())
+                {
+                    CEntitySystem* DuplicateSystem = NewObject<CEntitySystem>(System->GetClass());
+                    RegisterSystem(DuplicateSystem, true);
+                }
+            }
+        }
+        else
+        {
+            for (CEntitySystem* System : SystemsDuplicatedFromPIE)
+            {
+                if (System->GetRequiredUpdatePriorities())
+                {
+                    CEntitySystem* DuplicateSystem = NewObject<CEntitySystem>(System->GetClass());
+                    DuplicateSystem->CopyProperties(System);
+                    RegisterSystem(System, true);
+                }
             }
         }
 
+        
         bInitialized.store(true, eastl::memory_order_relaxed);
     }
     
@@ -148,14 +165,7 @@ namespace Lumina
         EditorEntity.GetComponent<STransformComponent>().SetLocation(glm::vec3(0.0f, 0.0f, 1.5f));
 
         SetActiveCamera(EditorEntity);
-
-        Entity ThumbnailEntity = ConstructEntity("Thumbnail Entity");
-        ThumbnailEntity.Emplace<SCameraComponent>().SetAspectRatio(1.0f);
-        ThumbnailEntity.Emplace<SEditorComponent>();
-        ThumbnailEntity.Emplace<SVelocityComponent>().Speed = 50.0f;
-        ThumbnailEntity.Emplace<SHiddenComponent>();
-        ThumbnailEntity.GetComponent<STransformComponent>().SetLocation(glm::vec3(0.0f, 0.0f, 1.5f));
-
+        
         return EditorEntity;
     }
 
@@ -259,21 +269,26 @@ namespace Lumina
         FCoreDelegates::PostWorldUnload.Broadcast();
     }
 
-    bool CWorld::RegisterSystem(CEntitySystem* NewSystem)
+    bool CWorld::RegisterSystem(CEntitySystem* NewSystem, bool bInitialize)
     {
         Assert(NewSystem != nullptr)
-    
-        FSystemContext SystemContext(this);
 
-        if (bIsPlayWorld)
-        {
-            NewSystem->Initialize(SystemContext);
-        }
-        else
-        {
-            NewSystem->InitializeEditor(SystemContext);
-        }
+        NewSystem->PostConstructForWorld(this);
 
+        if (bInitialize)
+        {
+            FSystemContext SystemContext(this);
+
+            if (bIsPlayWorld)
+            {
+                NewSystem->Initialize(SystemContext);
+            }
+            else
+            {
+                NewSystem->InitializeEditor(SystemContext);
+            }
+        }
+        
         bool StagesModified[(uint8)EUpdateStage::Max] = {};
 
         for (uint8 i = 0; i < (uint8)EUpdateStage::Max; ++i)
@@ -441,10 +456,25 @@ namespace Lumina
     void CWorld::BeginPlay()
     {
         PhysicsScene->OnWorldSimulate();
+
+        FSystemContext SystemContext(this);
+
+        ForEachSystem([&](CEntitySystem* System)
+        {
+           System->WorldBeginPlay(SystemContext); 
+        });
     }
 
     void CWorld::EndPlay()
     {
+        
+        FSystemContext SystemContext(this);
+
+        ForEachSystem([&](CEntitySystem* System)
+        {
+           System->WorldEndPlay(SystemContext); 
+        });
+        
         PhysicsScene->OnWorldStopSimulate();
     }
 
@@ -469,6 +499,15 @@ namespace Lumina
         
         CWorld* PIEWorld = NewObject<CWorld>();
         PIEWorld->SetIsPlayWorld(true);
+        PIEWorld->bDuplicatePIEWorld = true;
+        
+        for (uint8 i = 0; i < (uint8)EUpdateStage::Max; i++)
+        {
+            for (CEntitySystem* System : OwningWorld->SystemUpdateList[i])
+            {
+                PIEWorld->SystemsDuplicatedFromPIE.push_back(System);
+            }
+        }
 
         PIEWorld->PreLoad();
         PIEWorld->Serialize(Ar);

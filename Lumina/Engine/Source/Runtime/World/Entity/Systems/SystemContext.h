@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include "TaskSystem/TaskSystem.h"
+#include "World/World.h"
 #include "World/Entity/EntityWorld.h"
+#include "World/Entity/Components/TransformComponent.h"
 
 namespace Lumina
 {
@@ -11,18 +13,19 @@ namespace Lumina
 namespace Lumina
 {
     /** Encapsulates the data a world system can execute, this may seem redundant, but it's more-so to control
-     * what systems can access.
-     * 
-     */
+     * what systems can access. */
     struct FSystemContext
     {
         friend class CWorld;
         
         FSystemContext(CWorld* InWorld);
         ~FSystemContext();
-        
+
+        static void RegisterWithLua(sol::state& Lua);
 
         LUMINA_API double GetDeltaTime() const { return DeltaTime; }
+        LUMINA_API double Time() const { return World->GetTimeSinceWorldCreation(); }
+        
         
         template<typename... Ts, typename... TArgs>
         auto CreateView(TArgs&&... Args) -> decltype(std::declval<entt::registry>().view<Ts...>(std::forward<TArgs>(Args)...))
@@ -44,6 +47,7 @@ namespace Lumina
             });
         }
 
+        
         template<typename... Ts, typename ... TArgs>
         auto CreateGroup(TArgs&&... Args)
         {
@@ -95,6 +99,13 @@ namespace Lumina
             return World;
         }
 
+
+    private:
+
+        sol::table MakeLuaView(sol::variadic_args Types);
+
+    public:
+
         LUMINA_API void SetActiveCamera(entt::entity New) const;
 
         LUMINA_API void DrawDebugLine(const glm::vec3& Start, const glm::vec3& End, const glm::vec4& Color, float Thickness = 1.0f, float Duration = 1.0f) const;
@@ -111,4 +122,20 @@ namespace Lumina
         CWorld* World = nullptr;
         FEntityWorld* EntityWorld = nullptr;
     };
+
+    struct FLuaEntityView
+    {
+        entt::registry* Registry;
+        entt::runtime_view View;
+        bool bTransformOnlyView = false;
+
+
+        void Bake();
+        
+        FLuaEntityView(entt::registry* R, entt::runtime_view&& V)
+            : Registry(R)
+            , View(Move(V))
+        {}
+    };
+    
 }

@@ -16,6 +16,7 @@
 #include "World/Entity/Components/EditorComponent.h"
 #include "World/Entity/Components/NameComponent.h"
 #include "World/Entity/Components/RelationshipComponent.h"
+#include "World/Entity/Components/TagComponent.h"
 #include "World/Entity/Components/VelocityComponent.h"
 #include "World/Entity/Systems/EditorEntityMovementSystem.h"
 #include "World/Scene/RenderScene/RenderScene.h"
@@ -170,7 +171,6 @@ namespace Lumina
 
     void FWorldEditorTool::Update(const FUpdateContext& UpdateContext)
     {
-
         while (!ComponentDestroyRequests.empty())
         {
             FComponentDestroyRequest Request = ComponentDestroyRequests.back();
@@ -200,7 +200,6 @@ namespace Lumina
 
         if (SelectedEntity.IsValid())
         {
-            
             SelectedEntity.EmplaceOrReplace<FNeedsTransformUpdate>();
 
             if (bViewportHovered)
@@ -613,6 +612,129 @@ namespace Lumina
         }
     }
 
+    void FWorldEditorTool::PushAddTagModal(const Entity& Entity)
+    {
+        struct FTagModalState
+        {
+            char TagBuffer[256] = {0};
+            bool bTagExists = false;
+        };
+        
+        TSharedPtr<FTagModalState> State = MakeSharedPtr<FTagModalState>();
+        
+        ToolContext->PushModal("Add Tag", ImVec2(400.0f, 180.0f), [this, Entity, State](const FUpdateContext& Context) -> bool
+        {
+            bool bTagAdded = false;
+    
+            // Modal header styling
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.9f, 0.9f, 1.0f));
+            ImGui::TextUnformatted("Enter a tag name for this entity");
+            ImGui::PopStyleColor();
+            
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+    
+            // Tag input field
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 8));
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
+            ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.15f, 0.15f, 0.16f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.18f, 0.18f, 0.19f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.2f, 0.2f, 0.21f, 1.0f));
+            
+            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+            
+            bool bInputEnter = ImGui::InputTextWithHint(
+                "##TagInput",
+                LE_ICON_TAG " Tag name...",
+                State->TagBuffer,
+                sizeof(State->TagBuffer),
+                ImGuiInputTextFlags_EnterReturnsTrue
+            );
+            
+            // Autofocus the input field
+            if (ImGui::IsWindowAppearing())
+            {
+                ImGui::SetKeyboardFocusHere(-1);
+            }
+            
+            ImGui::PopStyleColor(3);
+            ImGui::PopStyleVar(2);
+            
+            // Check if tag already exists
+            FString TagName(State->TagBuffer);
+            State->bTagExists = !TagName.empty() && Entity.HasTag(TagName);
+            
+            // Show error if tag exists
+            if (State->bTagExists)
+            {
+                ImGui::Spacing();
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.4f, 0.4f, 1.0f));
+                ImGui::TextUnformatted(LE_ICON_ALERT_CIRCLE " Tag already exists on this entity");
+                ImGui::PopStyleColor();
+            }
+    
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+    
+            // Bottom buttons
+            constexpr float buttonWidth = 100.0f;
+            float const buttonSpacing = ImGui::GetStyle().ItemSpacing.x;
+            float const totalWidth = buttonWidth * 2 + buttonSpacing;
+            float const availWidth = ImGui::GetContentRegionAvail().x;
+            ImGui::SetCursorPosX((availWidth - totalWidth) * 0.5f);
+            
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(20, 8));
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
+            
+            // Add button (green, disabled if empty or exists)
+            bool const bCanAdd = !TagName.empty() && !State->bTagExists;
+            
+            if (!bCanAdd)
+            {
+                ImGui::BeginDisabled();
+            }
+
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.55f, 0.3f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.65f, 0.35f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.2f, 0.5f, 0.25f, 1.0f));
+            
+            if (ImGui::Button("Add", ImVec2(buttonWidth, 0)) || (bInputEnter && bCanAdd))
+            {
+                entt::hashed_string IDType = entt::hashed_string(TagName.c_str());
+                auto& Storage = World->GetEntityRegistry().storage<STagComponent>(IDType);
+                Storage.emplace(Entity.GetHandle()).Tag = TagName;
+                bTagAdded = true;
+            }
+            
+            ImGui::PopStyleColor(3);
+            
+            if (!bCanAdd)
+            {
+                ImGui::EndDisabled();
+            }
+
+            ImGui::SameLine();
+            
+            // Cancel button
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.22f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.25f, 0.25f, 0.27f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.3f, 0.32f, 1.0f));
+            
+            bool bShouldClose = false;
+            if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0)))
+            {
+                bShouldClose = true;
+            }
+            
+            ImGui::PopStyleColor(3);
+            ImGui::PopStyleVar(2);
+            
+            return bTagAdded || bShouldClose;
+        });
+    }
+
     void FWorldEditorTool::PushAddComponentModal(const Entity& Entity)
     {
         TSharedPtr<ImGuiTextFilter> Filter = MakeSharedPtr<ImGuiTextFilter>();
@@ -666,7 +788,6 @@ namespace Lumina
     
                 ImGui::PushID((int)Entity.GetHandle());
     
-                // Collect and categorize components
                 struct ComponentInfo
                 {
                     const char* Name;
@@ -679,7 +800,7 @@ namespace Lumina
                 for(auto&& [_, MetaType]: entt::resolve())
                 {
                     using namespace entt::literals;
-                    auto Any = MetaType.invoke("staticstruct"_hs, {});
+                    entt::meta_any Any = MetaType.invoke("staticstruct"_hs, {});
                     if (void** Type = Any.try_cast<void*>())
                     {
                         CStruct* Struct = *(CStruct**)Type;
@@ -845,7 +966,9 @@ namespace Lumina
         EditorEntity = World->SetupEditorWorld();
 
         SetSelectedEntity({});
+        
         SystemsListView.MarkTreeDirty();
+        OutlinerListView.MarkTreeDirty();
     }
 
     void FWorldEditorTool::DrawCreateEntityMenu()
@@ -889,7 +1012,7 @@ namespace Lumina
                     if (void** Type = Any.try_cast<void*>())
                     {
                         CStruct* Struct = *(CStruct**)Type;
-                        if (Struct == STransformComponent::StaticStruct() || Struct == SNameComponent::StaticStruct())
+                        if (Struct == STransformComponent::StaticStruct() || Struct == SNameComponent::StaticStruct() || Struct == STagComponent::StaticStruct())
                         {
                             continue;
                         }
@@ -1030,7 +1153,7 @@ namespace Lumina
         };
         
 
-        for (entt::entity EntityHandle : World->GetEntityRegistry().view<entt::entity>(entt::exclude<SHiddenComponent>))
+        for (entt::entity EntityHandle : World->GetEntityRegistry().view<entt::entity>(entt::exclude<SHiddenComponent, SEditorComponent>))
         {
             Entity entity(EntityHandle, World);
 
@@ -1042,7 +1165,7 @@ namespace Lumina
                 }
             }
 
-            AddEntityRecursive(eastl::move(entity), nullptr);
+            AddEntityRecursive(Move(entity), nullptr);
         }
     }
 
@@ -1073,7 +1196,7 @@ namespace Lumina
         const float AvailWidth = ImGui::GetContentRegionAvail().x;
         
         {
-            const SIZE_T EntityCount = World->GetEntityRegistry().view<entt::entity>().size();
+            const SIZE_T EntityCount = World->GetEntityRegistry().view<entt::entity>(entt::exclude<SHiddenComponent, SEditorComponent>).size_hint();
             ImGui::BeginGroup();
             {
                 ImGui::AlignTextToFramePadding();
@@ -1336,6 +1459,19 @@ namespace Lumina
         }
         
         ImGui::Spacing();
+
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.7f, 1.0f));
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted(LE_ICON_PUZZLE " Tags");
+            ImGui::PopStyleColor();
+            
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+            
+            DrawTagList();
+        }
         
         {
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.7f, 1.0f));
@@ -1356,45 +1492,49 @@ namespace Lumina
         const float ButtonHeight = 32.0f;
         const float AvailWidth = ImGui::GetContentRegionAvail().x;
         const float ButtonWidth = (AvailWidth - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
-    
+
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 6.0f);
-    
-        // Add Component Button
+
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.55f, 0.3f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.65f, 0.35f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.2f, 0.5f, 0.25f, 1.0f));
-    
+
         if (ImGui::Button(LE_ICON_PLUS " Add Component", ImVec2(ButtonWidth, ButtonHeight)))
         {
             PushAddComponentModal(SelectedEntity);
         }
-    
-        ImGui::PopStyleColor(3);
-    
         if (ImGui::IsItemHovered())
         {
             ImGui::SetTooltip("Add a new component to this entity");
         }
-    
+
         ImGui::SameLine();
-    
-        // Destroy Entity Button
+
+        if (ImGui::Button(LE_ICON_TAG " Add Tag", ImVec2(ButtonWidth, ButtonHeight)))
+        {
+            PushAddTagModal(SelectedEntity);
+        }
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("Add a runtime tag to this entity to use with runtime views.");
+        }
+
+        ImGui::PopStyleColor(3);
+
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.2f, 0.2f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.7f, 0.25f, 0.25f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.55f, 0.18f, 0.18f, 1.0f));
-    
-        if (ImGui::Button(LE_ICON_TRASH_CAN" Destroy", ImVec2(ButtonWidth, ButtonHeight)))
+
+        if (ImGui::Button(LE_ICON_TRASH_CAN " Destroy", ImVec2(AvailWidth, ButtonHeight)))
         {
             EntityDestroyRequests.push(SelectedEntity);
         }
-    
-        ImGui::PopStyleColor(3);
-    
         if (ImGui::IsItemHovered())
         {
             ImGui::SetTooltip("Permanently delete this entity");
         }
-    
+
+        ImGui::PopStyleColor(3);
         ImGui::PopStyleVar();
     }
 
@@ -1408,10 +1548,146 @@ namespace Lumina
         }
     }
 
+    void FWorldEditorTool::DrawTagList()
+    {
+        TFixedVector<FName, 4> Tags;
+        for (auto [Name, Storage] : World->GetEntityRegistry().storage())
+        {
+            if (Storage.type() == entt::type_id<STagComponent>())
+            {
+                if (Storage.contains(SelectedEntity.GetHandle()))
+                {
+                    STagComponent* ComponentPtr = static_cast<STagComponent*>(Storage.value(SelectedEntity.GetHandle()));
+                    Tags.push_back(ComponentPtr->Tag);
+                }
+            }
+        }
+        
+        if (Tags.empty())
+        {
+            return;
+        }
+        
+        ImGui::PushID("TagList");
+        
+        // Section header
+        ImVec2 CursorPos = ImGui::GetCursorScreenPos();
+        ImVec2 HeaderSize = ImVec2(ImGui::GetContentRegionAvail().x, 32.0f);
+        
+        ImDrawList* DrawList = ImGui::GetWindowDrawList();
+        DrawList->AddRectFilled(CursorPos, ImVec2(CursorPos.x + HeaderSize.x, CursorPos.y + HeaderSize.y), IM_COL32(25, 25, 30, 255), 6.0f);
+        
+        DrawList->AddRect(CursorPos, ImVec2(CursorPos.x + HeaderSize.x, CursorPos.y + HeaderSize.y), IM_COL32(45, 45, 52, 255), 6.0f, 0, 1.0f);
+        
+        ImVec2 IconPos = CursorPos;
+        IconPos.x += 12.0f;
+        IconPos.y += (HeaderSize.y - ImGui::GetTextLineHeight()) * 0.5f;
+        DrawList->AddText(IconPos, IM_COL32(150, 170, 200, 255), LE_ICON_TAG);
+        
+        ImVec2 TitlePos = IconPos;
+        TitlePos.x += 24.0f;
+        DrawList->AddText(TitlePos, IM_COL32(220, 220, 230, 255), "Tags");
+        
+        // Tag count badge
+        char CountBuf[16];
+        snprintf(CountBuf, sizeof(CountBuf), "%zu", Tags.size());
+        ImVec2 CountPos = TitlePos;
+        CountPos.x += ImGui::CalcTextSize("Tags").x + 8.0f;
+        CountPos.y -= 1.0f;
+        
+        ImVec2 CountBadgeSize = ImGui::CalcTextSize(CountBuf);
+        CountBadgeSize.x += 10.0f;
+        CountBadgeSize.y += 2.0f;
+        
+        DrawList->AddRectFilled(CountPos, 
+            ImVec2(CountPos.x + CountBadgeSize.x, CountPos.y + CountBadgeSize.y),
+            IM_COL32(60, 80, 120, 180), 3.0f);
+        DrawList->AddText(ImVec2(CountPos.x + 5.0f, CountPos.y + 1.0f), 
+            IM_COL32(180, 200, 240, 255), CountBuf);
+        
+        ImGui::SetCursorScreenPos(ImVec2(CursorPos.x, CursorPos.y + HeaderSize.y + 4.0f));
+        
+        // Tag chips
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 4.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 6.0f));
+        
+        float AvailWidth = ImGui::GetContentRegionAvail().x;
+        float CurrentX = 0.0f;
+        
+        FName TagToRemove;
+        
+        for (const FName& Tag : Tags)
+        {
+            ImGui::PushID(Tag.c_str());
+            
+            const char* TagStr = Tag.c_str();
+            ImVec2 TagSize = ImGui::CalcTextSize(TagStr);
+            float ChipWidth = TagSize.x + 52.0f;
+            
+            if (CurrentX + ChipWidth > AvailWidth && CurrentX > 0.0f)
+            {
+                CurrentX = 0.0f;
+            }
+            else if (CurrentX > 0.0f)
+            {
+                ImGui::SameLine();
+            }
+            
+            ImVec2 ChipPos = ImGui::GetCursorScreenPos();
+            ImVec2 ChipSize = ImVec2(ChipWidth, TagSize.y + 10.0f);
+            
+            bool bHovered = ImGui::IsMouseHoveringRect(ChipPos, 
+                ImVec2(ChipPos.x + ChipSize.x, ChipPos.y + ChipSize.y));
+            
+            ImU32 ChipBg = bHovered ? IM_COL32(55, 65, 85, 255) : IM_COL32(45, 55, 75, 255);
+            ImU32 ChipBorder = bHovered ? IM_COL32(80, 100, 140, 255) : IM_COL32(65, 80, 115, 255);
+            
+            DrawList->AddRectFilled(ChipPos, ImVec2(ChipPos.x + ChipSize.x, ChipPos.y + ChipSize.y), ChipBg, 12.0f);
+            DrawList->AddRect(ChipPos, ImVec2(ChipPos.x + ChipSize.x, ChipPos.y + ChipSize.y), ChipBorder, 12.0f, 0, 1.0f);
+            
+            DrawList->AddText(ImVec2(ChipPos.x + 10.0f, ChipPos.y + 5.0f), IM_COL32(130, 160, 210, 255), LE_ICON_TAG);
+            
+            DrawList->AddText(ImVec2(ChipPos.x + 28.0f, ChipPos.y + 5.0f), IM_COL32(200, 210, 230, 255), TagStr);
+            
+            ImVec2 ClosePos = ImVec2(ChipPos.x + ChipSize.x - 20.0f, ChipPos.y + 5.0f);
+            bool bCloseHovered = ImGui::IsMouseHoveringRect(ImVec2(ClosePos.x - 4.0f, ClosePos.y - 4.0f), ImVec2(ClosePos.x + 12.0f, ClosePos.y + 12.0f));
+            
+            ImU32 CloseColor = bCloseHovered ? IM_COL32(240, 100, 100, 255) : IM_COL32(150, 150, 160, 255);
+            DrawList->AddText(ClosePos, CloseColor, LE_ICON_CLOSE);
+            
+            ImGui::InvisibleButton("##chip", ChipSize);
+            
+            if (bCloseHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+            {
+                TagToRemove = Tag;
+            }
+            
+            CurrentX += ChipWidth + ImGui::GetStyle().ItemSpacing.x;
+            
+            ImGui::PopID();
+        }
+        
+        ImGui::PopStyleVar(3);
+        
+        if (!TagToRemove.IsNone())
+        {
+            World->GetEntityRegistry().storage<STagComponent>(entt::hashed_string(TagToRemove.c_str())).remove(SelectedEntity.GetHandle());
+        }
+        
+        ImGui::Spacing();
+        ImGui::PopID();
+    }
+
     void FWorldEditorTool::DrawComponentHeader(TUniquePtr<FPropertyTable>& Table)
     {
         const char* ComponentName = Table->GetType()->GetName().c_str();
         const bool bIsRequired = (Table->GetType() == STransformComponent::StaticStruct() || Table->GetType() == SNameComponent::StaticStruct());
+
+        if (Table->GetType() == STagComponent::StaticStruct())
+        {
+            return;
+        }
         
         ImGui::PushID(Table.get());
         

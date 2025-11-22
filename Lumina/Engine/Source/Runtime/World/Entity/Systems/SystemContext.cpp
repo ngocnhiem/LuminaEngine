@@ -1,7 +1,11 @@
 ﻿#include "SystemContext.h"
 
+#include "sol/sol.hpp"
 #include "World/World.h"
 #include "World/Entity/Entity.h"
+#include "World/Entity/Components/DirtyComponent.h"
+#include "World/Entity/Components/LuaComponent.h"
+#include "World/Entity/Components/TagComponent.h"
 
 namespace Lumina
 {
@@ -16,6 +20,114 @@ namespace Lumina
     FSystemContext::~FSystemContext()
     {
         EntityWorld->Unlock();
+    }
+
+    void FSystemContext::RegisterWithLua(sol::state& Lua)
+    {
+        sol::usertype<FSystemContext> ContextType = Lua.new_usertype<FSystemContext>("SystemContext", sol::no_constructor);
+        
+        ContextType["DeltaTime"] = sol::readonly_property([](const FSystemContext& Ctx) { return Ctx.GetDeltaTime(); });
+        ContextType["Time"] = sol::readonly_property([](const FSystemContext& Ctx) { return Ctx.Time(); });
+
+        ContextType["Transform"] = [](FSystemContext& Ctx, sol::this_state S, uint32 EntityID)
+        {
+            return sol::make_object(S, Ctx.Get<STransformComponent>((entt::entity)EntityID));
+        };
+        
+        ContextType["View"] = &FSystemContext::MakeLuaView;
+
+        ContextType["DirtyTransform"] = [](FSystemContext& Ctx, uint32 EntityID)
+        {
+          Ctx.EmplaceOrReplace<FNeedsTransformUpdate>((entt::entity)(EntityID));  
+        };
+
+        ContextType["Emplace"] = [](const FSystemContext& Ctx, uint32 EntityID, sol::table Table) -> sol::table
+        {
+            const char* ComponentName = Table["__type"].get<const char*>();
+            entt::hashed_string HashedString = entt::hashed_string(ComponentName);
+            
+            // This type is resolvable, so we use the emplacement function there.
+            if (entt::meta_type Meta = entt::resolve(HashedString))
+            {
+                using namespace entt::literals;
+                void* RegistryPointer = &Ctx.EntityWorld->Registry;
+                entt::meta_any NewComponent = Meta.invoke("addcomponent"_hs, {}, (entt::entity)EntityID, RegistryPointer);
+                void** Type = NewComponent.try_cast<void*>();
+                
+                return Scripting::FScriptingContext::Get().ConvertToSolObjectFromName(FName(ComponentName), Table.lua_state(), *Type);
+            }
+
+            // This type is not native resolvable, so we're assuming the user created a new lua type.
+            
+            SLuaComponent& NewComponent = Ctx.EntityWorld->Registry.storage<SLuaComponent>(HashedString).emplace((entt::entity)EntityID);
+            
+            NewComponent.TypeName = ComponentName;
+            NewComponent.LuaTable = Table;
+
+            return NewComponent.LuaTable;
+        };
+    }
+
+    sol::table FSystemContext::MakeLuaView(sol::variadic_args Types)
+    {
+        LUMINA_PROFILE_SECTION("FSystemContext::ScriptView");
+        using namespace entt::literals;
+
+        entt::runtime_view RuntimeView;
+
+        struct FComponentInfo
+        {
+            FName Name;
+            entt::basic_sparse_set<>* Storage;
+        };
+        
+        TFixedVector<FComponentInfo, 4> Storages;
+        
+
+        for (auto Arg : Types)
+        {
+            if (Arg.is<sol::table>())
+            {
+                sol::table ComponentTable = Arg.as<sol::table>();
+                FName LuaName = ComponentTable["__type"].get<const char*>();
+
+                auto HashedComponentName = entt::hashed_string(LuaName.c_str());
+                entt::meta_type Meta = entt::resolve(HashedComponentName);
+            
+                if (entt::basic_sparse_set<>* Storage = EntityWorld->Registry.storage(Meta.info().hash()))
+                {
+                    Storages.emplace_back(FComponentInfo{ LuaName, Storage });
+                    RuntimeView.iterate(*Storage);
+                }
+            }
+            else if (Arg.is<const char*>())
+            {
+                FName LuaName = Arg.get<const char*>();
+                auto HashedComponentName = entt::hashed_string(LuaName.c_str());
+                if (entt::basic_sparse_set<>* Storage = EntityWorld->Registry.storage(HashedComponentName))
+                {
+                    Storages.emplace_back(FComponentInfo{ LuaName, Storage });
+                    RuntimeView.iterate(*Storage);
+                }
+            }
+        }
+        
+        sol::state_view StateView(Types.lua_state());
+        sol::table ViewTable = StateView.create_table();
+        
+        RuntimeView.each([&] (entt::entity EntityID)
+        {
+            sol::table Row = StateView.create_table();
+
+            for (auto& Info : Storages)
+            {
+                Row[Info.Name.c_str()] = Scripting::FScriptingContext::Get().ConvertToSolObjectFromName(Info.Name, StateView, Info.Storage->value(EntityID));
+            }
+
+            ViewTable[(uint32)EntityID] = Row;
+        });
+
+        return ViewTable;
     }
 
     void FSystemContext::SetActiveCamera(entt::entity New) const

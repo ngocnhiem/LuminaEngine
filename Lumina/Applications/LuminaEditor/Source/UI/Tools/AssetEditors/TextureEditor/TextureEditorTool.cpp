@@ -171,14 +171,12 @@ namespace Lumina
         
             const FRHIImageDesc& ImageDesc = Texture->TextureResource->ImageDescription;
         
-            // === Header ===
             ImGuiX::Font::PushFont(ImGuiX::Font::EFont::Large);
             ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "%s", Texture->GetName().c_str());
             ImGuiX::Font::PopFont();
             
             ImGui::Spacing();
         
-            // === Basic Information ===
             ImGuiX::Font::PushFont(ImGuiX::Font::EFont::Large);
             ImGui::SeparatorText("Texture Information");
             ImGuiX::Font::PopFont();

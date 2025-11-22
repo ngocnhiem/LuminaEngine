@@ -117,6 +117,7 @@ namespace Lumina
         void DrawViewportOverlayElements(const FUpdateContext& UpdateContext, ImTextureRef ViewportTexture, ImVec2 ViewportSize) override;
         void DrawViewportToolbar(const FUpdateContext& UpdateContext) override;
 
+        void PushAddTagModal(const Entity& Entity);
         void PushAddComponentModal(const Entity& Entity);
         void PushRenameEntityModal(Entity Ent);
 
@@ -142,6 +143,7 @@ namespace Lumina
         void DrawEntityProperties();
         void DrawEntityActionButtons();
         void DrawComponentList();
+        void DrawTagList();
         void DrawComponentHeader(TUniquePtr<FPropertyTable>& Table);
         void RemoveComponent(entt::entity Entity, const CStruct* ComponentType);
         void DrawSystemProperties();

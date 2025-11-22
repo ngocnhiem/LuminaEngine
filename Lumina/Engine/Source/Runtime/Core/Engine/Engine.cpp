@@ -15,6 +15,7 @@
 #include "Renderer/RenderManager.h"
 #include "Renderer/RenderResource.h"
 #include "Renderer/RHIGlobals.h"
+#include "Scripting/Lua/Scripting.h"
 #include "TaskSystem/TaskSystem.h"
 #include "Tools/UI/DevelopmentToolUI.h"
 #include "World/WorldManager.h"
@@ -40,6 +41,7 @@ namespace Lumina
         
         FTaskSystem::Initialize();
         Physics::Initialize();
+        Scripting::Initialize();
         
         RenderManager = EngineSubsystems.AddSubsystem<FRenderManager>();
         EngineViewport = GRenderContext->CreateViewport(Windowing::GetPrimaryWindowHandle()->GetExtent());
@@ -93,6 +95,7 @@ namespace Lumina
         EngineSubsystems.RemoveSubsystem<FRenderManager>();
 
         Physics::Shutdown();
+        Scripting::Shutdown();
         
         FTaskSystem::Shutdown();
         

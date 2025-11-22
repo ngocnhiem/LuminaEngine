@@ -62,12 +62,12 @@ namespace Lumina
     	
     	auto CreateFont = [&] ( Blob& fontData, float fontSize, float iconFontSize, ImGuiX::Font::EFont fontID, char const* pName, ImVec2 const& glyphOffset )
     	{
-    		ImFont* pFont = io.Fonts->AddFontFromMemoryTTF( fontData.data(), static_cast<int32_t>(fontData.size()), fontSize, &fontConfig );
+    		ImFont* pFont = io.Fonts->AddFontFromMemoryTTF( fontData.data(), static_cast<int32>(fontData.size()), fontSize, &fontConfig );
 		    ImGuiX::Font::GFonts[static_cast<uint8>(fontID)] = pFont;
 
     		iconFontConfig.GlyphOffset = glyphOffset;
     		iconFontConfig.GlyphMinAdvanceX = iconFontSize;
-    		io.Fonts->AddFontFromMemoryTTF( iconFontData.data(), static_cast<int32_t>(iconFontData.size()), iconFontSize, &iconFontConfig, icons_ranges );
+    		io.Fonts->AddFontFromMemoryTTF( iconFontData.data(), static_cast<int32>(iconFontData.size()), iconFontSize, &iconFontConfig, icons_ranges );
     	};
 
     	constexpr float DPIScale = 1.0f;
@@ -170,7 +170,7 @@ namespace Lumina
         style.Colors[ImGuiCol_NavWindowingHighlight] =  ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
         style.Colors[ImGuiCol_NavWindowingDimBg] =      ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
         style.Colors[ImGuiCol_ModalWindowDimBg] =       ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
-    	style.Colors[ImGuiCol_CheckMark]        		= ImVec4(0.25f, 1.0f, 0.25f, 1.0f);
+    	style.Colors[ImGuiCol_CheckMark] =				ImVec4(0.25f, 1.0f, 0.25f, 1.0f);
 
     	
         style.GrabRounding = style.FrameRounding =      2.3f;
@@ -213,8 +213,7 @@ namespace Lumina
     	ImGuiX::Notifications::Render();
 		ImGui::Render();
 
-    	ImGuiIO& io = ImGui::GetIO();
-    	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    	if (Io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     	{
     		ImGui::UpdatePlatformWindows();
     		ImGui::RenderPlatformWindowsDefault();

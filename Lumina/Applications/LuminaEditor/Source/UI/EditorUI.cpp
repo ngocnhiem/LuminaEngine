@@ -26,6 +26,7 @@
 #include "Assets/AssetTypes/Material/Material.h"
 #include "Assets/AssetTypes/Material/MaterialInstance.h"
 #include "Assets/AssetTypes/Mesh/StaticMesh/StaticMesh.h"
+#include "Assets/AssetTypes/Script/ScriptAsset.h"
 #include "Assets/AssetTypes/Textures/Texture.h"
 #include "Core/Object/Cast.h"
 #include "Core/Object/ObjectIterator.h"
@@ -44,6 +45,7 @@
 #include "Tools/AssetEditors/ArchetypeEditor/ArchetypeEditorTool.h"
 #include "Tools/AssetEditors/MaterialEditor/MaterialInstanceEditorTool.h"
 #include "Tools/AssetEditors/MeshEditor/MeshEditorTool.h"
+#include "Tools/AssetEditors/ScriptEditor/ScriptAssetEditorTool.h"
 #include "Tools/AssetEditors/TextureEditor/TextureEditorTool.h"
 #include "Tools/Import/ImportHelpers.h"
 #include "Tools/UI/ImGui/ImGuiRenderer.h"
@@ -958,8 +960,15 @@ namespace Lumina
             {
                 WorldEditorTool->SetWorld(Cast<CWorld>(InAsset));
             }
-            
-            ActiveAssetTools.insert_or_assign(InAsset, NewTool);
+            else if (InAsset->IsA<CScriptAsset>())
+            {
+                NewTool = CreateTool<FScriptAssetEditorTool>(this, InAsset);
+            }
+
+            if (NewTool)
+            {
+                ActiveAssetTools.insert_or_assign(InAsset, NewTool);
+            }
         }
     }
 

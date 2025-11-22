@@ -55,7 +55,7 @@ namespace Lumina
                     uint32 Index = GroupOffset + PassIndex;
                     if (ParallelGroups[GroupIndex].Passes[PassIndex]->GetDescriptor()->HasAnyFlag(ERGExecutionFlags::Async))
                     {
-                        FLambdaTask* Task = Task::AsyncTask(1, 1, [this, &AllCommandLists, GroupIndex, PassIndex, Index](uint32 Start, uint32 End, uint32 Thread)
+                        Task::AsyncTask(1, 1, [this, &AllCommandLists, GroupIndex, PassIndex, Index](uint32 Start, uint32 End, uint32 Thread)
                         {
                             FRHICommandListRef CommandList = GRenderContext->CreateCommandList(FCommandListInfo::Graphics());
                             CommandList->Open();
@@ -64,8 +64,6 @@ namespace Lumina
                             CommandList->Close();
                             AllCommandLists[Index] = CommandList.GetReference();
                         });
-
-                        AsyncComputeTasks.push_back(Task);
                     }
                     else
                     {
@@ -84,13 +82,8 @@ namespace Lumina
                 
                 TotalOffset += Group.Passes.size();
             }
-
-            for (FLambdaTask* Task : AsyncComputeTasks)
-            {
-                GTaskSystem->WaitForTask(Task);
-            }
-            AsyncComputeTasks.clear();
             
+            GTaskSystem->WaitForAll();
             GRenderContext->ExecuteCommandLists(AllCommandLists.data(), AllCommandLists.size(), ECommandQueue::Graphics);
         }
         else
@@ -112,7 +105,7 @@ namespace Lumina
                     uint32 AsyncPassIndex = AllCommandLists.size();
                     AllCommandLists.push_back(nullptr);
                     
-                    FLambdaTask* Task = Task::AsyncTask(1, 1, [Pass, AsyncPassIndex, &AllCommandLists](uint32 Start, uint32 End, uint32 Thread)
+                    Task::AsyncTask(1, 1, [Pass, AsyncPassIndex, &AllCommandLists](uint32 Start, uint32 End, uint32 Thread)
                     {
                         FRHICommandListRef LocalCommandList = GRenderContext->CreateCommandList(FCommandListInfo::Graphics());
                         
@@ -122,8 +115,6 @@ namespace Lumina
                         Pass->Execute(*LocalCommandList);
                         LocalCommandList->Close();
                     });
-
-                    AsyncTasks.push_back(Task);
                 }
                 else // Run the pass serially.
                 {
@@ -132,11 +123,8 @@ namespace Lumina
             }
 
             CommandList->Close();
-
-            for (FLambdaTask* Task : AsyncTasks)
-            {
-                GTaskSystem->WaitForTask(Task);
-            }
+            
+            GTaskSystem->WaitForAll();
             
             GRenderContext->ExecuteCommandLists(AllCommandLists.data(), AllCommandLists.size(), ECommandQueue::Graphics);   
         }

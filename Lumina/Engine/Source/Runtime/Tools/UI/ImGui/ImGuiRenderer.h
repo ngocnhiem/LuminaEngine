@@ -30,7 +30,7 @@ namespace Lumina
 
         virtual ImTextureID GetOrCreateImTexture(const FString& Path) = 0;
         virtual ImTextureID GetOrCreateImTexture(FRHIImage* Image, const FTextureSubresourceSet& Subresources = AllSubresources) = 0;
-        virtual void DestroyImTexture(ImTextureRef Image) = 0;
+        virtual void DestroyImTexture(uint64 Hash) = 0;
 
         virtual void DrawRenderDebugInformationWindow(bool* bOpen, const FUpdateContext& Context) = 0;
         

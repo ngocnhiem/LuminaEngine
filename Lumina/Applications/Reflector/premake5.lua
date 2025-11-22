@@ -9,13 +9,11 @@ project "Reflector"
     targetdir ("%{LuminaEngineDirectory}/Binaries/" .. outputdir)
     objdir ("%{LuminaEngineDirectory}/Intermediates/Obj/" .. outputdir .. "/%{prj.name}")
 
-    configurations { "Release" }
-
-    filter "configurations:Release"
-        defines { "NDEBUG" }
-        optimize "On"
-        
-	removedefines { }
+    configmap
+	{
+		["Debug"] = "Release",
+		["Development"] = "Release",
+	}
 
 
 	prebuildcommands 

@@ -19,8 +19,6 @@
 
 namespace Lumina
 {
-    static FMutex ObjectNameMutex;
-    
     /** Allocates a section of memory for the new object, does not place anything into the memory */
     static CObjectBase* AllocateCObjectMemory(const CClass* InClass, EObjectFlags InFlags)
     {

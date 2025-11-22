@@ -3,6 +3,7 @@
 
 #include "Components/DirtyComponent.h"
 #include "Components/RelationshipComponent.h"
+#include "components/tagcomponent.h"
 #include "Core/Object/Class.h"
 
 namespace Lumina
@@ -100,13 +101,24 @@ namespace Lumina
                 {
                     using namespace entt::literals;
                     void* RegistryPtr = &World->GetEntityRegistry();
-                    entt::hashed_string HashString(Struct->GetName().c_str());
-                    if (entt::meta_type Meta = entt::resolve(HashString))
-                    {
-                        entt::meta_any RetVal = Meta.invoke("addcomponent"_hs, {}, GetHandle(), RegistryPtr);
-                        void** Type = RetVal.try_cast<void*>();
 
-                        Struct->SerializeTaggedProperties(Ar, *Type);
+                    if (Struct == STagComponent::StaticStruct())
+                    {
+                        STagComponent NewTagComponent;
+                        Struct->SerializeTaggedProperties(Ar, &NewTagComponent);
+
+                        World->GetEntityRegistry().storage<STagComponent>(entt::hashed_string(NewTagComponent.Tag.c_str())).emplace(EntityHandle, NewTagComponent);
+                    }
+                    else
+                    {
+                        entt::hashed_string HashString(Struct->GetName().c_str());
+                        if (entt::meta_type Meta = entt::resolve(HashString))
+                        {
+                            entt::meta_any RetVal = Meta.invoke("addcomponent"_hs, {}, GetHandle(), RegistryPtr);
+                            void** Type = RetVal.try_cast<void*>();
+
+                            Struct->SerializeTaggedProperties(Ar, *Type);
+                        }   
                     }
                 }
 
@@ -188,5 +200,10 @@ namespace Lumina
         {
             return FTransform();
         }
+    }
+
+    bool Entity::HasTag(FName TagName) const
+    {
+        return World->GetEntityRegistry().storage<STagComponent>(entt::hashed_string(TagName.c_str())).contains(EntityHandle);
     }
 }

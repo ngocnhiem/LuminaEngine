@@ -1,4 +1,4 @@
-﻿
+﻿#include "pch.h"
 #include "Material.h"
 
 #include "Assets/AssetTypes/Textures/Texture.h"

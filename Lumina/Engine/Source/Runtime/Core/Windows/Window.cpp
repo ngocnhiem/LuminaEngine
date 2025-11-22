@@ -46,7 +46,6 @@ namespace
 
 namespace Lumina
 {
-
 	FWindowDropEvent FWindow::OnWindowDropped;
 	FWindowResizeEvent FWindow::OnWindowResized;
 	
@@ -95,8 +94,9 @@ namespace Lumina
 			glfwSetErrorCallback(GLFWErrorCallback);
 			
 			glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-			glfwWindowHint(GLFW_TITLEBAR, false);
-
+			//glfwWindowHint(GLFW_TITLEBAR, false);
+			glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+			
 			Window = glfwCreateWindow(800, 400, Specs.Title.c_str(), nullptr, nullptr);
 			glfwSetWindowAttrib(Window, GLFW_RESIZABLE, GLFW_TRUE);
 			
@@ -114,12 +114,12 @@ namespace Lumina
 					Specs.Extent.y = static_cast<decltype(Specs.Extent.y)>(static_cast<float>(monitorHeight) / 1.15f);
 				}
 				
-
-				LOG_TRACE("Initializing Window: {0} (Width: {1}p Height: {2}p)", Specs.Title, Specs.Extent.x, Specs.Extent.y);
+				glfwSetWindowSize(Window, Specs.Extent.x, Specs.Extent.y);
 			}
 
-			glfwSetWindowSize(Window, Specs.Extent.x, Specs.Extent.y);
 
+			LOG_TRACE("Initializing Window: {0} (Width: {1}p Height: {2}p)", Specs.Title, Specs.Extent.x, Specs.Extent.y);
+			
 			GLFWimage Icon;
 			int Channels;
 			FString IconPathStr = Paths::GetEngineResourceDirectory() + "/Textures/Lumina.png";

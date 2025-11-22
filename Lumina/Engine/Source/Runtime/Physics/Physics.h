@@ -11,11 +11,7 @@ namespace Lumina
 namespace Lumina::Physics
 {
     class IPhysicsScene;
-}
 
-namespace Lumina::Physics
-{
-    
     class IPhysicsContext
     {
     public:

@@ -14,6 +14,7 @@ IncludeDir["fastgltf"] =                "%{LuminaEngineDirectory}/Lumina/Engine/
 IncludeDir["stb"] =                     "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/stb_image/"
 IncludeDir["meshoptimizer"] =           "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/meshoptimizer/src/"
 IncludeDir["vulkan"] =                  "%{VULKAN_SDK}/Include/"
+IncludeDir["volk"] =                    "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/volk/"
 IncludeDir["EnkiTS"] =                  "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/EnkiTS/src/"
 IncludeDir["SPIRV_Reflect"] =           "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/SPIRV-Reflect/"
 IncludeDir["json"] =                    "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/json/include/"
@@ -27,11 +28,13 @@ IncludeDir["tracy"] =                  	"%{LuminaEngineDirectory}/Lumina/Engine/
 IncludeDir["RenderDoc"] =               "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/RenderDoc"
 IncludeDir["ConcurrentQueue"] =         "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/concurrentqueue/"
 IncludeDir["JoltPhysics"] =             "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/JoltPhysics"
+IncludeDir["Sol2"] =                    "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/sol2/include/"
+IncludeDir["Lua"] =                     "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/lua/include/"
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 function reflection_directory()
-    return "%{wks.location}/Intermediates/Reflection/%{prj.name}/"
+    return "%{LuminaEngineDirectory}/Intermediates/Reflection/%{prj.name}/"
 end
 
 

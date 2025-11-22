@@ -124,8 +124,8 @@ namespace Lumina::Reflection
         std::filesystem::path SolutionRoot = Solution.GetParentPath().c_str();
         std::filesystem::path RelativeHeaderPath = std::filesystem::relative(FullHeaderPath, SolutionRoot);
 
-        Stream += "#include \"../../../Lumina/Engine/Source/Runtime/Core/Object/ObjectMacros.h\"\n";
-        Stream += "#include \"../../../Lumina/Engine/Source/Runtime/Core/Reflection/ReflectedTypeAccessors.h\"\n";
+        Stream += "#include \"Runtime/Core/Object/ObjectMacros.h\"\n";
+        Stream += "#include \"Runtime/Core/Reflection/ReflectedTypeAccessors.h\"\n";
 
         Stream += "\n\n";
         
@@ -185,9 +185,10 @@ namespace Lumina::Reflection
         // Preamble and Includes
         GenerateFileWarning(Stream);
         
+        Stream += "#include \"pch.h\"\n";
         Stream += "#include \"";
         Stream += Header.HeaderPath + "\"\n";
-        Stream += "#include \"../../../Lumina/Engine/Source/Runtime/Core/Object/Class.h\"\n";
+        Stream += "#include \"Runtime/Core/Object/Class.h\"\n";
         Stream += "#include \"Renderer/RHIIncl.h\" //@TODO REMOVE THIS CRAP \n";
         Stream += "\n\n";
 

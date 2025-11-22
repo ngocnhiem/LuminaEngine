@@ -36,10 +36,7 @@ namespace Lumina
             GEngine->GetEngineSubsystem<FWorldManager>()->AddWorld(World);
             World->InitializeWorld();
             EditorEntity = World->SetupEditorWorld();
-            if (!World->IsPlayWorld())
-            {
-            }
-            else
+            if (World->IsPlayWorld())
             {
                 World->BeginPlay();
             }

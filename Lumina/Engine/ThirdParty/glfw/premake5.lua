@@ -99,14 +99,3 @@ project "GLFW"
 			"_GLFW_WIN32",
 			"_CRT_SECURE_NO_WARNINGS"
 		}
-
-
-	filter "configurations:Debug"
-	defines "LE_DEBUG"
-	buildoptions "/MDd"
-	symbols "On"
-	
-	filter "configurations:Release"
-	defines "LE_RELEASE"
-	buildoptions "/MD"
-	optimize "On"

@@ -28,7 +28,7 @@ namespace Lumina
         FORCEINLINE glm::vec3 GetLocation() const    { return Transform.Location; }
         FORCEINLINE glm::quat GetRotation() const    { return Transform.Rotation; }
         FORCEINLINE glm::vec3 GetScale()    const    { return Transform.Scale; }
-        FORCEINLINE float MaxScale()    const    { return glm::max(Transform.Scale.x, glm::max(Transform.Scale.y, Transform.Scale.z)); }
+        FORCEINLINE float MaxScale()        const    { return glm::max(Transform.Scale.x, glm::max(Transform.Scale.y, Transform.Scale.z)); }
         FORCEINLINE glm::mat4 GetMatrix()   const    { return CachedMatrix; }
         
         FORCEINLINE STransformComponent& SetLocation(const glm::vec3& InLocation) 
@@ -58,6 +58,26 @@ namespace Lumina
         FORCEINLINE glm::vec3 GetRotationAsEuler() const 
         {
             return glm::degrees(glm::eulerAngles(Transform.Rotation));
+        }
+
+        static void RegisterLua(sol::state_view State)
+        {
+            sol::usertype<STransformComponent> UserType = State.new_usertype<STransformComponent>(
+            "STransformComponent",
+            sol::call_constructor,
+            sol::constructors<STransformComponent()>(),
+            "__type", sol::readonly_property([]() { return "STransformComponent"; } ),
+
+            "Transform", sol::property([](STransformComponent& This) { return This.Transform; }),
+
+            "GetRotationAsEuler", [](STransformComponent& This) { return This.GetRotationAsEuler(); },
+            
+            "SetLocation", [](STransformComponent& This, glm::vec3 Location) { return This.SetLocation(Location).GetLocation(); },
+            "SetRotation", [](STransformComponent& This, glm::quat Rot) { return This.SetRotation(Rot).GetRotation(); },
+            "SetRotationFromEuler", [](STransformComponent& This, glm::vec3 Rot) { return This.SetRotationFromEuler(Rot).GetRotation(); },
+            "SetScale", [](STransformComponent& This, glm::vec3 Scale) { return This.SetScale(Scale).GetScale(); }
+            
+            );
         }
 
     public:

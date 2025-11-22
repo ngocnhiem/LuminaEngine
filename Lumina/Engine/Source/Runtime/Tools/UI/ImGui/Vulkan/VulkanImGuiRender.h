@@ -2,6 +2,8 @@
 
 #include <volk/volk.h>
 #include <vk_mem_alloc.h>
+
+#include "Memory/SmartPtr.h"
 #include "Tools/UI/ImGui/ImGuiRenderer.h"
 
 namespace Lumina
@@ -23,9 +25,8 @@ namespace Lumina
         struct FEntry
         {
             FName Name;
-            uint64 Index;
-            std::atomic_uint64_t LastUseFrame{0};
-            std::atomic<ETextureState> State = ETextureState::Empty;
+            eastl::atomic<uint64> LastUseFrame{0};
+            eastl::atomic<ETextureState> State = ETextureState::Empty;
             FRHIImageRef RHIImage;
             ImTextureRef ImTexture;
         };
@@ -41,7 +42,7 @@ namespace Lumina
         /** An ImTextureID in this context is castable to a VkDescriptorSet. */
         LUMINA_API ImTextureID GetOrCreateImTexture(const FString& Path) override;
         LUMINA_API ImTextureID GetOrCreateImTexture(FRHIImage* Image, const FTextureSubresourceSet& Subresources = AllSubresources) override;
-        void DestroyImTexture(ImTextureRef Image) override;
+        void DestroyImTexture(uint64 Hash) override;
         
     private:
 
@@ -61,12 +62,11 @@ namespace Lumina
     
     private:
 
-        mutable FMutex                  Mutex;
-        FMutex                          TextureMutex;
+        mutable FRecursiveMutex                 Mutex;
 
-        THashMap<uint64, FEntry*>       Images;
+        THashMap<uint64, TUniquePtr<FEntry>>    Images;
         
-        TPair<FName, FEntry*>           SquareWhiteTexture;
+        TPair<FName, FEntry*>                   SquareWhiteTexture;
         
         VkDescriptorPool DescriptorPool = VK_NULL_HANDLE;
         FVulkanRenderContext* VulkanRenderContext = nullptr;

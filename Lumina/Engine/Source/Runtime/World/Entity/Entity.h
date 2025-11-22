@@ -40,7 +40,8 @@ namespace Lumina
         LUMINA_API glm::vec3 GetLocation()          { return GetComponent<STransformComponent>().GetLocation(); }
         LUMINA_API glm::quat GetRotation()          { return GetComponent<STransformComponent>().GetRotation(); }
         LUMINA_API glm::vec3 GetScale()             { return GetComponent<STransformComponent>().GetScale(); }
-        
+
+        LUMINA_API bool HasTag(FName TagName) const;
         
         template <typename T, typename... Args>
         decltype(auto) Emplace(Args&&... args);
@@ -75,8 +76,7 @@ namespace Lumina
         bool operator==(const Entity& other) const  { return EntityHandle == other.EntityHandle; }
         bool operator!=(const Entity& other) const  { return !(*this == other); }
 
-
-        
+    
     private:
 
         entt::entity EntityHandle;

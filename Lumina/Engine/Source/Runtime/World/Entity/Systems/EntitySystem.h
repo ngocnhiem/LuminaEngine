@@ -49,17 +49,29 @@ namespace Lumina
         /** Retrieves the update priority and stage for this system */
         virtual const FUpdatePriorityList* GetRequiredUpdatePriorities() { return nullptr; }
 
+        /** Called when the system is actually constructed for a world, the world and it's systems are not safe at this point */
+        virtual void PostConstructForWorld(const CWorld* World) { }
+
         /** Called when the system is first constructed for the world during play */
         virtual void Initialize(FSystemContext& SystemContext) { }
 
         /** Called when the system is first constructed for the world in editor */
         virtual void InitializeEditor(FSystemContext& SystemContext) { }
 
+        /** called when the first has begun a play session **/
+        virtual void WorldBeginPlay(FSystemContext& SystemContext) { }
+        
         /** Called per-update, for each required system */
         virtual void Update(FSystemContext& SystemContext) { }
 
+        /** called when the first has ended a play session **/
+        virtual void WorldEndPlay(FSystemContext& SystemContext) { }
+        
         /** Called when the system is removed from the world, (and world shutdown) */
         virtual void Shutdown(FSystemContext& SystemContext) { }
+
+        /** Called when a PIE starts, and you may want to copy state to the new system */
+        virtual void CopyProperties(CEntitySystem* Other) { }
         
     };
 }

@@ -11,6 +11,7 @@ namespace Lumina
     class FEntityWorld
     {
         friend class CWorld;
+        friend struct FSystemContext; // @TODO HACK
     public:
 
         void Lock() { bReadOnly.store(true); }

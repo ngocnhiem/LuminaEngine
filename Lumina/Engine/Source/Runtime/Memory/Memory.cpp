@@ -2,7 +2,7 @@
 
 #include "Core/Profiler/Profile.h"
 
-//#undef LUMINA_RPMALLOC
+#undef LUMINA_RPMALLOC
 
 namespace Lumina
 {
