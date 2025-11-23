@@ -1,4 +1,5 @@
-﻿#include "EntityComponentRegistry.h"
+#include "pch.h"
+#include "EntityComponentRegistry.h"
 
 namespace Lumina
 {

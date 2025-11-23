@@ -1,4 +1,5 @@
-﻿#include "EntitySystem.h"
+#include "pch.h"
+#include "EntitySystem.h"
 
 namespace Lumina
 {

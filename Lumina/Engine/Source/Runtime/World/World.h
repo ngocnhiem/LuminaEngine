@@ -83,9 +83,9 @@ namespace Lumina
         const FEntityRegistry& GetEntityRegistry_Immutable() const { return EntityWorld.Registry; }
 
         uint32 GetNumEntities() const;
-        void SetActiveCamera(Entity InEntity);
+        void SetActiveCamera(entt::entity InEntity);
         SCameraComponent& GetActiveCamera();
-        Entity GetActiveCameraEntity() const;
+        entt::entity GetActiveCameraEntity() const;
 
         double GetWorldDeltaTime() const { return DeltaTime; }
         double GetTimeSinceWorldCreation() const { return TimeSinceCreation; }

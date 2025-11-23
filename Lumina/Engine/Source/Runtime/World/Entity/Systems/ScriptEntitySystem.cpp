@@ -1,4 +1,5 @@
-﻿#include "ScriptEntitySystem.h"
+#include "pch.h"
+#include "ScriptEntitySystem.h"
 
 #include "assets/assettypes/script/scriptasset.h"
 #include "Scripting/Lua/Scripting.h"

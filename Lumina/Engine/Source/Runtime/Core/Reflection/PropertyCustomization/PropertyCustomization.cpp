@@ -1,4 +1,5 @@
-﻿#include "PropertyCustomization.h"
+#include "pch.h"
+#include "PropertyCustomization.h"
 
 #include "imgui.h"
 

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Factory.h"
 
 #include "Assets/AssetRegistry/AssetRegistry.h"

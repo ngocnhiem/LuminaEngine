@@ -1,3 +1,4 @@
+#include "pch.h"
 #include <EASTL/internal/config.h>
 #include <EASTL/allocator.h>
 #include <EASTL/string.h>

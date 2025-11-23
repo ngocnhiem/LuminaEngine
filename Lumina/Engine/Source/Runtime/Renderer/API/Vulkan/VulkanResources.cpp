@@ -1,4 +1,5 @@
-﻿#include "VulkanResources.h"
+#include "pch.h"
+#include "VulkanResources.h"
 
 #include "Renderer/RenderResource.h"
 #include "VulkanCommandList.h"

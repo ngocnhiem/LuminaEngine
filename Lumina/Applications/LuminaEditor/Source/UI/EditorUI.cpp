@@ -898,6 +898,10 @@ namespace Lumina
             TransactionManager.Undo();
         }
 
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape) && GamePreviewTool != nullptr)
+        {
+            WorldEditorTool->GetOnPreviewStopRequestedDelegate().Broadcast();
+        }
     }
     
     void FEditorUI::DestroyTool(const FUpdateContext& UpdateContext, FEditorTool* Tool)

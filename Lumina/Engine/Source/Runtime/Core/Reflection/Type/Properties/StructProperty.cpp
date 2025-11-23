@@ -1,4 +1,5 @@
-﻿#include "StructProperty.h"
+#include "pch.h"
+#include "StructProperty.h"
 
 namespace Lumina
 {

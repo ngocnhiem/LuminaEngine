@@ -1,4 +1,5 @@
-﻿#include "RHIGlobals.h"
+#include "pch.h"
+#include "RHIGlobals.h"
 
 namespace Lumina
 {

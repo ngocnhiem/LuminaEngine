@@ -1,4 +1,5 @@
-﻿#include "VulkanCommandList.h"
+#include "pch.h"
+#include "VulkanCommandList.h"
 
 #include "Convert.h"
 #include "VulkanMacros.h"

@@ -1,4 +1,5 @@
-﻿
+#include "pch.h"
+
 #include "ObjectCore.h"
 #include "Class.h"
 #include "Object.h"

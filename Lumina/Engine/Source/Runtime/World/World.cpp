@@ -1,4 +1,5 @@
-﻿#include "World.h"
+#include "pch.h"
+#include "World.h"
 
 #include "Core/Delegates/CoreDelegates.h"
 #include "Core/Engine/Engine.h"
@@ -117,7 +118,7 @@ namespace Lumina
 
         PhysicsScene = Physics::GetPhysicsContext()->CreatePhysicsScene(this);
         
-        CameraManager = Memory::New<FCameraManager>();
+        CameraManager = Memory::New<FCameraManager>(this);
         SetupEditorWorld();
 
         RenderScene = Memory::New<FForwardRenderScene>(this);
@@ -216,7 +217,7 @@ namespace Lumina
         LUMINA_PROFILE_SCOPE();
 
         SCameraComponent& CameraComponent = GetActiveCamera();
-        STransformComponent& CameraTransform = GetActiveCameraEntity().GetComponent<STransformComponent>();
+        STransformComponent& CameraTransform = EntityWorld.Get<STransformComponent>(CameraManager->GetActiveCameraEntity());
 
         glm::vec3 UpdatedForward = CameraTransform.Transform.Rotation * glm::vec3(0.0f, 0.0f, -1.0f);
         glm::vec3 UpdatedUp      = CameraTransform.Transform.Rotation * glm::vec3(0.0f, 1.0f,  0.0f);
@@ -438,7 +439,7 @@ namespace Lumina
         return EntityWorld.Registry.view<entt::entity>().size<>();
     }
 
-    void CWorld::SetActiveCamera(Entity InEntity)
+    void CWorld::SetActiveCamera(entt::entity InEntity)
     {
         CameraManager->SetActiveCamera(InEntity);
     }
@@ -448,7 +449,7 @@ namespace Lumina
         return CameraManager->GetCameraComponent();
     }
 
-    Entity CWorld::GetActiveCameraEntity() const
+    entt::entity CWorld::GetActiveCameraEntity() const
     {
         return CameraManager->GetActiveCameraEntity();
     }

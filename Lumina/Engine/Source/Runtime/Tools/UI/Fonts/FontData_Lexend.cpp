@@ -1,4 +1,5 @@
-﻿// File: 'Lexend-Regular.ttf' (77836 bytes)
+#include "pch.h"
+// File: 'Lexend-Regular.ttf' (77836 bytes)
 // Exported using binary_to_compressed_c.cpp
 static constexpr char g_lexendRegular_compressed_data_base85[64115 + 1] =
 "7])#######a_tq&'/###I),##aq0hLr*pA$Y69t8kF9lD=C*##ev)##=(,h<6HHWUJo(##<P+##WK/e=q-8<G8]A>#**+##v1#f=g'<$^>q&##^Yr?9W2^+>r6/aRotE>#lTcw'J3@0F"

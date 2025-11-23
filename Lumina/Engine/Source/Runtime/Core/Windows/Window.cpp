@@ -16,6 +16,11 @@ namespace
 {
 	void GLFWErrorCallback(int error, const char* description)
 	{
+		// Ignore invalid scancode.
+		if (error == 65540)
+		{
+			return;
+		}
 		LOG_CRITICAL("GLFW Error: {0} | {1}", error, description);
 	}
 	
@@ -94,8 +99,8 @@ namespace Lumina
 			glfwSetErrorCallback(GLFWErrorCallback);
 			
 			glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-			//glfwWindowHint(GLFW_TITLEBAR, false);
-			glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+			glfwWindowHint(GLFW_TITLEBAR, false);
+			//glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
 			
 			Window = glfwCreateWindow(800, 400, Specs.Title.c_str(), nullptr, nullptr);
 			glfwSetWindowAttrib(Window, GLFW_RESIZABLE, GLFW_TRUE);

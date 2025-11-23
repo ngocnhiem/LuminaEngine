@@ -1,4 +1,5 @@
-﻿
+#include "pch.h"
+
 #include "VulkanDevice.h"
 #include "Core/Profiler/Profile.h"
 #include "Renderer/CommandList.h"

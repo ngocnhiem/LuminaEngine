@@ -1,4 +1,5 @@
-﻿#include "DescriptorTableManager.h"
+#include "pch.h"
+#include "DescriptorTableManager.h"
 
 #include "RenderContext.h"
 

@@ -41,7 +41,6 @@ project "Lumina"
     {
         '{COPYFILE} "%{LuminaEngineDirectory}/External/RenderDoc/renderdoc.dll" "%{cfg.targetdir}"',
     }
-    
 
 
     files
@@ -113,5 +112,13 @@ project "Lumina"
         removelinks { "shaderc_combined" }
         links { "shaderc_combinedd" }
 
-    filter "files:Engine/ThirdParty/**.cpp"
-        flags { "NoPCH" }
+        
+filter "files:Engine/ThirdParty/**.cpp"
+    flags { "NoPCH" }
+filter {} -- reset
+
+-- Disable PCH and force C language for third-party C files
+filter "files:Engine/ThirdParty/**.c"
+    flags { "NoPCH" }
+    language "C"
+filter {} -- reset

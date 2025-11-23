@@ -1,4 +1,5 @@
-﻿#include "Class.h"
+#include "pch.h"
+#include "Class.h"
 #include "Core/Reflection/Type/LuminaTypes.h"
 #include "glm/glm.hpp"
 #include "Package/Package.h"

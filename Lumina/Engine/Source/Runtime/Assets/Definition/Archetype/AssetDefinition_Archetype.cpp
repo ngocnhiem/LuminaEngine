@@ -1,1 +1,2 @@
-﻿#include "AssetDefinition_Archetype.h"
+#include "pch.h"
+#include "AssetDefinition_Archetype.h"

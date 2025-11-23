@@ -1,4 +1,5 @@
-﻿#include "Package.h"
+#include "pch.h"
+#include "Package.h"
 
 #include "Assets/AssetRegistry/AssetRegistry.h"
 #include "Core/Engine/Engine.h"

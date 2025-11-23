@@ -1,4 +1,5 @@
-﻿#include "RenderDocImpl.h"
+#include "pch.h"
+#include "RenderDocImpl.h"
 
 #include "renderdoc_app.h"
 #include "Core/Assertions/Assert.h"

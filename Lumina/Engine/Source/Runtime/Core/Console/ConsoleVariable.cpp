@@ -1,4 +1,5 @@
-﻿#include "ConsoleVariable.h"
+#include "pch.h"
+#include "ConsoleVariable.h"
 #include <nlohmann/json.hpp>
 #include "Core/Assertions/Assert.h"
 #include "Paths/Paths.h"

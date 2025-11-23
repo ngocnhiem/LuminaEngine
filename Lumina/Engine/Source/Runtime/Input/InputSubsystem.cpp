@@ -1,3 +1,4 @@
+#include "pch.h"
 
 #include "InputSubsystem.h"
 #include "Core/Profiler/Profile.h"
@@ -18,62 +19,88 @@ namespace Lumina
 
         int Mode = glfwGetInputMode(Window, GLFW_CURSOR);
         int DesiredMode = Snapshot.CursorMode;
+        
         if (Mode != DesiredMode)
         {
             glfwSetInputMode(Window, GLFW_CURSOR, DesiredMode);
         }
 
+        LastSnapshot = Snapshot;
+        Snapshot = {};
+        Snapshot.CursorMode = DesiredMode;
 
+        // Mouse position and delta
         double xpos, ypos;
         glfwGetCursorPos(Window, &xpos, &ypos);
-        glm::vec2 MousePos = {xpos, ypos};
-        if (MousePosLastFrame == glm::vec2(0.0f))
+        glm::vec2 MousePos = { static_cast<float>(xpos), static_cast<float>(ypos) };
+
+        if (!bHasLastMousePos)
         {
             MousePosLastFrame = MousePos;
-            return;
+            bHasLastMousePos = true;
         }
-        
-        MouseDeltaPitch = MousePos.y - MousePosLastFrame.y;
-        MouseDeltaYaw = MousePos.x - MousePosLastFrame.x;
-        
+
+        MouseDelta = MousePos - MousePosLastFrame;
+        MousePosLastFrame = MousePos;
 
         // Keys
         for (int k = Key::Space; k < Key::Num; ++k)
         {
-            Snapshot.Keys[k] = glfwGetKey(Window, k) == GLFW_PRESS;
+            Snapshot.Keys[k] = glfwGetKey(Window, k);
         }
 
-        // Mouse
+        // Mouse buttons
         for (int b = 0; b < Mouse::Num; ++b)
         {
             Snapshot.MouseButtons[b] = glfwGetMouseButton(Window, b) == GLFW_PRESS;
         }
 
-        // Cursor
-        Snapshot.MouseX = static_cast<float>(xpos);
-        Snapshot.MouseY = static_cast<float>(ypos);
-        
-        MousePosLastFrame = MousePos;
+        // Cursor position
+        Snapshot.MouseX = MousePos.x;
+        Snapshot.MouseY = MousePos.y;
     }
 
     void FInputSubsystem::Deinitialize()
     {
     }
-    
 
     void FInputSubsystem::SetCursorMode(int NewMode)
     {
-        Snapshot.CursorMode = NewMode;;
+        Snapshot.CursorMode = NewMode;
+    }
+
+    bool FInputSubsystem::IsKeyDown(KeyCode Key)
+    {
+        return Snapshot.Keys[Key] == GLFW_PRESS;
     }
 
     bool FInputSubsystem::IsKeyPressed(KeyCode Key)
     {
-        return Snapshot.Keys[Key];
+        bool bIsDown = Snapshot.Keys[Key] == GLFW_PRESS || Snapshot.Keys[Key] == GLFW_REPEAT;
+        bool bWasDown = LastSnapshot.Keys[Key] == GLFW_PRESS || LastSnapshot.Keys[Key] == GLFW_REPEAT;
+        return bIsDown && !bWasDown;
+    }
+
+    bool FInputSubsystem::IsKeyReleased(KeyCode Key)
+    {
+        bool bIsDown = Snapshot.Keys[Key] == GLFW_PRESS || Snapshot.Keys[Key] == GLFW_REPEAT;
+        bool bWasDown = LastSnapshot.Keys[Key] == GLFW_PRESS || LastSnapshot.Keys[Key] == GLFW_REPEAT;
+        return !bIsDown && bWasDown;
+    }
+
+    bool FInputSubsystem::IsMouseButtonDown(MouseCode Button)
+    {
+        return Snapshot.MouseButtons[Button];
     }
 
     bool FInputSubsystem::IsMouseButtonPressed(MouseCode Button)
     {
-        return Snapshot.MouseButtons[Button];
+        return Snapshot.MouseButtons[Button] && !LastSnapshot.MouseButtons[Button];
+    }
+
+    bool FInputSubsystem::IsMouseButtonReleased(MouseCode Button)
+    {
+        return !Snapshot.MouseButtons[Button] && LastSnapshot.MouseButtons[Button];
     }
 
     glm::vec2 FInputSubsystem::GetMousePosition() const
@@ -81,5 +108,8 @@ namespace Lumina
         return glm::vec2(Snapshot.MouseX, Snapshot.MouseY);
     }
 
+    glm::vec2 FInputSubsystem::GetMouseDelta() const
+    {
+        return MouseDelta;
+    }
 }
-

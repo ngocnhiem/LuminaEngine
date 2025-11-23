@@ -19,6 +19,9 @@ namespace Lumina::Scripting
 
     struct FLuaConverter
     {
+        using ToFunctionType = sol::object(const sol::state_view&, void*);
+        using FromFunctionType = void*(const sol::object&);
+        
         sol::object (*To) (const sol::state_view&, void*);
         void* (*From) (const sol::object&);
     };
@@ -40,7 +43,10 @@ namespace Lumina::Scripting
         void Shutdown();
 
         void RegisterCoreTypes();
+        void SetupInput();
         sol::object ConvertToSolObjectFromName(FName Name, const sol::state_view& View, void* Data);
+        FLuaConverter::ToFunctionType* GetSolConverterFunctionPtrByName(FName Name);
+        
         void* ConvertFromSolObjectToVoidPtrByName(FName Name, const sol::object& Object);
 
         
@@ -169,8 +175,8 @@ namespace Lumina::Scripting
                 break;
             case EPropertyTypeFlags::Struct:
                 {
-                    BindStructFProperty<T>(UserType, static_cast<FStructProperty*>(Property));
-                }
+                    BindStructFProperty<T>(UserType, static_cast<FStructProperty*>(Property));  
+                } 
                 break;
             case EPropertyTypeFlags::Count:
                 break;
@@ -195,9 +201,7 @@ namespace Lumina::Scripting
         {
             return (void*)&Obj.as<T>();
         }});
-
         
-
         return true;
     }
 

@@ -1,4 +1,5 @@
-﻿#include "ObjectProperty.h"
+#include "pch.h"
+#include "ObjectProperty.h"
 
 #include "Core/Object/Object.h"
 #include "Core/Object/ObjectHandleTyped.h"

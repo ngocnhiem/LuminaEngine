@@ -1,4 +1,5 @@
-﻿#include "Hash.h"
+#include "pch.h"
+#include "Hash.h"
 
 #include "xxhash/xxhash.h"
 

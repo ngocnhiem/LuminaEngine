@@ -1,4 +1,5 @@
-﻿#include "UpdateTransformEntitySystem.h"
+#include "pch.h"
+#include "UpdateTransformEntitySystem.h"
 
 #include "Core/Object/Class.h"
 #include "glm/gtx/string_cast.hpp"

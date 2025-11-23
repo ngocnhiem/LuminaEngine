@@ -99,6 +99,8 @@ namespace Lumina
             return World;
         }
 
+        LUMINA_API void SetActiveCamera(entt::entity NewCameraEntity);
+
 
     private:
 

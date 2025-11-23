@@ -1,4 +1,5 @@
-﻿#include "RenderGraphPassAnalyzer.h"
+#include "pch.h"
+#include "RenderGraphPassAnalyzer.h"
 #include "TaskSystem/TaskSystem.h"
 #include "RenderGraphDescriptor.h"
 #include "RenderGraphPass.h"

@@ -1,8 +1,8 @@
 #pragma once
 
+#include <eastl/type_traits.h>
 #include <random>
-#include <EASTL/algorithm.h>
-
+#include "eastl/utility.h"
 #include "glm/glm.hpp"
 
 namespace Lumina
@@ -35,9 +35,9 @@ namespace Lumina
             {
                 eastl::swap(First, Second);
             }
-
+            
             thread_local std::mt19937_64 rng(std::random_device{}());
-            eastl::uniform_int_distribution<T> dist(First, Second);
+            std::uniform_int_distribution<T> dist(First, Second);
     
             return dist(rng);
         }

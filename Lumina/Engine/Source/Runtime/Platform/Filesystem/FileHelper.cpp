@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "FileHelper.h"
 
 #define _ITERATOR_DEBUG_LEVEL 0

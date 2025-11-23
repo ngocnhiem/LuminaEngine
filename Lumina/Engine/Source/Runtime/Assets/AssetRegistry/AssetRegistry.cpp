@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "AssetRegistry.h"
 
 #include "Core/Object/ObjectRedirector.h"

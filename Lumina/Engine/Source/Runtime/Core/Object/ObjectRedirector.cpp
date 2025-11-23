@@ -1,4 +1,5 @@
-﻿#include "ObjectRedirector.h"
+#include "pch.h"
+#include "ObjectRedirector.h"
 
 #include "Class.h"
 

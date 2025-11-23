@@ -1,4 +1,5 @@
-﻿// File: 'materialdesignicons-webfont.ttf' (1279992 bytes)
+#include "pch.h"
+// File: 'materialdesignicons-webfont.ttf' (1279992 bytes)
 // Exported using binary_to_compressed_c.cpp
 static constexpr char MD_compressed_data_base85[1063205+1] =
     "7])#######bNMns'/###[),##.f1$#Q6>##CExF>6pY(/I->>#q?'o/I[n42_,0K@S*m<-IP4U%sVA0FVUv6NF''##<sC>#SsJkEL_@bbjc[Y#3Qmi'r3?UCm$7'.=?Yw0TIr-$f'TqL"

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "StaticMeshFactory.h"
 
 #include "ImCurveEdit.h"

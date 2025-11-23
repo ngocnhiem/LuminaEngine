@@ -1,2 +1,3 @@
-﻿#include "Platform/PlatformString.h"
+#include "pch.h"
+#include "Platform/PlatformString.h"
 

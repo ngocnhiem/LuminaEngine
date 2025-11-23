@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "LuminaTypes.h"
 #include "Core/Object/Field.h"
 #include "Core/Object/Class.h"

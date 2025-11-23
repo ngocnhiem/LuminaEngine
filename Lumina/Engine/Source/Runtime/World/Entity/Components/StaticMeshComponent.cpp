@@ -1,4 +1,5 @@
-﻿#include "StaticMeshComponent.h"
+#include "pch.h"
+#include "StaticMeshComponent.h"
 
 #include "assets/assettypes/material/MaterialInterface.h"
 #include "Renderer/RHIIncl.h"

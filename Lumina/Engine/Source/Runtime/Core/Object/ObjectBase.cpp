@@ -1,4 +1,5 @@
-﻿
+#include "pch.h"
+
 #include "ObjectBase.h"
 
 #include <utility>

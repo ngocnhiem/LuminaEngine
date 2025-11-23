@@ -1,4 +1,5 @@
-﻿#include "ObjectArchiver.h"
+#include "pch.h"
+#include "ObjectArchiver.h"
 
 #include "Core/Object/Object.h"
 #include "Core/Object/ObjectCore.h"

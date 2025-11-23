@@ -1,4 +1,5 @@
-﻿#include "PropertyMetadata.h"
+#include "pch.h"
+#include "PropertyMetadata.h"
 
 namespace Lumina
 {

@@ -1,4 +1,5 @@
-﻿#include "Class.h"
+#include "pch.h"
+#include "Class.h"
 
 
 IMPLEMENT_INTRINSIC_CLASS(CField, CObject, LUMINA_API)

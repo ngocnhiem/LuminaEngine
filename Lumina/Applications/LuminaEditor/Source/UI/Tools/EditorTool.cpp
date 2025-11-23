@@ -35,10 +35,13 @@ namespace Lumina
         {
             GEngine->GetEngineSubsystem<FWorldManager>()->AddWorld(World);
             World->InitializeWorld();
-            EditorEntity = World->SetupEditorWorld();
             if (World->IsPlayWorld())
             {
                 World->BeginPlay();
+            }
+            else
+            {
+                EditorEntity = World->SetupEditorWorld();
             }
 
             Internal_CreateViewportTool();

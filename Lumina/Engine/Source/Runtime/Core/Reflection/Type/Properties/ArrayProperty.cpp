@@ -1,4 +1,5 @@
-﻿#include "ArrayProperty.h"
+#include "pch.h"
+#include "ArrayProperty.h"
 
 namespace Lumina
 {

@@ -1,4 +1,5 @@
-﻿#include "AssetData.h"
+#include "pch.h"
+#include "AssetData.h"
 
 #include "Core/Object/Class.h"
 #include "Core/Object/ObjectRedirector.h"

@@ -1,4 +1,5 @@
-﻿#include "InterpolatingMovementSystem.h"
+#include "pch.h"
+#include "InterpolatingMovementSystem.h"
 
 #include "World/Entity/Components/InterpolatingMovementComponent.h"
 #include "World/Entity/Components/TransformComponent.h"

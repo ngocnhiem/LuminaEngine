@@ -1,4 +1,5 @@
-﻿#include "JoltPhysics.h"
+#include "pch.h"
+#include "JoltPhysics.h"
 
 #include "JoltPhysicsScene.h"
 #include "Core/Threading/Thread.h"

@@ -1,4 +1,5 @@
-﻿#include "RenderContext.h"
+#include "pch.h"
+#include "RenderContext.h"
 #include "RenderResource.h"
 #include "RHIGlobals.h"
 #include "Shader.h"

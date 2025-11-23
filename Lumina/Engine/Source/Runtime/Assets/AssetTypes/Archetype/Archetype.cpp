@@ -1,1 +1,2 @@
-﻿#include "Archetype.h"
+#include "pch.h"
+#include "Archetype.h"

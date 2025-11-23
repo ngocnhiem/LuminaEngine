@@ -1,4 +1,5 @@
-﻿#include "SystemContext.h"
+#include "pch.h"
+#include "SystemContext.h"
 
 #include "sol/sol.hpp"
 #include "World/World.h"
@@ -28,14 +29,15 @@ namespace Lumina
         
         ContextType["DeltaTime"] = sol::readonly_property([](const FSystemContext& Ctx) { return Ctx.GetDeltaTime(); });
         ContextType["Time"] = sol::readonly_property([](const FSystemContext& Ctx) { return Ctx.Time(); });
-
-        ContextType["Transform"] = [](FSystemContext& Ctx, sol::this_state S, uint32 EntityID)
+        
+        ContextType["GetTransform"] = [](FSystemContext& Ctx, sol::this_state S, uint32 EntityID)
         {
-            return sol::make_object(S, Ctx.Get<STransformComponent>((entt::entity)EntityID));
+            return Ctx.Get<STransformComponent>((entt::entity)EntityID);
         };
         
         ContextType["View"] = &FSystemContext::MakeLuaView;
 
+        
         ContextType["DirtyTransform"] = [](FSystemContext& Ctx, uint32 EntityID)
         {
           Ctx.EmplaceOrReplace<FNeedsTransformUpdate>((entt::entity)(EntityID));  
@@ -66,6 +68,17 @@ namespace Lumina
 
             return NewComponent.LuaTable;
         };
+
+
+        ContextType["SetActiveCamera"] = [](FSystemContext& Ctx, uint32 EntityID) { Ctx.SetActiveCamera((entt::entity)EntityID); };
+    }
+
+    void FSystemContext::SetActiveCamera(entt::entity NewCameraEntity)
+    {
+        if (Has<true, SCameraComponent>(NewCameraEntity))
+        {
+            World->SetActiveCamera(NewCameraEntity);
+        }
     }
 
     sol::table FSystemContext::MakeLuaView(sol::variadic_args Types)
@@ -79,6 +92,7 @@ namespace Lumina
         {
             FName Name;
             entt::basic_sparse_set<>* Storage;
+            Scripting::FLuaConverter::ToFunctionType* ConversionFunctionPtr;
         };
         
         TFixedVector<FComponentInfo, 4> Storages;
@@ -96,40 +110,49 @@ namespace Lumina
             
                 if (entt::basic_sparse_set<>* Storage = EntityWorld->Registry.storage(Meta.info().hash()))
                 {
-                    Storages.emplace_back(FComponentInfo{ LuaName, Storage });
+                    Scripting::FLuaConverter::ToFunctionType* FunctionPtr = Scripting::FScriptingContext::Get().GetSolConverterFunctionPtrByName(LuaName);
+                    Storages.emplace_back(FComponentInfo{ LuaName, Storage, FunctionPtr });
                     RuntimeView.iterate(*Storage);
                 }
             }
             else if (Arg.is<const char*>())
             {
                 FName LuaName = Arg.get<const char*>();
-                auto HashedComponentName = entt::hashed_string(LuaName.c_str());
+                uint32 HashedComponentName = entt::hashed_string(LuaName.c_str());
                 if (entt::basic_sparse_set<>* Storage = EntityWorld->Registry.storage(HashedComponentName))
                 {
-                    Storages.emplace_back(FComponentInfo{ LuaName, Storage });
+                    Scripting::FLuaConverter::ToFunctionType* FunctionPtr = Scripting::FScriptingContext::Get().GetSolConverterFunctionPtrByName("STagComponent");
+                    Storages.emplace_back(FComponentInfo{ LuaName, Storage, FunctionPtr });
                     RuntimeView.iterate(*Storage);
                 }
             }
         }
         
         sol::state_view StateView(Types.lua_state());
-        sol::table ViewTable = StateView.create_table();
-        
+
+        int EstimatedSize = (int)RuntimeView.size_hint();
+        sol::table ViewTable = StateView.create_table(EstimatedSize);
+
+        uint32 NumEntities = 0;
+        int TableSize = 1 + (int)Storages.size();
         RuntimeView.each([&] (entt::entity EntityID)
         {
-            sol::table Row = StateView.create_table();
+            NumEntities++;
 
-            for (auto& Info : Storages)
+            sol::table Row = StateView.create_table(0, TableSize);
+            Row["Entity"] = (int)EntityID;
+            
+            for (FComponentInfo& Info : Storages)
             {
-                Row[Info.Name.c_str()] = Scripting::FScriptingContext::Get().ConvertToSolObjectFromName(Info.Name, StateView, Info.Storage->value(EntityID));
+                Row[Info.Name.c_str()] = Info.ConversionFunctionPtr(StateView, Info.Storage->value(EntityID));
             }
 
             ViewTable[(uint32)EntityID] = Row;
         });
-
+        
         return ViewTable;
     }
-
+    
     void FSystemContext::SetActiveCamera(entt::entity New) const
     {
         World->SetActiveCamera(Entity(New, World));

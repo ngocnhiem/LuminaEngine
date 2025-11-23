@@ -1,4 +1,5 @@
-﻿#include "ApplicationGlobalState.h"
+#include "pch.h"
+#include "ApplicationGlobalState.h"
 
 #include "Containers/Name.h"
 #include "Core/Threading/Thread.h"

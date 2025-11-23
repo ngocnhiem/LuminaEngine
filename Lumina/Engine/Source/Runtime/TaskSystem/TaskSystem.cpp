@@ -1,4 +1,5 @@
-﻿#include "TaskSystem.h"
+#include "pch.h"
+#include "TaskSystem.h"
 
 #include "Core/Threading/Thread.h"
 #include "Memory/Memory.h"

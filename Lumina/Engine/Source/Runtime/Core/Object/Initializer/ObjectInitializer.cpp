@@ -1,4 +1,5 @@
-﻿#include "ObjectInitializer.h"
+#include "pch.h"
+#include "ObjectInitializer.h"
 
 #include "Containers/Array.h"
 #include "Core/Threading/Thread.h"

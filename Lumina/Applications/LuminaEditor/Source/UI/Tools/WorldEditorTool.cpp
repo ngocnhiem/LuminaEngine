@@ -542,7 +542,9 @@ namespace Lumina
         
                 if (Translation != TransformComponent.GetLocation() || Rotation != TransformComponent.GetRotation() || Scale != TransformComponent.GetScale())
                 {
-                    TransformComponent.SetLocation(Translation).SetRotation(Rotation).SetScale(Scale);
+                    TransformComponent.SetLocation(Translation);
+                    TransformComponent.SetRotation(Rotation);
+                    TransformComponent.SetScale(Scale);
                 }
             }
         }

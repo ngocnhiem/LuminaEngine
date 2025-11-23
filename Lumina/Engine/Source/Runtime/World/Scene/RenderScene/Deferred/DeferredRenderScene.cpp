@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "DeferredRenderScene.h"
 #include <execution>
 #include <variant>

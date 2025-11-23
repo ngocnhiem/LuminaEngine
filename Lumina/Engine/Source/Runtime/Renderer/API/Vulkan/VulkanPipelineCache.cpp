@@ -1,4 +1,5 @@
-﻿#include "VulkanPipelineCache.h"
+#include "pch.h"
+#include "VulkanPipelineCache.h"
 
 #include "VulkanResources.h"
 #include "Core/Profiler/Profile.h"

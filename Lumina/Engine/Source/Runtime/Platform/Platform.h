@@ -82,6 +82,18 @@
     #define RESTRICT __restrict						/* no alias hint */
 #endif
 
+#if defined(_MSC_VER)
+    #define LUMINA_DISABLE_OPTIMIZATION __pragma(optimize("", off))
+    #define LUMINA_ENABLE_OPTIMIZATION  __pragma(optimize("", on))
+#elif defined(__clang__) || defined(__GNUC__)
+    #define LUMINA_DISABLE_OPTIMIZATION _Pragma("GCC push_options") \
+    _Pragma("GCC optimize(\"O0\")")
+    #define LUMINA_ENABLE_OPTIMIZATION  _Pragma("GCC pop_options")
+#else
+    #define LUMINA_DISABLE_OPTIMIZATION
+    #define LUMINA_ENABLE_OPTIMIZATION
+#endif
+
 //------------------------------------------------------------------------------
 // Calling Conventions & Function Pointer Aliases
 //------------------------------------------------------------------------------

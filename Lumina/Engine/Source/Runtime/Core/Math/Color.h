@@ -1,7 +1,5 @@
 #pragma once
 #include <algorithm>
-#include <cmath>
-#include <random>
 #include "Core/Serialization/Archiver.h"
 #include "glm/glm.hpp"
 
@@ -122,48 +120,16 @@ namespace Lumina
         }
 
         // Generate a random color with optional alpha control
-        static FColor MakeRandom(float alpha = 1.0f)
-        {
-            static std::random_device rd;
-            static std::mt19937 gen(rd());
-            static std::uniform_real_distribution<float> dis(0.0f, 1.0f);
-    
-            return FColor(dis(gen), dis(gen), dis(gen), alpha);
-        }
+        static FColor MakeRandom(float alpha = 1.0f);
 
         // Generate a random color with full random alpha
-        static FColor MakeRandomWithAlpha()
-        {
-            static std::random_device rd;
-            static std::mt19937 gen(rd());
-            static std::uniform_real_distribution<float> dis(0.0f, 1.0f);
-    
-            return FColor(dis(gen), dis(gen), dis(gen), dis(gen));
-        }
+        static FColor MakeRandomWithAlpha();
 
         // Generate a random bright/vibrant color (higher saturation)
-        static FColor MakeRandomVibrant(float alpha = 1.0f)
-        {
-            static std::random_device rd;
-            static std::mt19937 gen(rd());
-            static std::uniform_real_distribution<float> hue_dis(0.0f, 1.0f);
-            static std::uniform_real_distribution<float> sat_dis(0.7f, 1.0f);
-            static std::uniform_real_distribution<float> light_dis(0.4f, 0.6f);
-    
-            return HSLtoRGB(hue_dis(gen), sat_dis(gen), light_dis(gen), alpha);
-        }
+        static FColor MakeRandomVibrant(float alpha = 1.0f);
 
         // Generate a random pastel color (lower saturation, higher lightness)
-        static FColor MakeRandomPastel(float alpha = 1.0f)
-        {
-            static std::random_device rd;
-            static std::mt19937 gen(rd());
-            static std::uniform_real_distribution<float> hue_dis(0.0f, 1.0f);
-            static std::uniform_real_distribution<float> sat_dis(0.2f, 0.5f);
-            static std::uniform_real_distribution<float> light_dis(0.7f, 0.9f);
-    
-            return HSLtoRGB(hue_dis(gen), sat_dis(gen), light_dis(gen), alpha);
-        }
+        static FColor MakeRandomPastel(float alpha = 1.0f);
     
         // Static helper function to convert RGB to HSL (Hue, Saturation, Lightness)
         static void RGBtoHSL(const FColor& color, float& h, float& s, float& l)

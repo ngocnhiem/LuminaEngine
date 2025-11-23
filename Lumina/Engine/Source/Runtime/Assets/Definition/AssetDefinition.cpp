@@ -1,4 +1,5 @@
-﻿#include "AssetDefinition.h"
+#include "pch.h"
+#include "AssetDefinition.h"
 
 namespace Lumina
 {

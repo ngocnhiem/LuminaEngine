@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "TextureFactory.h"
 
 #include "Assets/AssetHeader.h"

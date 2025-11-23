@@ -1,4 +1,5 @@
-﻿#include "StringProperty.h"
+#include "pch.h"
+#include "StringProperty.h"
 
 namespace Lumina
 {

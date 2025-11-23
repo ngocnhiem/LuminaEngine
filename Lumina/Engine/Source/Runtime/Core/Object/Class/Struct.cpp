@@ -1,4 +1,5 @@
-﻿#include "Core/Object/Class.h"
+#include "pch.h"
+#include "Core/Object/Class.h"
 #include "Core/Object/Field.h"
 #include "Containers/Function.h"
 #include "Core/Reflection/Type/LuminaTypes.h"

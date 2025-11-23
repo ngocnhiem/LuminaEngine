@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "ObjectHash.h"
 
 #include "ObjectBase.h"

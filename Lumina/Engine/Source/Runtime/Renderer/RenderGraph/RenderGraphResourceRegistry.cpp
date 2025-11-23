@@ -1,1 +1,2 @@
-﻿#include "RenderGraphResourceRegistry.h"
+#include "pch.h"
+#include "RenderGraphResourceRegistry.h"

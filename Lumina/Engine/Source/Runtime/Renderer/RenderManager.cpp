@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "RenderManager.h"
 
 #if LUMINA_RENDERER_VULKAN
@@ -17,7 +18,7 @@ namespace Lumina
     void FRenderManager::Initialize()
     {
         GRenderContext = Memory::New<FVulkanRenderContext>();
-        GRenderContext->Initialize(FRenderContextDesc{false});
+        GRenderContext->Initialize(FRenderContextDesc{true});
 
         #if WITH_DEVELOPMENT_TOOLS
         ImGuiRenderer = Memory::New<FVulkanImGuiRender>();

@@ -1,4 +1,5 @@
-﻿#include "ArchetypeFactory.h"
+#include "pch.h"
+#include "ArchetypeFactory.h"
 
 namespace Lumina
 {

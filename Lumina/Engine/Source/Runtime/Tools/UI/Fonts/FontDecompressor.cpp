@@ -1,4 +1,5 @@
-﻿#include "FontDecompressor.h"
+#include "pch.h"
+#include "FontDecompressor.h"
 
 #include "Core/Assertions/Assert.h"
 

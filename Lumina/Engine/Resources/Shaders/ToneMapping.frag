@@ -4,6 +4,7 @@
 #include "Includes/Common.glsl"
 
 layout(set = 0, binding = 0) uniform sampler2D uHDRSceneColor;
+layout(set = 0, binding = 1) uniform sampler2D uBayerDither;
 
 layout(push_constant) uniform PushConstants
 {
@@ -37,17 +38,8 @@ vec3 Uncharted2Tonemap(vec3 x)
 void main()
 {
     vec3 hdrColor = texture(uHDRSceneColor, vTexCoord).rgb;
-
-    #ifdef DEBUG_HDR
-    if (vTexCoord.x < 0.15 && vTexCoord.y < 0.15)
-    {
-        float brightness = dot(hdrColor, vec3(0.299, 0.587, 0.114));
-        oFragColor = vec4(vec3(brightness / 5.0), 1.0);
-        return;
-    }
-    #endif
-
-    float exposure = 1.0; // TODO: Make this a uniform/push constant
+    
+    float exposure = 1.0;
     hdrColor *= exposure;
 
     // Tonemap
@@ -55,6 +47,8 @@ void main()
 
     // Gamma correction
     toneMappedColor = pow(toneMappedColor, vec3(1.0 / 2.2));
-
+    
+    toneMappedColor += vec4(texture(uBayerDither, gl_FragCoord.xy / 8.0) / 32.0 - (1.0 / 256.0)).rgb;
+    
     oFragColor = vec4(toneMappedColor, 1.0);
 }

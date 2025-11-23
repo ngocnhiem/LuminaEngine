@@ -1,4 +1,5 @@
-﻿#include "MaterialInstanceFactory.h"
+#include "pch.h"
+#include "MaterialInstanceFactory.h"
 
 #include "assets/assettypes/material/material.h"
 #include "Tools/UI/ImGui/ImGuiX.h"

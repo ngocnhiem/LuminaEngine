@@ -30,36 +30,99 @@ namespace Lumina
         FORCEINLINE glm::vec3 GetScale()    const    { return Transform.Scale; }
         FORCEINLINE float MaxScale()        const    { return glm::max(Transform.Scale.x, glm::max(Transform.Scale.y, Transform.Scale.z)); }
         FORCEINLINE glm::mat4 GetMatrix()   const    { return CachedMatrix; }
+
+        FORCEINLINE glm::vec3& Translate(const glm::vec3& Translation)
+        {
+            Transform.Translate(Translation);
+            return Transform.Location;
+        }
         
-        FORCEINLINE STransformComponent& SetLocation(const glm::vec3& InLocation) 
+        FORCEINLINE glm::vec3 SetLocation(const glm::vec3& InLocation) 
         { 
             Transform.Location = InLocation;
-            return *this;
+            return Transform.Location;
         }
 
-        FORCEINLINE STransformComponent& SetRotation(const glm::quat& InRotation)
+        FORCEINLINE glm::quat SetRotation(const glm::quat& InRotation)
         { 
             Transform.Rotation = InRotation;
-            return *this;
+            return Transform.Rotation;
         }
 
-        FORCEINLINE STransformComponent& SetRotationFromEuler(const glm::vec3& EulerRotation)
+        FORCEINLINE glm::vec3 SetRotationFromEuler(const glm::vec3& EulerRotation)
         {
             Transform.Rotation = glm::quat(glm::radians(EulerRotation));
-            return *this;
+            return GetRotationAsEuler();
         }
 
-        FORCEINLINE STransformComponent& SetScale(const glm::vec3& InScale) 
+        FORCEINLINE glm::vec3 SetScale(const glm::vec3& InScale) 
         { 
             Transform.Scale = InScale;
-            return *this;
+            return Transform.Scale;
         }
 
         FORCEINLINE glm::vec3 GetRotationAsEuler() const 
         {
             return glm::degrees(glm::eulerAngles(Transform.Rotation));
         }
-
+        
+        FORCEINLINE void AddYaw(float Degrees)
+        {
+            glm::quat yawQuat = glm::angleAxis(glm::radians(Degrees), glm::vec3(0.0f, 1.0f, 0.0f));
+            Transform.Rotation = glm::normalize(yawQuat * Transform.Rotation);
+        }
+        
+        FORCEINLINE void AddPitch(float Degrees)
+        {
+            glm::vec3 Right = Transform.Rotation * glm::vec3(1.0f, 0.0f, 0.0f);
+            glm::quat PitchQuat = glm::angleAxis(glm::radians(Degrees), Right);
+            Transform.Rotation = glm::normalize(PitchQuat * Transform.Rotation);
+        }
+        
+        FORCEINLINE void AddRoll(float Degrees)
+        {
+            glm::vec3 Forward = Transform.Rotation * glm::vec3(0.0f, 0.0f, -1.0f);
+            glm::quat rollQuat = glm::angleAxis(glm::radians(Degrees), Forward);
+            Transform.Rotation = glm::normalize(rollQuat * Transform.Rotation);
+        }
+        
+        FORCEINLINE void AddRotation(float YawDelta, float PitchDelta, float RollDelta = 0.0f)
+        {
+            if (YawDelta != 0.0f)
+            {
+                AddYaw(YawDelta);
+            }
+            if (PitchDelta != 0.0f)
+            {
+                AddPitch(PitchDelta);
+            }
+            if (RollDelta != 0.0f)
+            {
+                AddRoll(RollDelta);
+            }
+        }
+        
+        FORCEINLINE void AddRotationFromMouse(float MouseDeltaX, float MouseDeltaY, float Sensitivity = 0.1f)
+        {
+            AddYaw(-MouseDeltaX * Sensitivity);
+            AddPitch(-MouseDeltaY * Sensitivity);
+        }
+        
+        FORCEINLINE glm::vec3 GetForward() const
+        {
+            return Transform.Rotation * glm::vec3(0.0f, 0.0f, -1.0f);
+        }
+        
+        FORCEINLINE glm::vec3 GetRight() const
+        {
+            return Transform.Rotation * glm::vec3(1.0f, 0.0f, 0.0f);
+        }
+        
+        FORCEINLINE glm::vec3 GetUp() const
+        {
+            return Transform.Rotation * glm::vec3(0.0f, 1.0f, 0.0f);
+        }
+        
         static void RegisterLua(sol::state_view State)
         {
             sol::usertype<STransformComponent> UserType = State.new_usertype<STransformComponent>(
@@ -67,19 +130,28 @@ namespace Lumina
             sol::call_constructor,
             sol::constructors<STransformComponent()>(),
             "__type", sol::readonly_property([]() { return "STransformComponent"; } ),
-
-            "Transform", sol::property([](STransformComponent& This) { return This.Transform; }),
-
-            "GetRotationAsEuler", [](STransformComponent& This) { return This.GetRotationAsEuler(); },
-            
-            "SetLocation", [](STransformComponent& This, glm::vec3 Location) { return This.SetLocation(Location).GetLocation(); },
-            "SetRotation", [](STransformComponent& This, glm::quat Rot) { return This.SetRotation(Rot).GetRotation(); },
-            "SetRotationFromEuler", [](STransformComponent& This, glm::vec3 Rot) { return This.SetRotationFromEuler(Rot).GetRotation(); },
-            "SetScale", [](STransformComponent& This, glm::vec3 Scale) { return This.SetScale(Scale).GetScale(); }
-            
+        
+            "Transform", &STransformComponent::Transform,
+        
+            "GetRotationAsEuler", &STransformComponent::GetRotationAsEuler,
+            "Translate",   &STransformComponent::Translate,
+            "SetLocation", &STransformComponent::SetLocation,
+            "SetRotation", &STransformComponent::SetRotation,
+            "SetRotationFromEuler", &STransformComponent::SetRotationFromEuler,
+            "SetScale", &STransformComponent::SetScale,
+        
+            "AddYaw",   &STransformComponent::AddYaw,
+            "AddPitch", &STransformComponent::AddPitch,
+            "AddRoll",  &STransformComponent::AddRoll,
+            "AddRotation", &STransformComponent::AddRotation,
+            "AddRotationFromMouse", &STransformComponent::AddRotationFromMouse,
+        
+            "GetForward", &STransformComponent::GetForward,
+            "GetRight",   &STransformComponent::GetRight,
+            "GetUp",      &STransformComponent::GetUp
             );
         }
-
+        
     public:
 
         LUM_PROPERTY(Editable, Category = "Transform")

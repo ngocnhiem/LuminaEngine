@@ -1,4 +1,5 @@
-﻿#include "ObjectAllocator.h"
+#include "pch.h"
+#include "ObjectAllocator.h"
 
 #include "ObjectBase.h"
 #include "Memory/Memory.h"

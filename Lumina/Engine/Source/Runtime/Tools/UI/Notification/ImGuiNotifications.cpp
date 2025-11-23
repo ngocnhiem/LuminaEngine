@@ -1,4 +1,5 @@
-﻿#include "ImGuiNotifications.h"
+#include "pch.h"
+#include "ImGuiNotifications.h"
 #include "Tools/UI/ImGui/ImGuiX.h"
 #include "imgui.h"
 #include "Containers/Array.h"

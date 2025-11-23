@@ -1,4 +1,5 @@
-﻿#include "EnumProperty.h"
+#include "pch.h"
+#include "EnumProperty.h"
 
 #include "imgui.h"
 

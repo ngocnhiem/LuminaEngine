@@ -1,1 +1,2 @@
-﻿#include "PackageThumbnail.h"
+#include "pch.h"
+#include "PackageThumbnail.h"

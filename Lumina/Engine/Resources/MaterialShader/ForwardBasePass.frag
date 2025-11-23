@@ -295,7 +295,7 @@ vec3 EvaluateLightContribution(FLight Light, vec3 Position, vec3 N, vec3 V, vec3
         Attenuation         = 1.0 / (Distance * Distance);
 
         float DistanceRatio = Distance / Light.Radius;
-        float Cutoff        = 1.0 - smoothstep(Light.Falloff, 1.0, DistanceRatio);
+        float Cutoff        = 1.0 - smoothstep(clamp(Light.Falloff, 0.0, 1.0), 1.0, DistanceRatio);
         Attenuation         *= Cutoff;
 
         if (bSpotLight)

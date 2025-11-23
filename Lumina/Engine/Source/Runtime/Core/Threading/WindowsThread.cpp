@@ -1,3 +1,4 @@
+#include "pch.h"
 #ifdef LE_PLATFORM_WINDOWS
 
 #include "Thread.h"

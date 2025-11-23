@@ -1,4 +1,5 @@
-﻿#include "MaterialInstance.h"
+#include "pch.h"
+#include "MaterialInstance.h"
 #include "Renderer/RHIIncl.h"
 #include "Material.h"
 #include "Assets/AssetTypes/Textures/Texture.h"

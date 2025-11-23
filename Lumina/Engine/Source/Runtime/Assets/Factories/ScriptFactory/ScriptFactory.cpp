@@ -1,4 +1,5 @@
-﻿#include "ScriptFactory.h"
+#include "pch.h"
+#include "ScriptFactory.h"
 
 
 namespace Lumina

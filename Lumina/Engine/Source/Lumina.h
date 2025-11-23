@@ -1,14 +1,6 @@
 #pragma once
 
-#include "Containers/Array.h"
-#include "Containers/Name.h"
-#include "Containers/String.h"
-#include "Core/Assertions/Assert.h"
-#include "Core/Math/Math.h"
-#include "Log/Log.h"
-#include "Memory/Memory.h"
-#include "Platform/Platform.h"
-
+#include "Platform/GenericPlatform.h"
 
 #define LUMINA_VERSION "0.01.0"
 #define LUMINA_VERSION_MAJOR 0

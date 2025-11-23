@@ -145,5 +145,12 @@ namespace Lumina
 
 			Num,
 		};
+
+		const char* GetKeyName();
+
+		inline const char* GetKeyName(KeyCode Key)
+		{
+			return glfwGetKeyName(Key, 0);
+		}
 	}
 }

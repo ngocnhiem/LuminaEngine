@@ -1,4 +1,5 @@
-﻿#include "JoltPhysicsScene.h"
+#include "pch.h"
+#include "JoltPhysicsScene.h"
 
 #include "JoltPhysics.h"
 #include "Core/Profiler/Profile.h"

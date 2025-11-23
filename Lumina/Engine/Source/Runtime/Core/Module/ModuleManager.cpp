@@ -1,4 +1,5 @@
-﻿#include "ModuleManager.h"
+#include "pch.h"
+#include "ModuleManager.h"
 #include "Platform/Platform.h"
 #include "ModuleInterface.h"
 #include "Core/Delegates/CoreDelegates.h"

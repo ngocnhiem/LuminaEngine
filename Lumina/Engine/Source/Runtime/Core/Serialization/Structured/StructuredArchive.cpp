@@ -1,4 +1,5 @@
-﻿#include "StructuredArchive.h"
+#include "pch.h"
+#include "StructuredArchive.h"
 
 
 namespace Lumina

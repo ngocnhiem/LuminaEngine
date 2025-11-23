@@ -1,4 +1,5 @@
-﻿#ifdef LE_PLATFORM_WINDOWS
+#include "pch.h"
+#ifdef LE_PLATFORM_WINDOWS
 
 #include "Dialogs.h"
 #include <windows.h>

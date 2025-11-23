@@ -1,4 +1,5 @@
-﻿#include "ObjectReferenceReplacerArchive.h"
+#include "pch.h"
+#include "ObjectReferenceReplacerArchive.h"
 
 
 namespace Lumina

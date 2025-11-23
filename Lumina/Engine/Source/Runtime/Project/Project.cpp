@@ -1,4 +1,5 @@
-﻿#include "Project.h"
+#include "pch.h"
+#include "Project.h"
 
 #include "Log/Log.h"
 #include "Platform/Filesystem/FileHelper.h"

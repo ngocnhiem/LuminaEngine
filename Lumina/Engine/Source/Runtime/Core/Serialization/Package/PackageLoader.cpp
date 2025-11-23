@@ -1,4 +1,5 @@
-﻿#include "PackageLoader.h"
+#include "pch.h"
+#include "PackageLoader.h"
 
 #include "Core/Object/ObjectArray.h"
 #include "Core/Object/Package/Package.h"

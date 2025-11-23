@@ -1,4 +1,5 @@
-﻿#include "LuminaModule.h"
+#include "pch.h"
+#include "LuminaModule.h"
 
 #include "Core/Module/ModuleManager.h"
 #include "Memory/Memory.h"

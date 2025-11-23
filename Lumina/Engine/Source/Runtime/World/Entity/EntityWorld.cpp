@@ -1,4 +1,5 @@
-﻿#include "EntityWorld.h"
+#include "pch.h"
+#include "EntityWorld.h"
 
 #include "Components/NameComponent.h"
 #include "Components/TransformComponent.h"

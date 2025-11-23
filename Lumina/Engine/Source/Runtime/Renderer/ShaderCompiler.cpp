@@ -1,4 +1,5 @@
-﻿#include "ShaderCompiler.h"
+#include "pch.h"
+#include "ShaderCompiler.h"
 
 #include "RenderResource.h"
 #include "Core/Serialization/MemoryArchiver.h"

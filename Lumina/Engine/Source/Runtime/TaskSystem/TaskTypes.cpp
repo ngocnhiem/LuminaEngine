@@ -1,4 +1,5 @@
-﻿#include "TaskTypes.h"
+#include "pch.h"
+#include "TaskTypes.h"
 
 #include "TaskSystem.h"
 #include "Memory/Memory.h"

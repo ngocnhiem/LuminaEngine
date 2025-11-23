@@ -1,1 +1,2 @@
-﻿#include "DeferredRegistry.h"
+#include "pch.h"
+#include "DeferredRegistry.h"

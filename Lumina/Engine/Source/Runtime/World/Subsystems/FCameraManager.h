@@ -8,20 +8,25 @@ namespace Lumina
     {
     public:
 
-        FCameraManager() = default;
-        
-        void SetActiveCamera(const Entity& NewCameraEntity)
+        FCameraManager(CWorld* InWorld)
+            : World(InWorld)
         {
-            ActiveCameraEntity = NewCameraEntity;
+            
         }
         
-        Entity GetActiveCameraEntity() const { return ActiveCameraEntity; }
-        SCameraComponent& GetCameraComponent() { return ActiveCameraEntity.GetComponent<SCameraComponent>(); }
+        void SetActiveCamera(entt::entity InEntity)
+        {
+            ActiveCameraEntity = InEntity;
+        }
+        
+        entt::entity GetActiveCameraEntity() const { return ActiveCameraEntity; }
+        SCameraComponent& GetCameraComponent() const { return World->GetEntityRegistry().get<SCameraComponent>(ActiveCameraEntity); }
     
 
     private:
 
-        Entity ActiveCameraEntity;
+        TObjectPtr<CWorld> World;
+        entt::entity ActiveCameraEntity = entt::null;
     
     };
 }

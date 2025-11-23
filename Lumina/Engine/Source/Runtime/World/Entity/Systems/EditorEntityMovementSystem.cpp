@@ -1,4 +1,5 @@
-﻿#include "EditorEntityMovementSystem.h"
+﻿#include "pch.h"
+#include "EditorEntityMovementSystem.h"
 #include "Core/Application/Application.h"
 #include "Core/Windows/Window.h"
 #include "Events/MouseCodes.h"
@@ -33,7 +34,6 @@ namespace Lumina
         for (entt::entity EditorEntity : View)
         {
             STransformComponent& Transform      = View.get<STransformComponent>(EditorEntity);
-            SCameraComponent& Camera            = View.get<SCameraComponent>(EditorEntity);
             SEditorComponent& Editor            = View.get<SEditorComponent>(EditorEntity);
             SVelocityComponent& Velocity        = View.get<SVelocityComponent>(EditorEntity);
     
@@ -47,23 +47,43 @@ namespace Lumina
             glm::vec3 Up        = Transform.Transform.Rotation * FViewVolume::UpAxis;
     
             float Speed = Velocity.Speed;
-            if (Input::IsKeyPressed(Key::LeftShift))
+            if (Input::IsKeyDown(Key::LeftShift))
             {
                 Speed *= 10.0f;
             }
     
             glm::vec3 Acceleration(0.0f);
     
-            if (Input::IsKeyPressed(Key::W)) Acceleration += Forward;   // W = forward (+Z)
-            if (Input::IsKeyPressed(Key::S)) Acceleration -= Forward;   // S = backward (-Z)
-            if (Input::IsKeyPressed(Key::D)) Acceleration += Right;     // D = right (+X)
-            if (Input::IsKeyPressed(Key::A)) Acceleration -= Right;     // A = left (-X)
-            if (Input::IsKeyPressed(Key::E)) Acceleration += Up;        // E = up (+Y)
-            if (Input::IsKeyPressed(Key::Q)) Acceleration -= Up;        // Q = down (-Y)
-    
+            if (Input::IsKeyDown(Key::W))
+            {
+                Acceleration += Forward; // W = forward (+Z)
+            }
+            if (Input::IsKeyDown(Key::S))
+            {
+                Acceleration -= Forward; // S = backward (-Z)
+            }
+            if (Input::IsKeyDown(Key::D))
+            {
+                Acceleration += Right; // D = right (+X)
+            }
+            if (Input::IsKeyDown(Key::A))
+            {
+                Acceleration -= Right; // A = left (-X)
+            }
+            if (Input::IsKeyDown(Key::E))
+            {
+                Acceleration += Up; // E = up (+Y)
+            }
+            if (Input::IsKeyDown(Key::Q))
+            {
+                Acceleration -= Up; // Q = down (-Y)
+            }
+
             if (glm::length(Acceleration) > 0.0f)
+            {
                 Acceleration = glm::normalize(Acceleration) * Speed;
-    
+            }
+
             // Integrate acceleration to velocity
             Velocity.Velocity += Acceleration * (float)DeltaTime;
     
@@ -75,33 +95,18 @@ namespace Lumina
             Transform.Transform.Location += Velocity.Velocity * (float)DeltaTime;
     
             // Mouse look
-            if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
+            if (Input::IsMouseButtonDown(Mouse::ButtonRight))
             {
-                GEngine->GetEngineSubsystem<FInputSubsystem>()->SetCursorMode(GLFW_CURSOR_DISABLED);
+                Input::DisableCursor();
     
-                float MousePitchDelta = Input::GetMouseDeltaPitch();
-                float MouseYawDelta   = Input::GetMouseDeltaYaw();
-    
-                constexpr float Sensitivity = 0.1f;
-                float YawDelta   = -MouseYawDelta   * Sensitivity;
-                float PitchDelta = -MousePitchDelta * Sensitivity;
-    
-                glm::quat yawQuat = glm::angleAxis(glm::radians(YawDelta), FViewVolume::UpAxis);
-                glm::vec3 RightAxis = Transform.Transform.Rotation * FViewVolume::RightAxis;
-                glm::quat pitchQuat = glm::angleAxis(glm::radians(PitchDelta), RightAxis);
-    
-                Transform.Transform.Rotation = glm::normalize(yawQuat * pitchQuat * Transform.Transform.Rotation);
+                glm::vec2 MouseDelta = Input::GetMouseDelta();
+                Transform.AddRotationFromMouse(MouseDelta.x, MouseDelta.y, 0.1f);
             }
-            else
+
+            if (Input::IsMouseButtonReleased(Mouse::ButtonRight))
             {
-                GEngine->GetEngineSubsystem<FInputSubsystem>()->SetCursorMode(GLFW_CURSOR_NORMAL);
+                Input::EnableCursor();
             }
-    
-            // Update camera view
-            glm::vec3 UpdatedForward = Transform.Transform.Rotation * FViewVolume::ForwardAxis;
-            glm::vec3 UpdatedUp = Transform.Transform.Rotation * FViewVolume::UpAxis;
-    
-            Camera.SetView(Transform.Transform.Location, UpdatedForward, UpdatedUp);
         }
     }
 }

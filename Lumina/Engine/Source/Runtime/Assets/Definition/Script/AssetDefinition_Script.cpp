@@ -1,1 +1,2 @@
-﻿#include "AssetDefinition_Script.h"
+#include "pch.h"
+#include "AssetDefinition_Script.h"

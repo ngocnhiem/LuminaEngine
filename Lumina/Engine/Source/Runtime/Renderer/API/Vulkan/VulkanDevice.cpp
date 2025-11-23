@@ -1,4 +1,5 @@
-﻿#include "VulkanDevice.h"
+#include "pch.h"
+#include "VulkanDevice.h"
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
 #include "VulkanMacros.h"

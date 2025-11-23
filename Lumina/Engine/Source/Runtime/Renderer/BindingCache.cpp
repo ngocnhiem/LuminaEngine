@@ -1,4 +1,5 @@
-﻿#include "BindingCache.h"
+#include "pch.h"
+#include "BindingCache.h"
 
 #include "RenderContext.h"
 #include "RHIGlobals.h"
