@@ -2,7 +2,6 @@
 #include "ObjectBase.h"
 #include "ObjectHandle.h"
 #include "Containers/Array.h"
-#include "Core/Profiler/Profile.h"
 #include "Core/Threading/Thread.h"
 #include "Platform/GenericPlatform.h"
 
@@ -130,7 +129,7 @@ namespace Lumina
             NumElements = 0;
     
             // Allocate array of chunk pointers (never reallocates)
-            Objects = new FCObjectItem*[MaxChunks];
+            Objects = Memory::NewArray<FCObjectItem*>(MaxChunks);
             
             // Initialize all chunk pointers to nullptr
             for (int32 i = 0; i < MaxChunks; ++i)
@@ -150,12 +149,12 @@ namespace Lumina
                 {
                     if (Objects[i])
                     {
-                        delete[] Objects[i];
+                        Memory::Delete(Objects[i]);
                         Objects[i] = nullptr;
                     }
                 }
     
-                delete[] Objects;
+                Memory::DeleteArray(Objects);
                 Objects = nullptr;
             }
     
@@ -181,7 +180,6 @@ namespace Lumina
             }
         }
     
-        // Get item at index (const version)
         const FCObjectItem* GetItem(int32 Index) const
         {
             if (Index < 0 || Index >= MaxElements)
@@ -192,7 +190,6 @@ namespace Lumina
             const int32 ChunkIndex = Index / NumElementsPerChunk;
             const int32 SubIndex = Index % NumElementsPerChunk;
     
-            // Check if chunk exists
             if (ChunkIndex >= NumChunks || !Objects[ChunkIndex])
             {
                 return nullptr;
@@ -201,7 +198,6 @@ namespace Lumina
             return &Objects[ChunkIndex][SubIndex];
         }
     
-        // Get item at index (non-const version)
         FCObjectItem* GetItem(int32 Index)
         {
             if (Index < 0 || Index >= MaxElements)
@@ -211,13 +207,12 @@ namespace Lumina
     
             const int32 ChunkIndex = Index / NumElementsPerChunk;
             const int32 SubIndex = Index % NumElementsPerChunk;
-    
-            // Expand chunks if needed (should rarely happen if pre-allocated)
-            if (ChunkIndex >= NumChunks)
+            
+            if (ChunkIndex >= NumChunks || !Objects[ChunkIndex])
             {
-                ExpandChunksToIndex(Index);
+                return nullptr;
             }
-    
+            
             return &Objects[ChunkIndex][SubIndex];
         }
     
@@ -238,29 +233,6 @@ namespace Lumina
         }
     
     private:
-        void ExpandChunksToIndex(int32 Index)
-        {
-            const int32 ChunkIndex = Index / NumElementsPerChunk;
-    
-            if (ChunkIndex >= MaxChunks)
-            {
-                assert(false && "Index exceeds maximum capacity!");
-                return;
-            }
-    
-            std::lock_guard<std::mutex> Lock(AllocationMutex);
-    
-            // Allocate chunks up to and including the required chunk
-            for (int32 i = NumChunks; i <= ChunkIndex; ++i)
-            {
-                if (!Objects[i])
-                {
-                    Objects[i] = new FCObjectItem[NumElementsPerChunk];
-                }
-            }
-    
-            NumChunks = ChunkIndex + 1;
-        }
     };
         
     class FCObjectArray
@@ -310,8 +282,8 @@ namespace Lumina
         // Allocate a slot for an object and return a handle
         FObjectHandle AllocateObject(CObjectBase* Object)
         {
-            assert(bInitialized && "Object pool not initialized!");
-            assert(Object != nullptr);
+            Assert(bInitialized && "Object pool not initialized!")
+            Assert(Object != nullptr)
             
             int32 Index;
             int32 Generation;
@@ -323,8 +295,8 @@ namespace Lumina
                 FreeIndices.pop_back();
     
                 FCObjectItem* Item = ChunkedArray.GetItem(Index);
-                assert(Item != nullptr);
-                assert(Item->GetObj() == nullptr);
+                Assert(Item != nullptr)
+                Assert(Item->GetObj() == nullptr)
     
                 // Increment generation for reused slot
                 Item->IncrementGeneration();

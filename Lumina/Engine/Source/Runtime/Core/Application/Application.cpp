@@ -1,15 +1,12 @@
 #include "pch.h"
-
 #include "Application.h"
-#include "ApplicationGlobalState.h"
 #include "Assets/AssetManager/AssetManager.h"
 #include "Core/Module/ModuleManager.h"
 #include "Core/Utils/CommandLineParser.h"
 #include "Core/Windows/Window.h"
 #include "Core/Windows/WindowTypes.h"
+#include "Input/InputProcessor.h"
 #include "Paths/Paths.h"
-#include "Platform/Process/PlatformProcess.h"
-#include "Project/Project.h"
 #include "tracy/Tracy.hpp"
 
 namespace Lumina
@@ -39,7 +36,8 @@ namespace Lumina
         CreateApplicationWindow();
         CreateEngine();
 
-        
+        EventProcessor.RegisterEventHandler(&FInputProcessor::Get());
+
         if (!Initialize(argc, argv))
         {
             Shutdown();
@@ -60,6 +58,8 @@ namespace Lumina
             bool bApplicationWantsExit = ShouldExit();
             
             bEngineWantsExit = !GEngine->Update(bApplicationWantsExit);
+
+            FInputProcessor::Get().Reset();
         }
 
         
@@ -99,6 +99,7 @@ namespace Lumina
     {
         Instance->bExitRequested = true;
     }
+    
 
     void FApplication::PreInitStartup()
     {
@@ -111,7 +112,7 @@ namespace Lumina
         FWindowSpecs AppWindowSpecs;
         AppWindowSpecs.Title = ApplicationName.c_str();
 
-        FWindow::OnWindowResized.AddMember(this, &FApplication::WindowResized);
+        (void)FWindow::OnWindowResized.AddMember(this, &FApplication::WindowResized);
         
         MainWindow = FWindow::Create(AppWindowSpecs);
         MainWindow->Init();

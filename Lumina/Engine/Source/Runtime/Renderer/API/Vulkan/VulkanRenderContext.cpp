@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "VulkanRenderContext.h"
-#include <random>
 #define VOLK_IMPLEMENTATION
 #include <volk/volk.h>
 #include "VulkanCommandList.h"
@@ -13,12 +12,10 @@
 #include "Core/Profiler/Profile.h"
 #include "Core/Windows/Window.h"
 #include "Paths/Paths.h"
-#include "Platform/Filesystem/FileHelper.h"
 #include "Renderer/CommandList.h"
 #include "Renderer/RHIStaticStates.h"
 #include "Renderer/ShaderCompiler.h"
 #include "Renderer/RenderGraph/RenderGraphDescriptor.h"
-#define VK_NO_PROTOTYPES
 #include "src/VkBootstrap.h"
 #include "TaskSystem/TaskSystem.h"
 
@@ -195,7 +192,8 @@ namespace Lumina
     TRefCountPtr<FTrackedCommandBuffer> FQueue::GetOrCreateCommandBuffer()
     {
         LUMINA_PROFILE_SCOPE();
-        
+
+        LockMark(Mutex);
         uint64 RecodingID = LastRecordingID.fetch_add(1, eastl::memory_order_relaxed);
 
         TRefCountPtr<FTrackedCommandBuffer> TrackedBuffer;
@@ -493,6 +491,7 @@ namespace Lumina
         vkb::InstanceBuilder Builder;
         Builder
         .set_app_name("Lumina Engine")
+        .require_api_version(1, 3, 0)
         .set_allocation_callbacks(VK_ALLOC_CALLBACK);
         if (Description.bValidation)
         {
@@ -506,7 +505,6 @@ namespace Lumina
             Builder.use_default_debug_messenger();
             Builder.set_debug_callback(VkDebugCallback);
         }
-        Builder.require_api_version(1, 3, 0);
 
         vkb::Result InstBuilder = Builder.build();
 
@@ -516,9 +514,10 @@ namespace Lumina
             return false;
         }
 
-        volkLoadInstance(InstBuilder.value());
-        
         VulkanInstance = InstBuilder.value();
+        
+        volkLoadInstance(VulkanInstance);
+        
 
         if (Description.bValidation)
         {
@@ -755,12 +754,12 @@ namespace Lumina
 
         vkb::DeviceBuilder deviceBuilder(physicalDevice);
         vkb::Device vkbDevice = deviceBuilder.build().value();
-        
         VkDevice Device = vkbDevice.device;
+        volkLoadDevice(Device);
+
         VkPhysicalDevice PhysicalDevice = physicalDevice.physical_device;
         VulkanDevice = Memory::New<FVulkanDevice>(this, VulkanInstance, PhysicalDevice, Device);
 
-        
         if (vkbDevice.get_queue(vkb::QueueType::graphics).has_value())
         {
             VkQueue Queue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
@@ -798,9 +797,9 @@ namespace Lumina
         return Math::GetAligned(Size, MinAlignment);
     }
     
-    FRHIViewportRef FVulkanRenderContext::CreateViewport(const glm::uvec2& Size)
+    FRHIViewportRef FVulkanRenderContext::CreateViewport(const glm::uvec2& Size, FString&& DebugName)
     {
-        return MakeRefCount<FVulkanViewport>(Size, this);
+        return MakeRefCount<FVulkanViewport>(Size, this, Move(DebugName));
     }
 
     FRHIStagingImageRef FVulkanRenderContext::CreateStagingImage(const FRHIImageDesc& Desc, ERHIAccess Access)
@@ -1287,14 +1286,14 @@ namespace Lumina
             return it->second;
         }
 
-        auto Layout = MakeRefCount<FVulkanInputLayout>(AttributeDesc, Count);
+        TRefCountPtr<FVulkanInputLayout> Layout = MakeRefCount<FVulkanInputLayout>(AttributeDesc, Count);
         InputLayoutMap.emplace(Hash, Layout);
         return Layout;
     }
 
     void FVulkanRenderContext::SetVulkanObjectName(FString Name, VkObjectType ObjectType, uint64 Handle)
     {
-        #if LE_DEBUG
+        #if !defined(LUMINA_SHIPPING)
         if (DebugUtils.DebugUtilsObjectNameEXT && !Name.empty())
         {
             VkDebugUtilsObjectNameInfoEXT NameInfo = {};

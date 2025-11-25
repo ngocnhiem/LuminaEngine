@@ -112,6 +112,13 @@ namespace Lumina
     }
 
 
+    void CObjectBase::ForceDestroyNow()
+    {
+        SetFlag(OF_MarkedDestroy);
+        OnDestroy();
+        Memory::Delete(this);
+    }
+
     void CObjectBase::ConditionalBeginDestroy()
     {
         if (HasAnyFlag(OF_MarkedDestroy))
@@ -137,7 +144,7 @@ namespace Lumina
     {
         FObjectHashTables::Get().RemoveObject(this);
         
-        NamePrivate = std::move(NewName);
+        NamePrivate = NewName;
         if (NewPackage != PackagePrivate)
         {
             PackagePrivate = NewPackage;
@@ -158,7 +165,7 @@ namespace Lumina
         GRootedObjects.erase(this);
     }
 
-    void CObjectBase::AddObject(const FName& Name, uint32 InInternalIndex)
+    void CObjectBase::AddObject(const FName& Name, int32 InInternalIndex)
     {
         InternalIndex = InInternalIndex;
 

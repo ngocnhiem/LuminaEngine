@@ -53,7 +53,7 @@ namespace Lumina
         {
             DebugVisualizationMode = ERenderSceneDebugFlags::None;
 
-            SceneViewport = GRenderContext->CreateViewport(Windowing::GetPrimaryWindowHandle()->GetExtent());
+            SceneViewport = GRenderContext->CreateViewport(Windowing::GetPrimaryWindowHandle()->GetExtent(), "Deferred Renderer Viewport");
 
             LOG_TRACE("Initializing Renderer Scene");
 
@@ -666,8 +666,8 @@ namespace Lumina
 
                 CmdList.SetGraphicsState(GraphicsState);
 
-                SCameraComponent& CameraComponent = World->GetActiveCamera();
-                glm::mat4 ViewProjMatrix = CameraComponent.GetViewProjectionMatrix();
+                SCameraComponent* CameraComponent = World->GetActiveCamera();
+                glm::mat4 ViewProjMatrix = CameraComponent->GetViewProjectionMatrix();
                 CmdList.SetPushConstants(&ViewProjMatrix, sizeof(glm::mat4));
                 CmdList.Draw((uint32)SimpleVertices.size(), 1, 0, 0); 
             });

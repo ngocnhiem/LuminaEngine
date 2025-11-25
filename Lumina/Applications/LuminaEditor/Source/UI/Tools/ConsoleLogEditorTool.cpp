@@ -306,19 +306,19 @@ namespace Lumina
                 }
 
                 // Context menu per message
-                if (ImGui::BeginPopupContextItem())
-                {
-                    if (ImGui::MenuItem("Copy Message"))
-                    {
-                        ImGui::SetClipboardText(Message.Message.c_str());
-                    }
-                    if (ImGui::MenuItem("Copy Line"))
-                    {
-                        FString FullLine = Message.Time + " | " + Message.LoggerName + " | " + Message.Message;
-                        ImGui::SetClipboardText(FullLine.c_str());
-                    }
-                    ImGui::EndPopup();
-                }
+                //if (ImGui::BeginPopupContextItem())
+                //{
+                //    if (ImGui::MenuItem("Copy Message"))
+                //    {
+                //        ImGui::SetClipboardText(Message.Message.c_str());
+                //    }
+                //    if (ImGui::MenuItem("Copy Line"))
+                //    {
+                //        FString FullLine = Message.Time + " | " + Message.LoggerName + " | " + Message.Message;
+                //        ImGui::SetClipboardText(FullLine.c_str());
+                //    }
+                //    ImGui::EndPopup();
+                //}
 
                 ImGui::PopID();
             }
@@ -754,26 +754,25 @@ namespace Lumina
                         //ImGui::SetKeyboardFocusHere(-1); // Focus back to input
                     }
 
-                    // Context menu for individual history items
-                    if (ImGui::BeginPopupContextItem())
-                    {
-                        if (ImGui::MenuItem("Execute"))
-                        {
-                            CurrentCommand = Cmd;
-                            ProcessCommand(CurrentCommand);
-                            bShowHistory = false;
-                        }
-                        if (ImGui::MenuItem("Copy"))
-                        {
-                            ImGui::SetClipboardText(Cmd.c_str());
-                        }
-                        if (ImGui::MenuItem("Delete"))
-                        {
-                            CommandHistory.erase(CommandHistory.begin() + i);
-                            HistoryIndex = std::min(HistoryIndex, CommandHistory.size());
-                        }
-                        ImGui::EndPopup();
-                    }
+                    //if (ImGui::BeginPopupContextItem())
+                    //{
+                    //    if (ImGui::MenuItem("Execute"))
+                    //    {
+                    //        CurrentCommand = Cmd;
+                    //        ProcessCommand(CurrentCommand);
+                    //        bShowHistory = false;
+                    //    }
+                    //    if (ImGui::MenuItem("Copy"))
+                    //    {
+                    //        ImGui::SetClipboardText(Cmd.c_str());
+                    //    }
+                    //    if (ImGui::MenuItem("Delete"))
+                    //    {
+                    //        CommandHistory.erase(CommandHistory.begin() + i);
+                    //        HistoryIndex = std::min(HistoryIndex, CommandHistory.size());
+                    //    }
+                    //    ImGui::EndPopup();
+                    //}
 
                     ImGui::PopID();
                 }

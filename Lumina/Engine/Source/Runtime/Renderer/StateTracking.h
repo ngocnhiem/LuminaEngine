@@ -22,25 +22,32 @@ namespace Lumina
     
     struct FBufferStateExtension
     {
-        const FRHIBufferDesc& DescRef;
-        EResourceStates PermanentState = EResourceStates::Unknown;
+        friend class FCommandListResourceStateTracker;
 
         explicit FBufferStateExtension(const FRHIBufferDesc& desc)
             : DescRef(desc)
         { }
+
+        EResourceStates PermanentState = EResourceStates::Unknown;
+
+    private:
+        const FRHIBufferDesc& DescRef;
     };
 
     struct FTextureStateExtension
     {
+        friend class FCommandListResourceStateTracker;
+        
         explicit FTextureStateExtension(const FRHIImageDesc& desc)
             : DescRef(desc)
         { }
-        
-        const FRHIImageDesc& DescRef;
+
         EResourceStates PermanentState = EResourceStates::Unknown;
         uint32 bStateInitialized:1 = false;
         uint32 bIsSamplerFeedback:1 = false;
-
+        
+    private:
+        const FRHIImageDesc& DescRef;
     };
 
     struct FTextureState

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Module/API.h"
 
 namespace Lumina
 {

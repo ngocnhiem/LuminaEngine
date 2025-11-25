@@ -8,7 +8,6 @@ project "Lumina"
     targetdir ("%{LuminaEngineDirectory}/Binaries/" .. outputdir)
     objdir ("%{LuminaEngineDirectory}/Intermediates/Obj/" .. outputdir .. "/%{prj.name}")
 
-
     pchheader "pch.h"
     pchsource "Engine/Source/pch.cpp"
 
@@ -23,7 +22,7 @@ project "Lumina"
         "GLFW_STATIC",
 
         "LUMINA_RENDERER_VULKAN",
-
+        "VK_NO_PROTOTYPES",
         "LUMINA_RPMALLOC",
 
         "JPH_DEBUG_RENDERER",
@@ -31,10 +30,10 @@ project "Lumina"
         "JPH_EXTERNAL_PROFILE",
         "JPH_ENABLE_ASSERTS",
     }
-    
-    prebuildcommands
+
+    prebuildcommands 
     {
-        --"\"%{LuminaEngineDirectory}/Binaries/Release-windows-x86_64/Reflector.exe\" \"%{wks.location}%{wks.name}.sln\" && echo Reflection completed."
+        'python "%{LuminaEngineDirectory}/Scripts/RunReflection.py" "%{wks.location}\\Lumina.sln"'
     }
 
     postbuildcommands
@@ -42,43 +41,31 @@ project "Lumina"
         '{COPYFILE} "%{LuminaEngineDirectory}/External/RenderDoc/renderdoc.dll" "%{cfg.targetdir}"',
     }
 
+    cleancommands 
+    {
+      "make clean %{cfg.buildcfg}"
+    }
+
 
     files
     {
-        "Engine/Source/**.h",
         "Engine/Source/**.cpp",
+        "Engine/Source/**.h",
+        reflection_unity_file,
         
-        "%{LuminaEngineDirectory}/Intermediates/Reflection/Lumina/**.h",
-        "%{LuminaEngineDirectory}/Intermediates/Reflection/Lumina/**.cpp",
-        
-        "Engine/ThirdParty/EnkiTS/src/**.h",
         "Engine/ThirdParty/EnkiTS/src/**.cpp",
-
         "Engine/ThirdParty/JoltPhysics/Jolt/**.cpp",
-        "Engine/ThirdParty/JoltPhysics/Jolt/**.h",
-        "Engine/ThirdParty/JoltPhysics/Jolt/**.inl",
-        "Engine/ThirdParty/JoltPhysics/Jolt/**.gliffy",
         "Engine/ThirdParty/xxhash/xxhash.c",
-
-        "Engine/ThirdParty/rpmalloc/**.h",
         "Engine/ThirdParty/rpmalloc/**.c",
-        "Engine/ThirdParty/RenderDoc/renderdoc_app.h",
         "Engine/ThirdParty/imgui/imgui_demo.cpp",
         "Engine/ThirdParty/imgui/implot_demo.cpp",
         "Engine/ThirdParty/meshoptimizer/src/**.cpp",
-        "Engine/ThirdParty/meshoptimizer/src/**.h",
-        "Engine/ThirdParty/vk-bootstrap/src/**.h",
         "Engine/ThirdParty/vk-bootstrap/src/**.cpp",
-        "Engine/ThirdParty/VulkanMemoryAllocator/include/**.h",
-        "Engine/ThirdParty/json/include/**.h",
         "Engine/ThirdParty/json/src/**.cpp",
-        "Engine/ThirdParty/ImGuizmo/**.h",
         "Engine/ThirdParty/ImGuizmo/**.cpp",
-        "Engine/ThirdParty/SPIRV-Reflect/**.h",
         "Engine/ThirdParty/SPIRV-Reflect/**.c",
         "Engine/ThirdParty/SPIRV-Reflect/**.cpp",
         "Engine/ThirdParty/fastgltf/src/**.cpp",
-        "Engine/ThirdParty/fastgltf/deps/simdjson/**.h",
         "Engine/ThirdParty/fastgltf/deps/simdjson/**.cpp",
     }
 
@@ -86,9 +73,8 @@ project "Lumina"
     { 
         "Engine/Source",
         "Engine/Source/Runtime",
-        "Engine/ThirdParty/",
-
-        reflection_directory(),
+        
+        reflection_dir,
         includedependencies(),
     }
     

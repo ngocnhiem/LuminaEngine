@@ -1,6 +1,8 @@
 ﻿#pragma once
 
 #include <ThirdParty/imgui/imgui.h>
+
+#include "Events/EventProcessor.h"
 #include "Tools/EditorToolContext.h"
 #include "Tools/EditorToolModal.h"
 #include "Tools/Transactions/CoreTransactionTypes.h"
@@ -34,6 +36,10 @@ namespace Lumina
         FEditorUI();
         ~FEditorUI() override;
 
+        // Begin IEventHandler
+        bool OnEvent(FEvent& Event) override;
+        //~ End IEventHandler
+
         void Initialize(const FUpdateContext& UpdateContext) override;
         void Deinitialize(const FUpdateContext& UpdateContext) override;
 
@@ -53,7 +59,7 @@ namespace Lumina
         T* CreateTool(Args&&... args);
         
         void VerifyDirtyPackages();
-        
+    
     private:
 
         void EditorToolLayoutCopy(FEditorTool* SourceTool);

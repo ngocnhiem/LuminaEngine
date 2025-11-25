@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 
 #include "ReflectedHeader.h"
 #include "Reflector/Clang/Utils.h"
@@ -52,6 +53,11 @@ namespace Lumina::Reflection
                         
                         // Skip files that contain ".generated." in their name
                         if (HeaderFileFullPath.find(".generated.") != eastl::string::npos)
+                        {
+                            continue;
+                        }
+
+                        if (HeaderFileFullPath.find(".gen.") != eastl::string::npos)
                         {
                             continue;
                         }

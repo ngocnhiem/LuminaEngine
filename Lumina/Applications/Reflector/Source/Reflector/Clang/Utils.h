@@ -1,9 +1,7 @@
 #pragma once
-#include <filesystem>
-#include <iostream>
+
 #include <clang/AST/Ast.h>
 #include <clang-c/Index.h>
-
 #include "xxhash.h"
 
 

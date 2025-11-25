@@ -1,6 +1,4 @@
 ﻿#include "GamePreviewTool.h"
-
-#include "Core/Engine/Engine.h"
 #include "World/WorldManager.h"
 
 namespace Lumina

@@ -228,8 +228,11 @@ def generate_solution(premake_path):
         
     except subprocess.CalledProcessError as e:
         print_error("Premake generation failed!")
+        print_error(f"Return code: {e.returncode}")
+        if e.stdout:
+            print(f"{Fore.RED}stdout:\n{e.stdout}{Style.RESET_ALL}")
         if e.stderr:
-            print(f"{Fore.RED}{e.stderr}{Style.RESET_ALL}")
+            print(f"{Fore.RED}stderr:\n{e.stderr}{Style.RESET_ALL}")
         return False
 
 # --- Check Python Modules ---
@@ -293,8 +296,6 @@ def main():
     print(f"{Fore.GREEN}{Style.BRIGHT}{'=' * 70}{Style.RESET_ALL}\n")
     print_info("You can now open the solution file in Visual Studio 2022")
     time.sleep(0.25)
-    print_success("This window will close in 2 seconds...")
-    time.sleep(2.0)
 
     return 0
 

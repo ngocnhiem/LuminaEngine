@@ -1,6 +1,10 @@
 #pragma once
 
+#include "Component.h"
 #include "RenderComponent.h"
+#include "Core/Engine/Engine.h"
+#include "Core/Object/Class.h"
+#include "World/Entity/Registry/EntityRegistry.h"
 #include "glm/glm.hpp"
 #include "LightComponent.generated.h"
 

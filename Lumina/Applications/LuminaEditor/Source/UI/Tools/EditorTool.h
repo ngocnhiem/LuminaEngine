@@ -9,6 +9,7 @@
 #include "Containers/String.h"
 #include "Core/UpdateContext.h"
 #include "Core/Math/Hash/Hash.h"
+#include "Events/EventProcessor.h"
 #include "Memory/RefCounted.h"
 #include "Tools/UI/ImGui/ImGuiDesignIcons.h"
 #include "World/Entity/Entity.h"
@@ -27,7 +28,7 @@ concept CDrawToolCallable = eastl::is_invocable_v<TCallable, const Lumina::FUpda
 
 namespace Lumina
 {
-    class FEditorTool
+    class FEditorTool : public IEventHandler
     {
     public:
         
@@ -66,10 +67,11 @@ namespace Lumina
     public:
 
         FEditorTool(IEditorToolContext* Context, const FString& DisplayName, CWorld* InWorld = nullptr);
+        
 
         virtual void Initialize();
         virtual void Deinitialize(const FUpdateContext& UpdateContext);
-        virtual FString GetToolName() const { return ToolName; }
+        virtual FName GetToolName() const { return ToolName; }
         
         ImGuiID CalculateDockspaceID() const
         {
@@ -148,8 +150,8 @@ namespace Lumina
         virtual void OnUndo() { }
 
         /** @TODO Cache and compare */
-        uint32 GetID() const { return Hash::GetHash32(GetToolName()); }
-
+        uint32 GetID() const { return Hash::GetHash32(GetToolName().c_str()); }
+        
         FORCEINLINE ImGuiID GetCurrDockID() const        { return CurrDockID; }
         FORCEINLINE ImGuiID GetDesiredDockID() const     { return DesiredDockID; }
         FORCEINLINE ImGuiID GetCurrLocationID() const    { return CurrLocationID; }
@@ -195,9 +197,7 @@ namespace Lumina
         
         /** Helper to add a simple entry to the help menu */
         void DrawHelpTextRow(const char* pLabel, const char* pText) const;
-        
-        void SetDisplayName(FString NewName);
-
+    
     protected:
         
         ImGuiID                         CurrDockID = 0;
@@ -209,7 +209,7 @@ namespace Lumina
         ImGuiWindowClass                ToolWindowsClass;       // All our tools windows will share the same WindowClass (based on ID) to avoid mixing tools from different top-level editor
 
         IEditorToolContext*             ToolContext = nullptr;
-        FString                         ToolName;
+        FName                           ToolName;
         
         TFixedVector<FToolWindow*, 4>   ToolWindows;
         

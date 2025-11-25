@@ -2,8 +2,8 @@
 
 #include "Lumina.h"
 #include "Core/UpdateContext.h"
-#include "entt/entt.hpp"
 #include "Module/API.h"
+#include "entt/entt.hpp"
 #include "Renderer/RHIFwd.h"
 #include "Renderer/RHIIncl.h"
 #include "Subsystems/Subsystem.h"
@@ -17,7 +17,6 @@ namespace Lumina
     class IImGuiRenderer;
     class IDevelopmentToolUI;
     class FAssetManager;
-    class FInputSubsystem;
     class FApplication;
     class FWindow;
     class FDeferredRenderScene;
@@ -75,7 +74,6 @@ namespace Lumina
         #endif
 
         FSubsystemManager       EngineSubsystems;
-        FInputSubsystem*        InputSubsystem =        nullptr;
         FAssetManager*          AssetManager =          nullptr;
         FAssetRegistry*         AssetRegistry =         nullptr;
         FWorldManager*          WorldManager =          nullptr;

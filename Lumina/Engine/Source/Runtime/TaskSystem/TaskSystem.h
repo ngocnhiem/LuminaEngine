@@ -36,11 +36,6 @@ namespace Lumina
 
         static void Initialize();
         static void Shutdown();
-        
-        void WaitForAll() 
-        {
-            Scheduler.WaitforAll(); 
-        }
 
         /**
          * When scheduling tasks, the number specified is the number of iterations you want. EnkiTS will -
@@ -141,11 +136,16 @@ namespace Lumina
             Scheduler.WaitforTask(pTask, (enki::TaskPriority)Priority);
         }
         
-        
         LUMINA_API void WaitForTask(const IPinnedTask* pTask)
         {
             LUMINA_PROFILE_SECTION("Tasks::WaitForTask");
             Scheduler.WaitforTask(pTask);
+        }
+        
+        LUMINA_API void WaitForAll() 
+        {
+            LUMINA_PROFILE_SCOPE();
+            Scheduler.WaitforAll(); 
         }
     
     private:

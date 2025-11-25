@@ -33,6 +33,7 @@ namespace Lumina
         LUMINA_API bool HasAnyFlag(EObjectFlags Flag) const { return EnumHasAnyFlags(ObjectFlags, Flag); }
         LUMINA_API bool HasAllFlags(EObjectFlags Flags) const { return EnumHasAllFlags(ObjectFlags, Flags); }
 
+        LUMINA_API void ForceDestroyNow();
         LUMINA_API void ConditionalBeginDestroy();
         LUMINA_API int32 GetStrongRefCount() const;
 
@@ -52,7 +53,7 @@ namespace Lumina
         
     private:
 
-        LUMINA_API void AddObject(const FName& Name, uint32 InInternalIndex = -1);
+        LUMINA_API void AddObject(const FName& Name, int32 InInternalIndex = -1);
         
     public:
         

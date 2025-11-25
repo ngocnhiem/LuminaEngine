@@ -320,21 +320,15 @@ namespace Lumina
     	uint32 AddRef() const
     	{
     		uint32 NewValue = RefCount.fetch_add(1, eastl::memory_order_relaxed) + 1;
-			#if LE_DEBUG
-    		Assert(NewValue > 0 && NewValue < 0x3FFFFFFF)
-			#endif
     		return NewValue;
     	}
         
     	uint32 Release()
     	{
     		uint32 NewValue = RefCount.fetch_sub(1, eastl::memory_order_acq_rel) - 1;
-			#if LE_DEBUG
-    		Assert(NewValue != ~0u)
-			#endif
     		if (NewValue == 0)
     		{
-    			Delete();
+    			Memory::Delete(this);
     			return 0;
     		}
 		
@@ -343,17 +337,12 @@ namespace Lumina
         
     	uint32 GetRefCount() const
     	{
-    		return RefCount.load(eastl::memory_order_acquire);
+    		return RefCount.load(eastl::memory_order_relaxed);
     	}
 
     	bool IsValid() const
     	{
-    		return RefCount.load(eastl::memory_order_acquire) > 0;
-    	}
-
-    	void Delete()
-    	{
-    		Memory::Delete(this);
+    		return RefCount.load(eastl::memory_order_relaxed) > 0;
     	}
 	
     private:
@@ -372,17 +361,19 @@ namespace Lumina
 
 		RENDER_RESOURCE(RRT_Viewport)
 		
-		FRHIViewport(const glm::uvec2& InSize, IRenderContext* InContext)
+		FRHIViewport(const glm::uvec2& InSize, IRenderContext* InContext, FString&& InDebugName)
 			: RenderContext(InContext)
 			, Size(InSize)
+			, DebugName(Move(InDebugName))
 		{
 			CreateRenderTarget(InSize);
 		}
 
-		FRHIViewport(const FViewVolume& InVolume, const glm::uvec2& InSize, IRenderContext* InContext)
+		FRHIViewport(const FViewVolume& InVolume, const glm::uvec2& InSize, IRenderContext* InContext, FString&& InDebugName)
 			: RenderContext(InContext)
 			, ViewVolume(InVolume)
 			, Size(InSize)
+			, DebugName(Move(InDebugName))
 		{
 			CreateRenderTarget(InSize);
 		}
@@ -406,7 +397,7 @@ namespace Lumina
 		FRHIImageRef		RenderTarget;
 		FViewVolume        	ViewVolume;
 		glm::uvec2       	Size; 
-    
+		FString				DebugName;
 	};
 
 
@@ -456,32 +447,20 @@ namespace Lumina
 	};
 
 	
-	class LUMINA_API FRHIBuffer : public IRHIResource, public FBufferStateExtension
+	class LUMINA_API FRHIBuffer : public IRHIResource
 	{
 	public:
 
 		RENDER_RESOURCE(RRT_Buffer)
-
-		FRHIBuffer(const FRHIBufferDesc& InDesc)
-			: FBufferStateExtension(Description)
-			, Description(InDesc)
-		{}
 		
-		const FRHIBufferDesc& GetDescription() const { return Description; }
-
-		bool IsStorageBuffer() const { return Description.Usage.IsFlagSet(EBufferUsageFlags::StorageBuffer); }
-		bool IsUniformBuffer() const { return Description.Usage.IsFlagSet(EBufferUsageFlags::UniformBuffer); }
-		bool IsVertexBuffer() const { return Description.Usage.IsFlagSet(EBufferUsageFlags::VertexBuffer); }
-		bool IsIndexBuffer() const { return Description.Usage.IsFlagSet(EBufferUsageFlags::IndexBuffer); }
-
-		
-		uint64 GetSize() const { return Description.Size; }
-		uint32 GetStride() const { return Description.Stride; }
-		TBitFlags<EBufferUsageFlags> GetUsage() const { return Description.Usage; }
-
-	protected:
-
-		FRHIBufferDesc Description;
+		virtual const FRHIBufferDesc& GetDescription() const = 0;
+		virtual bool IsStorageBuffer() const = 0;
+		virtual bool IsUniformBuffer() const = 0;
+		virtual bool IsVertexBuffer() const = 0;
+		virtual bool IsIndexBuffer() const = 0;
+		virtual uint64 GetSize() const = 0;
+		virtual uint32 GetStride() const = 0;
+		virtual TBitFlags<EBufferUsageFlags> GetUsage() const = 0;
 		
 	};
 
@@ -832,36 +811,23 @@ namespace Lumina
 		RENDER_RESOURCE(RRT_SamplerState)
 
 		NODISCARD virtual const FSamplerDesc& GetDesc() const = 0;
-
-		
 	};
 	
-	class LUMINA_API FRHIImage : public IRHIResource, public FTextureStateExtension
+	class LUMINA_API FRHIImage : public IRHIResource
 	{
 	public:
 
 		RENDER_RESOURCE(RRT_Image)
-
-		FRHIImage(const FRHIImageDesc& InDesc)
-			: FTextureStateExtension(Description)
-			, Description(InDesc)
-		{}
 		
-		FORCEINLINE const FRHIImageDesc& GetDescription() const { return Description; }
-		
-		FORCEINLINE const glm::uvec2& GetExtent() const { return Description.Extent; }
-		FORCEINLINE uint32 GetSizeX() const { return Description.Extent.x; }
-		FORCEINLINE uint32 GetSizeY() const { return Description.Extent.y; }
-		FORCEINLINE EFormat GetFormat() const { return Description.Format; }
-		FORCEINLINE TBitFlags<EImageCreateFlags> GetFlags() const { return Description.Flags; }
-		FORCEINLINE uint8 GetNumMips() const { return Description.NumMips; }
+		FORCEINLINE virtual const FRHIImageDesc& GetDescription() const = 0;
+		FORCEINLINE virtual const glm::uvec2& GetExtent() const = 0;
+		FORCEINLINE virtual uint32 GetSizeX() const = 0;
+		FORCEINLINE virtual uint32 GetSizeY() const = 0;
+		FORCEINLINE virtual EFormat GetFormat() const = 0;
+		FORCEINLINE virtual TBitFlags<EImageCreateFlags> GetFlags() const = 0;
+		FORCEINLINE virtual uint8 GetNumMips() const = 0;
 
 		virtual void* GetRHIView(EFormat Format, FTextureSubresourceSet Subresources, EImageDimension Dimension, bool bReadyOnlyDSV = false) = 0;
-		
-	
-	private:
-
-		FRHIImageDesc Description;
 	};
 
 	class LUMINA_API FRHIStagingImage : public IRHIResource

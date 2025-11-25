@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "World.h"
 
+#include "WorldManager.h"
 #include "Core/Delegates/CoreDelegates.h"
 #include "Core/Engine/Engine.h"
 #include "Core/Object/Class.h"
@@ -12,12 +13,10 @@
 #include "Entity/Components/EditorComponent.h"
 #include "Entity/Components/LineBatcherComponent.h"
 #include "Entity/Components/VelocityComponent.h"
-#include "Entity/Systems/UpdateTransformEntitySystem.h"
 #include "glm/gtx/matrix_decompose.hpp"
 #include "Physics/Physics.h"
 #include "Scene/RenderScene/Forward/ForwardRenderScene.h"
 #include "Subsystems/FCameraManager.h"
-#include "TaskSystem/TaskSystem.h"
 #include "World/Entity/Components/RelationshipComponent.h"
 #include "World/entity/systems/EntitySystem.h"
 #include "World/Scene/RenderScene/Deferred/DeferredRenderScene.h"
@@ -111,19 +110,19 @@ namespace Lumina
 
     void CWorld::InitializeWorld()
     {
-        if (bInitialized.load(eastl::memory_order_acquire))
+        if (bInitialized)
         {
             return;
         }
-
-        PhysicsScene = Physics::GetPhysicsContext()->CreatePhysicsScene(this);
         
-        CameraManager = Memory::New<FCameraManager>(this);
-        SetupEditorWorld();
+        GEngine->GetEngineSubsystem<FWorldManager>()->AddWorld(this);
 
-        RenderScene = Memory::New<FForwardRenderScene>(this);
+        PhysicsScene    = Physics::GetPhysicsContext()->CreatePhysicsScene(this);
+        EntityWorld     = MakeUniquePtr<FEntityWorld>();
+        CameraManager   = MakeUniquePtr<FCameraManager>(this);
+        RenderScene     = MakeUniquePtr<FForwardRenderScene>(this);
+        
         RenderScene->Init();
-
 
         if (!bDuplicatePIEWorld)
         {
@@ -135,7 +134,7 @@ namespace Lumina
                 if (System->GetRequiredUpdatePriorities())
                 {
                     CEntitySystem* DuplicateSystem = NewObject<CEntitySystem>(System->GetClass());
-                    RegisterSystem(DuplicateSystem, true);
+                    RegisterSystem(DuplicateSystem);
                 }
             }
         }
@@ -147,13 +146,17 @@ namespace Lumina
                 {
                     CEntitySystem* DuplicateSystem = NewObject<CEntitySystem>(System->GetClass());
                     DuplicateSystem->CopyProperties(System);
-                    RegisterSystem(System, true);
+                    RegisterSystem(DuplicateSystem);
                 }
             }
+
+            SystemsDuplicatedFromPIE.clear();
         }
 
         
-        bInitialized.store(true, eastl::memory_order_relaxed);
+        bInitialized = true;
+
+        GetEntityRegistry().on_destroy<SRelationshipComponent>().connect<&ThisClass::OnRelationshipComponentDestroyed>(this);
     }
     
     Entity CWorld::SetupEditorWorld()
@@ -216,15 +219,20 @@ namespace Lumina
     {
         LUMINA_PROFILE_SCOPE();
 
-        SCameraComponent& CameraComponent = GetActiveCamera();
-        STransformComponent& CameraTransform = EntityWorld.Get<STransformComponent>(CameraManager->GetActiveCameraEntity());
+        FViewVolume ViewVolume;
+        
+        if (SCameraComponent* CameraComponent = GetActiveCamera())
+        {
+            STransformComponent& CameraTransform = EntityWorld->Get<STransformComponent>(CameraManager->GetActiveCameraEntity());
 
-        glm::vec3 UpdatedForward = CameraTransform.Transform.Rotation * glm::vec3(0.0f, 0.0f, -1.0f);
-        glm::vec3 UpdatedUp      = CameraTransform.Transform.Rotation * glm::vec3(0.0f, 1.0f,  0.0f);
+            glm::vec3 UpdatedForward = CameraTransform.WorldTransform.Rotation * glm::vec3(0.0f, 0.0f, -1.0f);
+            glm::vec3 UpdatedUp      = CameraTransform.WorldTransform.Rotation * glm::vec3(0.0f, 1.0f,  0.0f);
         
-        CameraComponent.SetView(CameraTransform.Transform.Location, UpdatedForward, UpdatedUp);
-        
-        RenderScene->RenderScene(RenderGraph, CameraComponent.GetViewVolume());
+            CameraComponent->SetView(CameraTransform.WorldTransform.Location, UpdatedForward, UpdatedUp);
+            ViewVolume = CameraComponent->GetViewVolume();
+        }
+
+        RenderScene->RenderScene(RenderGraph, ViewVolume);
     }
 
     void CWorld::ShutdownWorld()
@@ -235,60 +243,28 @@ namespace Lumina
         {
             EndPlay();
         }
-
-        // Collect unique systems across all stages
-        TVector<CEntitySystem*> UniqueSystems;
-    
-        for (uint8 i = 0; i < (uint8)EUpdateStage::Max; i++)
-        {
-            for (CEntitySystem* System : SystemUpdateList[i])
-            {
-                if (eastl::find(UniqueSystems.begin(), UniqueSystems.end(), System) == UniqueSystems.end())
-                {
-                    UniqueSystems.push_back(System);
-                }
-            }
         
-            SystemUpdateList[i].clear();
-        }
-
-        for (CEntitySystem* System : UniqueSystems)
+        ForEachUniqueSystem([&](CEntitySystem* System)
         {
             System->Shutdown(SystemContext);
-            System->ConditionalBeginDestroy();
-        }
-        
+        });
+
         RenderScene->Shutdown();
-        Memory::Delete(RenderScene);
-        RenderScene = nullptr;
         
-        Memory::Delete(CameraManager);
-        CameraManager = nullptr;
-
-        PhysicsScene.reset();
-
+        RenderScene.reset();
+        EntityWorld.reset();
+        CameraManager.reset();
+        
         FCoreDelegates::PostWorldUnload.Broadcast();
+
+        GEngine->GetEngineSubsystem<FWorldManager>()->RemoveWorld(this);
     }
 
-    bool CWorld::RegisterSystem(CEntitySystem* NewSystem, bool bInitialize)
+    bool CWorld::RegisterSystem(CEntitySystem* NewSystem)
     {
         Assert(NewSystem != nullptr)
 
         NewSystem->PostConstructForWorld(this);
-
-        if (bInitialize)
-        {
-            FSystemContext SystemContext(this);
-
-            if (bIsPlayWorld)
-            {
-                NewSystem->Initialize(SystemContext);
-            }
-            else
-            {
-                NewSystem->InitializeEditor(SystemContext);
-            }
-        }
         
         bool StagesModified[(uint8)EUpdateStage::Max] = {};
 
@@ -385,25 +361,15 @@ namespace Lumina
     
         glm::decompose(NewLocalMatrix, Scale, Rotation, Translation, Skew, Perspective);
     
-        if (Child.HasComponent<STransformComponent>())
-        {
-            FTransform NewTransform;
-            NewTransform.Location = Translation;
-            NewTransform.Rotation = Rotation;
-            NewTransform.Scale = Scale;
-            
-            SetEntityTransform(Child, NewTransform);
-            
-        }
-    
         SRelationshipComponent& ParentRelationshipComponent = Parent.GetOrAddComponent<SRelationshipComponent>();
+        SRelationshipComponent& ChildRelationshipComponent = Child.GetOrAddComponent<SRelationshipComponent>();
+    
         if (ParentRelationshipComponent.NumChildren >= SRelationshipComponent::MaxChildren)
         {
             LOG_ERROR("Parent has reached its max children");
             return;
         }
     
-        SRelationshipComponent& ChildRelationshipComponent = Child.GetOrAddComponent<SRelationshipComponent>();
         if (ChildRelationshipComponent.Parent.IsValid())
         {
             if (SRelationshipComponent* ToRemove = ChildRelationshipComponent.Parent.TryGetComponent<SRelationshipComponent>())
@@ -426,6 +392,14 @@ namespace Lumina
     
         ParentRelationshipComponent.Children[ParentRelationshipComponent.NumChildren++] = Child;
         ChildRelationshipComponent.Parent = Parent;
+
+        
+        FTransform NewTransform;
+        NewTransform.Location = Translation;
+        NewTransform.Rotation = Rotation;
+        NewTransform.Scale = Scale;
+        
+        SetEntityTransform(Child, NewTransform);
     }
 
     void CWorld::DestroyEntity(Entity Entity)
@@ -436,15 +410,30 @@ namespace Lumina
 
     uint32 CWorld::GetNumEntities() const
     {
-        return EntityWorld.Registry.view<entt::entity>().size<>();
+        return EntityWorld->Registry.view<entt::entity>().size<>();
     }
 
     void CWorld::SetActiveCamera(entt::entity InEntity)
     {
-        CameraManager->SetActiveCamera(InEntity);
+        if (GetEntityRegistry().all_of<SCameraComponent>(InEntity))
+        {
+            CameraManager->SetActiveCamera(InEntity);
+        }
+        else if (SRelationshipComponent* RelationshipComponent = GetEntityRegistry().try_get<SRelationshipComponent>(InEntity))
+        {
+            for (uint8 i = 0; i < RelationshipComponent->NumChildren; ++i)
+            {
+                entt::entity Child = RelationshipComponent->Children[i].GetHandle();
+                if (GetEntityRegistry().try_get<SCameraComponent>(Child))
+                {
+                    CameraManager->SetActiveCamera(Child);
+                    break;
+                }
+            }
+        }
     }
 
-    SCameraComponent& CWorld::GetActiveCamera()
+    SCameraComponent* CWorld::GetActiveCamera()
     {
         return CameraManager->GetCameraComponent();
     }
@@ -460,7 +449,7 @@ namespace Lumina
 
         FSystemContext SystemContext(this);
 
-        ForEachSystem([&](CEntitySystem* System)
+        ForEachUniqueSystem([&](CEntitySystem* System)
         {
            System->WorldBeginPlay(SystemContext); 
         });
@@ -468,10 +457,9 @@ namespace Lumina
 
     void CWorld::EndPlay()
     {
-        
         FSystemContext SystemContext(this);
 
-        ForEachSystem([&](CEntitySystem* System)
+        ForEachUniqueSystem([&](CEntitySystem* System)
         {
            System->WorldEndPlay(SystemContext); 
         });
@@ -501,14 +489,11 @@ namespace Lumina
         CWorld* PIEWorld = NewObject<CWorld>();
         PIEWorld->SetIsPlayWorld(true);
         PIEWorld->bDuplicatePIEWorld = true;
-        
-        for (uint8 i = 0; i < (uint8)EUpdateStage::Max; i++)
+
+        OwningWorld->ForEachUniqueSystem([&](CEntitySystem* System)
         {
-            for (CEntitySystem* System : OwningWorld->SystemUpdateList[i])
-            {
-                PIEWorld->SystemsDuplicatedFromPIE.push_back(System);
-            }
-        }
+            PIEWorld->SystemsDuplicatedFromPIE.push_back(System);
+        });
 
         PIEWorld->PreLoad();
         PIEWorld->Serialize(Ar);
@@ -517,11 +502,42 @@ namespace Lumina
         return PIEWorld;
     }
 
-    const TVector<CEntitySystem*>& CWorld::GetSystemsForUpdateStage(EUpdateStage Stage)
+    const TVector<TObjectPtr<CEntitySystem>>& CWorld::GetSystemsForUpdateStage(EUpdateStage Stage)
     {
         return SystemUpdateList[uint32(Stage)];
     }
+
+    void CWorld::OnRelationshipComponentDestroyed(entt::registry& Registry, entt::entity EntityHandle)
+    {
+        SRelationshipComponent& ThisRelationship = Registry.get<SRelationshipComponent>(EntityHandle);
+
+        if (ThisRelationship.Parent.IsValid())
+        {
+            SRelationshipComponent& ParentRelationship = Registry.get<SRelationshipComponent>(ThisRelationship.Parent.GetHandle());
+            
+            for (SIZE_T i = 0; i < ParentRelationship.NumChildren; ++i)
+            {
+                if (ParentRelationship.Children[i] == EntityHandle)
+                {
+                    for (SIZE_T j = i; j < ParentRelationship.NumChildren - 1; ++j)
+                    {
+                        ParentRelationship.Children[j] = ParentRelationship.Children[j + 1];
+                    }
     
+                    --ParentRelationship.NumChildren;
+                    break;
+                }
+            }
+        }
+
+        for (size_t i = 0; i < ThisRelationship.NumChildren; ++i)
+        {
+            entt::entity ChildEntity = ThisRelationship.Children[i];
+            SRelationshipComponent& ChildRelationship = Registry.get<SRelationshipComponent>(ChildEntity);
+            ChildRelationship.Parent = Entity();
+        }
+    }
+
     void CWorld::DrawDebugLine(const glm::vec3& Start, const glm::vec3& End, const glm::vec4& Color, float Thickness, float Duration)
     {
         FLineBatcherComponent& Batcher = GetOrCreateLineBatcher();
@@ -572,16 +588,12 @@ namespace Lumina
 
     FLineBatcherComponent& CWorld::GetOrCreateLineBatcher()
     {
-        if (LineBatcherComponent)
+        if (LineBatcherEntity == entt::null)
         {
-            return *LineBatcherComponent; 
+            LineBatcherEntity = EntityWorld->CreateEmpty();
+            return EntityWorld->Emplace<FLineBatcherComponent>(LineBatcherEntity);
         }
         
-        Entity LineBatcherEntity = ConstructEntity("LineBatcher", FTransform());
-        LineBatcherEntity.Emplace<SHiddenComponent>();
-        LineBatcherEntity.Emplace<SEditorComponent>();
-        LineBatcherComponent = &LineBatcherEntity.Emplace<FLineBatcherComponent>();
-        
-        return *LineBatcherComponent;
+        return EntityWorld->Get<FLineBatcherComponent>(LineBatcherEntity);
     }
 }

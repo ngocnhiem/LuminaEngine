@@ -123,7 +123,6 @@ namespace Lumina
         FRHIImageRef                        HDRRenderTarget;
         FRHIImageRef                        CascadedShadowMap;
         FRHIImageRef                        DepthAttachment;
-        FRHIImageRef                        BayerDither;
         FRHIImageRef                        DepthPyramid;
         FRHIImageRef                        PickerImage;
         

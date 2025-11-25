@@ -10,7 +10,7 @@
 #define STBI_FREE(p) Lumina::Memory::Free(p)
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image/stb_image.h"
+#include "stb_image.h"
 
 namespace Lumina::Import::Textures
 {

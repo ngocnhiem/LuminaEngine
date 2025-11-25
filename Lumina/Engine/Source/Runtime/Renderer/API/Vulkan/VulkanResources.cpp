@@ -591,8 +591,9 @@ namespace Lumina
     }
 
     FVulkanBuffer::FVulkanBuffer(FVulkanDevice* InDevice, const FRHIBufferDesc& InDescription)
-        : FRHIBuffer(InDescription)
-        , IDeviceChild(InDevice)
+        : IDeviceChild(InDevice)
+        , FBufferStateExtension(Description)
+        , Description(InDescription)
     {
         VmaAllocationCreateFlags VmaFlags = 0;
 
@@ -650,7 +651,7 @@ namespace Lumina
         }
         
         
-        if(GetDescription().Usage.AreAnyFlagsSet(EBufferUsageFlags::CPUWritable, EBufferUsageFlags::CPUReadable, EBufferUsageFlags::Dynamic))
+        if(Description.Usage.AreAnyFlagsSet(EBufferUsageFlags::CPUWritable, EBufferUsageFlags::CPUReadable, EBufferUsageFlags::Dynamic))
         {
             VmaFlags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
         }
@@ -662,8 +663,8 @@ namespace Lumina
         BufferCreateInfo.usage = ToVkBufferUsage(InDescription.Usage);
         BufferCreateInfo.flags = 0;
         
-        Allocation = Device->GetAllocator()->AllocateBuffer(&BufferCreateInfo, VmaFlags, &Buffer, GetDescription().DebugName.c_str());
-        static_cast<FVulkanRenderContext*>(GRenderContext)->SetVulkanObjectName(GetDescription().DebugName, VK_OBJECT_TYPE_BUFFER, (uintptr_t)Buffer);
+        Allocation = Device->GetAllocator()->AllocateBuffer(&BufferCreateInfo, VmaFlags, &Buffer, Description.DebugName.c_str());
+        static_cast<FVulkanRenderContext*>(GRenderContext)->SetVulkanObjectName(Description.DebugName, VK_OBJECT_TYPE_BUFFER, (uintptr_t)Buffer);
     }
 
     FVulkanBuffer::~FVulkanBuffer()
@@ -720,8 +721,9 @@ namespace Lumina
     
 
     FVulkanImage::FVulkanImage(FVulkanDevice* InDevice, const FRHIImageDesc& InDescription)
-        : FRHIImage(InDescription)
-        , IDeviceChild(InDevice)
+        : IDeviceChild(InDevice)
+        , FTextureStateExtension(Description)
+        , Description(InDescription)
     {
         VkImageCreateFlags ImageFlags = VK_NO_FLAGS;
         VkImageUsageFlags UsageFlags = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
@@ -783,10 +785,10 @@ namespace Lumina
         ImageCreateInfo.flags               = ImageFlags;
         ImageCreateInfo.imageType           = VK_IMAGE_TYPE_2D;
         ImageCreateInfo.format              = VulkanFormat;
-        ImageCreateInfo.extent          = { (uint32)GetExtent().x, (uint32)GetExtent().y, 1 };
-        ImageCreateInfo.mipLevels           = GetDescription().NumMips;
-        ImageCreateInfo.arrayLayers         = GetDescription().ArraySize;
-        ImageCreateInfo.samples             = ToVkSampleCount(GetDescription().NumSamples);
+        ImageCreateInfo.extent          = { Description.Extent.x, Description.Extent.y, 1 };
+        ImageCreateInfo.mipLevels           = Description.NumMips;
+        ImageCreateInfo.arrayLayers         = Description.ArraySize;
+        ImageCreateInfo.samples             = ToVkSampleCount(Description.NumSamples);
         ImageCreateInfo.tiling              = VK_IMAGE_TILING_OPTIMAL;
         ImageCreateInfo.initialLayout       = VK_IMAGE_LAYOUT_UNDEFINED;
         ImageCreateInfo.usage               = UsageFlags;
@@ -797,19 +799,20 @@ namespace Lumina
     }
 
 
-    FVulkanImage::FVulkanImage(FVulkanDevice* InDevice, const FRHIImageDesc& InDescription, VkImage RawImage, bool bManagedExternal)
-        : FRHIImage(InDescription)
-        , IDeviceChild(InDevice)
+    FVulkanImage::FVulkanImage(FVulkanDevice* InDevice, const FRHIImageDesc& InDescription, VkImage RawImage, EInternal)
+        : IDeviceChild(InDevice)
+        , FTextureStateExtension(Description)
+        , Description(InDescription)
+        , bImageManagedExternal(true)
         , Image(RawImage)
     {
-        (void)bManagedExternal;
-        bImageManagedExternal = true;
         FullAspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         PartialAspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     }
 
     FVulkanImage::~FVulkanImage()
     {
+        FScopeLock Lock(SubresourceMutex);
         for (auto& ViewPair : SubresourceViews)
         {
             auto& View = ViewPair.second.View;
@@ -855,12 +858,12 @@ namespace Lumina
     {
         if (Dimension == EImageDimension::Unknown)
         {
-            Dimension = DescRef.Dimension;
+            Dimension = Description.Dimension;
         }
 
         if (Format == EFormat::UNKNOWN)
         {
-            Format = DescRef.Format;
+            Format = Description.Format;
         }
 
         FScopeLock Lock(SubresourceMutex);
@@ -941,7 +944,7 @@ namespace Lumina
     }
 
     FVulkanStagingImage::FVulkanStagingImage(FVulkanDevice* InDevice)
-        :IDeviceChild(InDevice)
+        : IDeviceChild(InDevice)
     {
     }
 

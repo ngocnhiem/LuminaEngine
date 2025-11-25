@@ -25,6 +25,7 @@ namespace Lumina
     
     CEdNodeGraph::CEdNodeGraph()
         : NodeSelectedCallback()
+        , PreNodeDeletedCallback()
     {
     }
 
@@ -297,6 +298,11 @@ namespace Lumina
                     if (!Node->IsDeletable() || !NodeEditor::AcceptDeletedItem())
                     {
                         continue;
+                    }
+
+                    if (PreNodeDeletedCallback)
+                    {
+                        PreNodeDeletedCallback(Node);
                     }
                     
                     for (CEdNodeGraphPin* Pin : Node->GetInputPins())

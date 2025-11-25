@@ -1,24 +1,14 @@
 ﻿#include "pch.h"
 #include "EditorEntityMovementSystem.h"
-#include "Core/Application/Application.h"
-#include "Core/Windows/Window.h"
-#include "Events/MouseCodes.h"
-#include "GLFW/glfw3.h"
-#include "Input/Input.h"
-#include "Input/InputSubsystem.h"
 #include "World/Entity/Entity.h"
+#include "Input/InputProcessor.h"
 #include "World/Entity/Components/CameraComponent.h"
 #include "World/Entity/Components/EditorComponent.h"
 #include "World/Entity/Components/VelocityComponent.h"
-#include "world/Entity/Registry/EntityRegistry.h"
+#include <World/Entity/Components/DirtyComponent.h>
 
 namespace Lumina
 {
-    void CEditorEntityMovementSystem::Initialize(FSystemContext& SystemContext)
-    {
-        
-    }
-
     void CEditorEntityMovementSystem::Shutdown(FSystemContext& SystemContext)
     {
         
@@ -41,71 +31,74 @@ namespace Lumina
             {
                 continue;
             }
-    
+
+            SystemContext.EmplaceOrReplace<FNeedsTransformUpdate>(EditorEntity);
+            
             glm::vec3 Forward   = Transform.Transform.Rotation * FViewVolume::ForwardAxis * -1.0f;
             glm::vec3 Right     = Transform.Transform.Rotation * FViewVolume::RightAxis;
             glm::vec3 Up        = Transform.Transform.Rotation * FViewVolume::UpAxis;
-    
+            
             float Speed = Velocity.Speed;
-            if (Input::IsKeyDown(Key::LeftShift))
+            if (FInputProcessor::Get().IsKeyDown(EKeyCode::LeftShift))
             {
                 Speed *= 10.0f;
             }
-    
+            
             glm::vec3 Acceleration(0.0f);
-    
-            if (Input::IsKeyDown(Key::W))
+            
+            if (FInputProcessor::Get().IsKeyDown(EKeyCode::W))
             {
                 Acceleration += Forward; // W = forward (+Z)
             }
-            if (Input::IsKeyDown(Key::S))
+            if (FInputProcessor::Get().IsKeyDown(EKeyCode::S))
             {
                 Acceleration -= Forward; // S = backward (-Z)
             }
-            if (Input::IsKeyDown(Key::D))
+            if (FInputProcessor::Get().IsKeyDown(EKeyCode::D))
             {
                 Acceleration += Right; // D = right (+X)
             }
-            if (Input::IsKeyDown(Key::A))
+            if (FInputProcessor::Get().IsKeyDown(EKeyCode::A))
             {
                 Acceleration -= Right; // A = left (-X)
             }
-            if (Input::IsKeyDown(Key::E))
+            if (FInputProcessor::Get().IsKeyDown(EKeyCode::E))
             {
                 Acceleration += Up; // E = up (+Y)
             }
-            if (Input::IsKeyDown(Key::Q))
+            if (FInputProcessor::Get().IsKeyDown(EKeyCode::Q))
             {
                 Acceleration -= Up; // Q = down (-Y)
             }
-
+            
             if (glm::length(Acceleration) > 0.0f)
             {
                 Acceleration = glm::normalize(Acceleration) * Speed;
             }
-
+            
             // Integrate acceleration to velocity
             Velocity.Velocity += Acceleration * (float)DeltaTime;
-    
+            
             // Apply simple linear drag
             constexpr float Drag = 10.0f;
             Velocity.Velocity -= Velocity.Velocity * Drag * (float)DeltaTime;
-    
+            
             // Apply velocity to position
             Transform.Transform.Location += Velocity.Velocity * (float)DeltaTime;
-    
+            
             // Mouse look
-            if (Input::IsMouseButtonDown(Mouse::ButtonRight))
+            if (FInputProcessor::Get().IsMouseButtonDown(EMouseCode::ButtonRight))
             {
-                Input::DisableCursor();
-    
-                glm::vec2 MouseDelta = Input::GetMouseDelta();
-                Transform.AddRotationFromMouse(MouseDelta.x, MouseDelta.y, 0.1f);
+                FInputProcessor::Get().SetCursorMode(GLFW_CURSOR_DISABLED);
+            
+                double MouseDeltaX = FInputProcessor::Get().GetMouseDeltaX();
+				double MouseDeltaY = FInputProcessor::Get().GetMouseDeltaY();
+                Transform.AddRotationFromMouse(MouseDeltaX, MouseDeltaY, 0.1f);
             }
-
-            if (Input::IsMouseButtonReleased(Mouse::ButtonRight))
+            
+            if (FInputProcessor::Get().IsMouseButtonUp(EMouseCode::ButtonRight))
             {
-                Input::EnableCursor();
+                FInputProcessor::Get().SetCursorMode(GLFW_CURSOR_NORMAL);
             }
         }
     }

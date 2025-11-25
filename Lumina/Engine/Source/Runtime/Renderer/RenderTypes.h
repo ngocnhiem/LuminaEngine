@@ -105,13 +105,13 @@ namespace Lumina
         Compute     = 1,
         Transfer    = 2,
         
-        Num         = 3,
+        Num,
     };
 
     #define Q_Graphics ECommandQueue::Graphics
-    #define Q_Compute ECommandQueue::Compute
+    #define Q_Compute  ECommandQueue::Compute
     #define Q_Transfer ECommandQueue::Transfer
-    
+
     
 
     enum class EBufferUsageFlags : uint32

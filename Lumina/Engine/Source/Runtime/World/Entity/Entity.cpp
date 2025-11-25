@@ -12,10 +12,15 @@ namespace Lumina
 
     FArchive& Entity::Serialize(FArchive& Ar)
     {
+        CWorld* World = WeakWorld.Lock();
+        if (World == nullptr)
+        {
+            return Ar;
+        }
+
+        
         if (Ar.IsWriting())
         {
-            Assert(World.IsValid())
-            
             int64 NumComponentsPos = Ar.Tell();
             
             SIZE_T NumComponents = 0;
@@ -205,6 +210,6 @@ namespace Lumina
 
     bool Entity::HasTag(FName TagName) const
     {
-        return World->GetEntityRegistry().storage<STagComponent>(entt::hashed_string(TagName.c_str())).contains(EntityHandle);
+        return WeakWorld.Lock()->GetEntityRegistry().storage<STagComponent>(entt::hashed_string(TagName.c_str())).contains(EntityHandle);
     }
 }

@@ -13,7 +13,7 @@
 namespace Lumina
 {
 
-    TAtomic<CThumbnailManager*> CThumbnailManager::ThumbnailManagerSingleton = nullptr;
+    static CThumbnailManager* ThumbnailManagerSingleton = nullptr;
 
     CThumbnailManager::CThumbnailManager()
     {
@@ -34,7 +34,7 @@ namespace Lumina
 
             CubeMesh = NewObject<CStaticMesh>(nullptr, "ThumbnailCubeMesh", OF_Transient);
             CubeMesh->Materials.resize(1);
-            CubeMesh->SetMeshResource(eastl::move(Resource));
+            CubeMesh->SetMeshResource(Move(Resource));
         }
 
         {
@@ -50,7 +50,7 @@ namespace Lumina
 
             SphereMesh = NewObject<CStaticMesh>(nullptr, "ThumbnailSphereMesh", OF_Transient);
             SphereMesh->Materials.resize(1);
-            SphereMesh->SetMeshResource(eastl::move(Resource));
+            SphereMesh->SetMeshResource(Move(Resource));
         }
 
         {
@@ -66,32 +66,24 @@ namespace Lumina
 
             PlaneMesh = NewObject<CStaticMesh>(nullptr, "ThumbnailPlaneMesh", OF_Transient);
             PlaneMesh->Materials.resize(1);
-            PlaneMesh->SetMeshResource(eastl::move(Resource));
+            PlaneMesh->SetMeshResource(Move(Resource));
         }
     }
 
     CThumbnailManager& CThumbnailManager::Get()
     {
-        CThumbnailManager* Manager = ThumbnailManagerSingleton.load(Atomic::MemoryOrderAcquire);
-        if (Manager == nullptr)
+
+        static std::once_flag Flag;
+        std::call_once(Flag, []()
         {
-            CThumbnailManager* NewManager = NewObject<CThumbnailManager>();
-            NewManager->Initialize();
+            ThumbnailManagerSingleton = NewObject<CThumbnailManager>();
+            ThumbnailManagerSingleton->Initialize();
+        });
 
-            CThumbnailManager* Expected = nullptr;
-            if (!ThumbnailManagerSingleton.compare_exchange_strong(Expected, NewManager, Atomic::MemoryOrderRelease, Atomic::MemoryOrderRelaxed))
-            {
-                // Another thread beat us.
-                NewManager->ConditionalBeginDestroy();
-            }
-
-            Manager = ThumbnailManagerSingleton.load(Atomic::MemoryOrderAcquire);
-        }
-
-        return *Manager;
+        return *ThumbnailManagerSingleton;
     }
 
-    void CThumbnailManager::GetOrLoadThumbnailsForPackage(const FString& PackagePath)
+    void CThumbnailManager::TryLoadThumbnailsForPackage(const FString& PackagePath)
     {
         FString ActualPackagePath = PackagePath;
         if (!Paths::HasExtension(ActualPackagePath, "lasset"))
@@ -144,5 +136,10 @@ namespace Lumina
             Thumbnail->LoadedImage = Image;
             Thumbnail->bDirty = false;
         }
+    }
+
+    FPackageThumbnail* CThumbnailManager::GetThumbnailForPackage(CPackage* Package)
+    {
+        return Package->GetPackageThumbnail().get();
     }
 }

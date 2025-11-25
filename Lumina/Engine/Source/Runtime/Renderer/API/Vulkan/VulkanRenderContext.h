@@ -1,12 +1,10 @@
 #pragma once
 
-#include <atomic>
 #include <Containers/Array.h>
 #include <volk/volk.h>
 #define VK_NO_PROTOTYPES
 #include <tracy/TracyVulkan.hpp>
 #include "TrackedCommandBuffer.h"
-#include "VulkanMacros.h"
 #include "VulkanPipelineCache.h"
 #include "VulkanResources.h"
 #include "concurrentqueue/concurrentqueue.h"
@@ -60,7 +58,7 @@ namespace Lumina
     public:
         
         FQueue(FVulkanRenderContext* InRenderContext, VkQueue InQueue, uint32 InQueueFamilyIndex, ECommandQueue InType);
-        ~FQueue() override;
+        ~FQueue();
 
         /**
          * @threadsafety - Called from ICommandList::Open, so free-threaded.
@@ -82,7 +80,7 @@ namespace Lumina
         void AddSignalSemaphore(VkSemaphore Semaphore, uint64 Value);
         void AddWaitSemaphore(VkSemaphore Semaphore, uint64 Value, VkPipelineStageFlags Stage);
 
-        FVulkanRenderContext*               RenderContext;
+        FVulkanRenderContext*               RenderContext = nullptr;
         eastl::atomic<uint64>               LastRecordingID = 0;
         uint64                              LastSubmittedID = 0;
         uint64                              LastFinishedID = 0;
@@ -93,12 +91,12 @@ namespace Lumina
         TFixedVector<VkSemaphore, 4>            SignalSemaphores;
         TFixedVector<uint64, 4>                 SignalSemaphoreValues;
 
-        ECommandQueue               Type;
+        ECommandQueue               Type = ECommandQueue::Num;
         TracyLockable(FMutex,       Mutex);
         
-        VkQueue                     Queue;
-        uint32                      QueueFamilyIndex;
-        VkSemaphore                 TimelineSemaphore;
+        VkQueue                     Queue = VK_NULL_HANDLE;
+        uint32                      QueueFamilyIndex = 0;
+        VkSemaphore                 TimelineSemaphore = VK_NULL_HANDLE;
 
         TFixedVector<TRefCountPtr<FTrackedCommandBuffer>, 4> CommandBuffersInFlight;
         TConcurrentQueue<TRefCountPtr<FTrackedCommandBuffer>> CommandBufferPool;
@@ -175,7 +173,7 @@ namespace Lumina
         
         //-------------------------------------------------------------------------------------
 
-        NODISCARD FRHIViewportRef CreateViewport(const glm::uvec2& Size) override;
+        NODISCARD FRHIViewportRef CreateViewport(const glm::uvec2& Size, FString&& DebugName) override;
         
         NODISCARD FRHIStagingImageRef CreateStagingImage(const FRHIImageDesc& Desc, ERHIAccess Access) override;
         void* MapStagingTexture(FRHIStagingImage* Image, const FTextureSlice& slice, ERHIAccess Access, size_t* OutRowPitch) override;

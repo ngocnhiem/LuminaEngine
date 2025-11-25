@@ -2,6 +2,7 @@
 #include "TreeListView.h"
 
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "Tools/UI/ImGui/ImGuiX.h"
 
 namespace Lumina
@@ -50,14 +51,41 @@ namespace Lumina
             ImGuiListClipper Clipper;
             Clipper.Begin((int)ListItems.size());
 
+            if (bMaintainVisibleRowIndex && EstimatedRowHeight > 0)
+            {
+                float CurrentScrollY = ImGui::GetScrollY();
+                float VisibleHeight = ImGui::GetWindowHeight();
+    
+                float ItemPositionY = (float)FirstVisibleRowItemIndex * EstimatedRowHeight;
+    
+                float VisibleStart = CurrentScrollY;
+                float VisibleEnd = CurrentScrollY + VisibleHeight;
+    
+                bool bIsVisible = (ItemPositionY >= VisibleStart) && (ItemPositionY + EstimatedRowHeight <= VisibleEnd);
+    
+                if (!bIsVisible)
+                {
+                    float CenteredScrollY = ItemPositionY - (VisibleHeight * 0.5f) + (EstimatedRowHeight * 0.5f);
+        
+                    float MaxScrollY = ImGui::GetScrollMaxY();
+                    CenteredScrollY = ImClamp(CenteredScrollY, 0.0f, MaxScrollY);
+        
+                    ImGui::SetScrollY(CenteredScrollY);
+                }
+    
+                bMaintainVisibleRowIndex = false;
+            }
+
             while (Clipper.Step())
             {
                 for (int i = Clipper.DisplayStart; i < Clipper.DisplayEnd; ++i)
                 {
                     ImGui::TableNextRow();
                     ImGui::TableSetColumnIndex(0);
-                    
+
+                    float CursorPosY = ImGui::GetCursorPosY();
                     DrawListItem(ListItems[i], Context);
+                    EstimatedRowHeight = ImGui::GetCursorPosY() - CursorPosY;
                 }
             }
 
@@ -221,6 +249,8 @@ namespace Lumina
         {
             Selections.push_back(Item);
             Item->bSelected = true;
+
+            RequestScrollTo(Item);
         }
 
         if (Context.ItemSelectedFunction)
@@ -228,6 +258,19 @@ namespace Lumina
             Context.ItemSelectedFunction(bWasSelected ? nullptr : Item);
         }
         Item->OnSelectionStateChanged();
+    }
+
+    void FTreeListView::RequestScrollTo(const FTreeListViewItem* Item)
+    {
+        for (int i = 0; i < (int)ListItems.size(); ++i)
+        {
+            if (ListItems[i] == Item)
+            {
+                FirstVisibleRowItemIndex = i;
+                bMaintainVisibleRowIndex = true;
+                break;
+            }
+        }
     }
 
     void FTreeListView::ClearSelection()

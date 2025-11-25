@@ -52,15 +52,33 @@ namespace Lumina::Reflection
 
     void FCodeGenerator::GenerateCodeForProject(const FReflectedProject& Project)
     {
+        eastl::string FinalOutput;
+        FinalOutput += "#include \"pch.h\"\n";
+        
         for (const FReflectedHeader& Header : Project.Headers)
         {
             if (ReflectionDatabase->ReflectedTypes.find(FStringHash(Header.HeaderPath)) == ReflectionDatabase->ReflectedTypes.end())
             {
                 continue;
             }
-            
+
             GenerateReflectionCodeForHeader(Header);
+            
             GenerateReflectionCodeForSource(Header);
+            
+            FinalOutput += "#include \"" + Header.FileName + ".generated.cpp\"" + "\n";
+        }
+
+        eastl::string ReflectionDataPath = Solution.GetParentPath() + R"(\Intermediates\Reflection\)" + CurrentProject.Name + R"(\)" + "ReflectionUnity.gen.cpp";
+        std::filesystem::path outputPath(ReflectionDataPath.c_str());
+        std::filesystem::create_directories(outputPath.parent_path());
+        
+        std::ofstream OutputFile(ReflectionDataPath.c_str());
+
+        if (OutputFile.is_open())
+        {
+            OutputFile.write(FinalOutput.c_str(), FinalOutput.size());
+            OutputFile.close();
         }
     }
 
@@ -71,11 +89,11 @@ namespace Lumina::Reflection
 
         GenerateCodeHeader(Stream, Header);
         
-        eastl::string ReflectionDataPath = Solution.GetParentPath() + R"(\Intermediates\Reflection\)" + CurrentProject.Name + R"(\)" + Header.FileName + ".generated.h";
-        std::filesystem::path outputPath(ReflectionDataPath.c_str());
+        eastl::string OutFileName = Solution.GetParentPath() + R"(\Intermediates\Reflection\)" + CurrentProject.Name + R"(\)" + Header.FileName + ".generated.h";
+        std::filesystem::path outputPath(OutFileName.c_str());
         std::filesystem::create_directories(outputPath.parent_path());
         
-        std::ofstream OutputFile(ReflectionDataPath.c_str());
+        std::ofstream OutputFile(OutFileName.c_str());
 
         if (OutputFile.is_open())
         {
@@ -91,11 +109,11 @@ namespace Lumina::Reflection
 
         GenerateCodeSource(Stream, Header);
         
-        eastl::string ReflectionDataPath = Solution.GetParentPath() + R"(\Intermediates\Reflection\)" + CurrentProject.Name + R"(\)" + Header.FileName + ".generated.cpp";
-        std::filesystem::path outputPath(ReflectionDataPath.c_str());
+        eastl::string OutFileName = Solution.GetParentPath() + R"(\Intermediates\Reflection\)" + CurrentProject.Name + R"(\)" + Header.FileName + ".generated.cpp";
+        std::filesystem::path outputPath(OutFileName.c_str());
         std::filesystem::create_directories(outputPath.parent_path());
         
-        std::ofstream OutputFile(ReflectionDataPath.c_str());
+        std::ofstream OutputFile(OutFileName.c_str());
 
         if (OutputFile.is_open())
         {
@@ -317,7 +335,7 @@ namespace Lumina::Reflection
         
         Stream += "};\n";
 
-        Stream += "static Lumina::FRegisterCompiledInInfo Register_Static_Initializer(\n";
+        Stream += "static Lumina::FRegisterCompiledInInfo " + FileID + "_Register_Static_Initializer(\n";
 
         if (bHasEnums)
         {

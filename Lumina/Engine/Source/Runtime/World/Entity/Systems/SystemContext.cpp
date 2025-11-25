@@ -6,16 +6,14 @@
 #include "World/Entity/Entity.h"
 #include "World/Entity/Components/DirtyComponent.h"
 #include "World/Entity/Components/LuaComponent.h"
-#include "World/Entity/Components/TagComponent.h"
 
 namespace Lumina
 {
     FSystemContext::FSystemContext(CWorld* InWorld)
     {
         World = InWorld;
-        EntityWorld = &World->EntityWorld;
+        EntityWorld = World->EntityWorld.get();
         EntityWorld->Lock();
-        DeltaTime = World->GetWorldDeltaTime();
     }
 
     FSystemContext::~FSystemContext()
@@ -75,10 +73,7 @@ namespace Lumina
 
     void FSystemContext::SetActiveCamera(entt::entity NewCameraEntity)
     {
-        if (Has<true, SCameraComponent>(NewCameraEntity))
-        {
-            World->SetActiveCamera(NewCameraEntity);
-        }
+        World->SetActiveCamera(NewCameraEntity);
     }
 
     sol::table FSystemContext::MakeLuaView(sol::variadic_args Types)

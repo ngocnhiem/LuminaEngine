@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "ForwardRenderScene.h"
-
 #include <algorithm>
-
 #include "Assets/AssetTypes/Material/Material.h"
 #include "Core/Windows/Window.h"
 #include "Renderer/RendererUtils.h"
@@ -37,7 +35,7 @@ namespace Lumina
         LOG_TRACE("Initializing Forward Render Scene");
         
         DebugVisualizationMode = ERenderSceneDebugFlags::None;
-        SceneViewport = GRenderContext->CreateViewport(Windowing::GetPrimaryWindowHandle()->GetExtent());
+        SceneViewport = GRenderContext->CreateViewport(Windowing::GetPrimaryWindowHandle()->GetExtent(), "Forward Renderer Viewport");
 
         InitBuffers();
         InitFrameResources();
@@ -109,7 +107,7 @@ namespace Lumina
 
     void FForwardRenderScene::SwapchainResized(glm::vec2 NewSize)
     {
-        SceneViewport = GRenderContext->CreateViewport(NewSize);
+        SceneViewport = GRenderContext->CreateViewport(NewSize, "Forward Renderer Viewport");
         
         InitFrameResources();
         BindingCache.ReleaseResources();
@@ -1330,7 +1328,11 @@ namespace Lumina
             GraphicsState.SetViewportState(MakeViewportStateFromImage(GetRenderTarget()));
         
             CmdList.SetGraphicsState(GraphicsState);
-            
+
+            glm::vec2 PC;
+            PC.x = 1.0;
+            PC.y = SceneGlobalData.Time;
+            CmdList.SetPushConstants(&PC, sizeof(glm::vec2));
             CmdList.Draw(3, 1, 0, 0); 
         });
     }
@@ -1500,42 +1502,6 @@ namespace Lumina
             FRHIImageDesc ImageDesc = GetRenderTarget()->GetDescription();
             ImageDesc.Format = EFormat::RGBA16_FLOAT;
             HDRRenderTarget = GRenderContext->CreateImage(ImageDesc);
-        }
-
-        {
-
-            static const char DitherPattern[] =
-            {
-                0, 32,  8, 40,  2, 34, 10, 42,   /* 8x8 Bayer ordered dithering  */
-                48, 16, 56, 24, 50, 18, 58, 26,  /* pattern.  Each input pixel   */
-                12, 44,  4, 36, 14, 46,  6, 38,  /* is scaled to the 0..63 range */
-                60, 28, 52, 20, 62, 30, 54, 22,  /* before looking in this table */
-                3, 35, 11, 43,  1, 33,  9, 41,   /* to determine the action.     */
-                51, 19, 59, 27, 49, 17, 57, 25,
-                15, 47,  7, 39, 13, 45,  5, 37,
-                63, 31, 55, 23, 61, 29, 53, 21
-            };
-        
-            FRHIImageDesc ImageDesc;
-            ImageDesc.Extent = {8, 8};
-            ImageDesc.Flags.SetMultipleFlags(EImageCreateFlags::ShaderResource);
-            ImageDesc.Format = EFormat::R8_UNORM;
-            ImageDesc.InitialState = EResourceStates::ShaderResource;
-            ImageDesc.bKeepInitialState = true;
-            ImageDesc.Dimension = EImageDimension::Texture2D;
-            ImageDesc.DebugName = "Blue Noise";
-        
-            BayerDither = GRenderContext->CreateImage(ImageDesc);
-
-            FRHICommandListRef CommandList = GRenderContext->CreateCommandList(FCommandListInfo::Graphics());
-            CommandList->Open();
-
-            CommandList->WriteImage(BayerDither, 0, 0, DitherPattern, 8, 0);
-
-            CommandList->Close();
-
-            GRenderContext->ExecuteCommandList(CommandList);
-            
         }
         
         
@@ -1737,10 +1703,9 @@ namespace Lumina
         }
         
         {
-            FRHISamplerRef Sampler = TStaticRHISampler<false, false, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
             FBindingSetDesc SetDesc;
             SetDesc.AddItem(FBindingSetItem::TextureSRV(0, HDRRenderTarget));
-            SetDesc.AddItem(FBindingSetItem::TextureSRV(1, BayerDither, Sampler));
+            SetDesc.AddItem(FBindingSetItem::PushConstants(0, sizeof(glm::vec2)));
 
             TBitFlags<ERHIShaderType> Visibility;
             Visibility.SetMultipleFlags(ERHIShaderType::Fragment);

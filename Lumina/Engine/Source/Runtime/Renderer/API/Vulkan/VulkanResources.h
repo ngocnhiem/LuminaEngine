@@ -79,7 +79,7 @@ namespace Lumina
         RENDER_RESOURCE(RRT_None)
 
         FVulkanEventQuery();
-        ~FVulkanEventQuery();
+        ~FVulkanEventQuery() override;
 
         ECommandQueue   Queue = ECommandQueue::Graphics;
         uint64          CommandListID = 0;
@@ -94,8 +94,8 @@ namespace Lumina
         friend class FVulkanRenderContext;
         
 
-        FVulkanViewport(const glm::uvec2& InSize, IRenderContext* InContext)
-            : FRHIViewport(InSize, InContext)
+        FVulkanViewport(const glm::uvec2& InSize, IRenderContext* InContext, FString&& DebugName)
+            : FRHIViewport(InSize, InContext, Move(DebugName))
         {}
 
     private:
@@ -123,7 +123,7 @@ namespace Lumina
         }
     };
 
-    class FVulkanBuffer : public FRHIBuffer, public IDeviceChild
+    class FVulkanBuffer : public IDeviceChild, public FRHIBuffer, public FBufferStateExtension
     {
     public:
         friend class FVulkanCommandList;
@@ -141,9 +141,19 @@ namespace Lumina
         VkBuffer GetBuffer() const { return Buffer; }
         VmaAllocation GetAllocation() const { return Allocation; }
         void* GetMappedMemory() const;
+        
+        const FRHIBufferDesc& GetDescription() const override { return Description; }
+        bool IsStorageBuffer() const override { return Description.Usage.IsFlagSet(EBufferUsageFlags::StorageBuffer); }
+        bool IsUniformBuffer() const override { return Description.Usage.IsFlagSet(EBufferUsageFlags::UniformBuffer); }
+        bool IsVertexBuffer() const override { return Description.Usage.IsFlagSet(EBufferUsageFlags::VertexBuffer); }
+        bool IsIndexBuffer() const override { return Description.Usage.IsFlagSet(EBufferUsageFlags::IndexBuffer); }
+        uint64 GetSize() const override { return Description.Size; }
+        uint32 GetStride() const override { return Description.Stride; }
+        TBitFlags<EBufferUsageFlags> GetUsage() const override { return Description.Usage; }
 
     private:
 
+        FRHIBufferDesc                      Description;
         ECommandQueue                       LastUseQueue = ECommandQueue::Graphics;
         uint64                              LastUseCommandListID = 0;
 
@@ -203,9 +213,14 @@ namespace Lumina
         }
     };
     
-    class FVulkanImage : public FRHIImage, public IDeviceChild
+    class FVulkanImage : public IDeviceChild, public FRHIImage, public FTextureStateExtension
     {
     public:
+
+        enum EInternal
+        {
+            ExternallyManaged
+        };
 
         enum class ESubresourceViewType
         {
@@ -238,7 +253,7 @@ namespace Lumina
         };
 
         FVulkanImage(FVulkanDevice* InDevice, const FRHIImageDesc& InDescription);
-        FVulkanImage(FVulkanDevice* InDevice, const FRHIImageDesc& InDescription, VkImage RawImage, bool bManagedExternal);
+        FVulkanImage(FVulkanDevice* InDevice, const FRHIImageDesc& InDescription, VkImage RawImage, EInternal);
         ~FVulkanImage() override;
 
         void* GetAPIResourceImpl(EAPIResourceType Type) override;
@@ -253,11 +268,19 @@ namespace Lumina
         uint32 GetNumSubresources() const;
         uint32 GetSubresourceIndex(uint32 MipLevel, uint32 ArrayLayer) const;
         
+        const FRHIImageDesc& GetDescription() const override { return Description; }
+        const glm::uvec2& GetExtent() const override { return Description.Extent; }
+        uint32 GetSizeX() const override { return Description.Extent.x; }
+        uint32 GetSizeY() const override { return Description.Extent.y; }
+        EFormat GetFormat() const override { return Description.Format; }
+        TBitFlags<EImageCreateFlags> GetFlags() const override { return Description.Flags; }
+        uint8 GetNumMips() const override { return Description.NumMips; }
+
     private:
         
         THashMap<FSubresourceViewKey, FTextureSubresourceView, Hash> SubresourceViews;
 
-        
+        FRHIImageDesc               Description;
         FMutex                      SubresourceMutex;                      
         bool                        bImageManagedExternal = false;  // Mostly for swapchain.
         VkImageAspectFlags          FullAspectMask =        VK_IMAGE_ASPECT_NONE;
@@ -303,8 +326,8 @@ namespace Lumina
     public:
 
         IVulkanShader(FVulkanDevice* InDevice, const FShaderHeader& Shader, ERHIResourceType Type);
+        ~IVulkanShader();
         
-        ~IVulkanShader() override;
 
         void GetByteCodeImpl(void** ByteCode, uint64* Size)
         {
@@ -549,7 +572,7 @@ namespace Lumina
     {
     public:
         
-        ~FVulkanPipeline() override;
+        ~FVulkanPipeline();
 
         FVulkanPipeline(FVulkanDevice* InDevice)
             : IDeviceChild(InDevice)

@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Memory.h"
-
 #include "Core/Profiler/Profile.h"
 
 #undef LUMINA_RPMALLOC
@@ -51,19 +50,9 @@ namespace Lumina
 #endif
     }
 
-    SIZE_T Memory::GetActualAlignment(size_t size, size_t alignment)
+    SIZE_T Memory::GetActualAlignment(size_t Alignment)
     {
-        // If alignment is 0 (DEFAULT_ALIGNMENT), pick based on size:
-        // 8-byte alignment for small blocks (<16), otherwise 16-byte
-        if (alignment == DEFAULT_ALIGNMENT)
-        {
-            return (size < 16) ? 8 : 16;
-        }
-
-        // Ensure minimum alignment rules
-        SIZE_T DefaultAlignment = (size < 16) ? 8 : 16;
-        SIZE_T Align = (alignment < DefaultAlignment) ? DefaultAlignment : (alignment);
-
+        SIZE_T Align = (Alignment < 16) ? 16 : (Alignment);
         return Align;
     }
 
@@ -74,32 +63,28 @@ namespace Lumina
         {
             Initialize();
         }
-
-        SIZE_T ActualAlignment = GetActualAlignment(size, alignment);
+        
+        SIZE_T ActualAlignment = GetActualAlignment(alignment);
         void* pMemory = rpaligned_alloc(ActualAlignment, size);
         
-        LUMINA_PROFILE_ALLOC(pMemory, size);
 #else
-        SIZE_T ActualAlignment = GetActualAlignment(size, alignment);
+        SIZE_T ActualAlignment = GetActualAlignment(alignment);
         void* pMemory = _aligned_malloc(size, ActualAlignment);
-        Assert(IsAligned(pMemory, ActualAlignment))
-        LUMINA_PROFILE_ALLOC(pMemory, size);
 #endif
+        LUMINA_PROFILE_ALLOC(pMemory, size);
 
         return pMemory;
     }
 
     void* Memory::Realloc(void* Memory, size_t NewSize, size_t OriginalAlignment)
     {
-        SIZE_T ActualAlignment = GetActualAlignment(NewSize, OriginalAlignment);
+        SIZE_T ActualAlignment = GetActualAlignment(OriginalAlignment);
         
 #if LUMINA_RPMALLOC
         void* pReallocatedMemory = rpaligned_realloc(Memory, ActualAlignment, NewSize, 0, 0);
-        Assert(pReallocatedMemory != nullptr)
 
 #else
         void* pReallocatedMemory = _aligned_realloc(Memory, NewSize, ActualAlignment);
-        Assert(pReallocatedMemory != nullptr)
 #endif
         
         return pReallocatedMemory;

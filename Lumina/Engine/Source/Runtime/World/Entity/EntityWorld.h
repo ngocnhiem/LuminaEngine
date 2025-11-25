@@ -44,6 +44,7 @@ namespace Lumina
 
         LUMINA_API entt::entity Create(const FName& Name, const FTransform& Transform = FTransform());
         LUMINA_API entt::entity Create();
+        LUMINA_API entt::entity CreateEmpty();
 
         template<typename T>
         void Erase(entt::entity Entt)

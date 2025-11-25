@@ -1,6 +1,4 @@
 ﻿#pragma once
-#include <entt/entt.hpp>
-
 #include "SceneRenderTypes.h"
 #include "Platform/GenericPlatform.h"
 #include "Renderer/RHIFwd.h"

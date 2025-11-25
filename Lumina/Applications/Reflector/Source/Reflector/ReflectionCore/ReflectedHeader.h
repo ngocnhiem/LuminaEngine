@@ -12,16 +12,16 @@ namespace Lumina::Reflection
     public:
 
         FReflectedHeader()
-            :bSkip(false)
+            :bSkipCodeGen(false)
         {}
         
         FReflectedHeader(const eastl::string& Path);
 
         bool Parse();
         
-
+        
         eastl::string             FileName;
         eastl::string             HeaderPath;
-        uint8_t                   bSkip:1;
+        uint8_t                   bSkipCodeGen:1;
     };
 }

@@ -33,4 +33,9 @@ namespace Lumina
 
         return NewEntity;
     }
+
+    entt::entity FEntityWorld::CreateEmpty()
+    {
+        return Registry.create();
+    }
 }

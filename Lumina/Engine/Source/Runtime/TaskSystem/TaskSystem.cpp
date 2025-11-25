@@ -50,7 +50,7 @@ namespace Lumina
         GTaskSystem->NumWorkers                             = Threading::GetNumThreads() - 2;
         
         enki::TaskSchedulerConfig config;
-        config.numTaskThreadsToCreate                       = Threading::GetNumThreads() - 2;
+        config.numTaskThreadsToCreate                       = GTaskSystem->NumWorkers;
         config.customAllocator.alloc                        = CustomAllocFunc;
         config.customAllocator.free                         = CustomFreeFunc;
         config.profilerCallbacks.threadStart                = OnStartThread;

@@ -1,9 +1,12 @@
 #pragma once
+
+#if defined(LE_DEBUG)
 #define ENABLE_VALIDATE_ARGS
+#endif
 #include <rpmalloc.h>
 #include <utility>
-#include <EASTL/type_traits.h>
 #include "Core/Assertions/Assert.h"
+#include <EASTL/type_traits.h>
 #include "Core/Math/Math.h"
 #include "Module/API.h"
 #include "Platform/Platform.h"
@@ -17,7 +20,7 @@ inline bool GIsMemorySystemInitialized = false;
 inline bool GIsMemorySystemShutdown = false;
 inline rpmalloc_config_t GrpmallocConfig;
 
-constexpr SIZE_T DEFAULT_ALIGNMENT = 0;
+constexpr SIZE_T DEFAULT_ALIGNMENT = 16;
 
 namespace Lumina::Memory
 {
@@ -118,7 +121,7 @@ namespace Lumina::Memory
         return stats.unmapped_total;
     }
 
-    LUMINA_API NODISCARD SIZE_T GetActualAlignment(size_t size, size_t alignment);
+    LUMINA_API NODISCARD SIZE_T GetActualAlignment(size_t Alignment);
 
     LUMINA_API NODISCARD void* Malloc(size_t size, size_t alignment = DEFAULT_ALIGNMENT);
     

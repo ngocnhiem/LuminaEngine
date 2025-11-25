@@ -9,7 +9,7 @@
 #include "Core/Object/ObjectIterator.h"
 #include "Core/Profiler/Profile.h"
 #include "Core/Windows/Window.h"
-#include "Input/InputSubsystem.h"
+#include "Input/InputProcessor.h"
 #include "Physics/Physics.h"
 #include "Renderer/RenderContext.h"
 #include "Renderer/RenderManager.h"
@@ -32,7 +32,6 @@ namespace Lumina
         
         LUMINA_PROFILE_SCOPE();
         FCoreDelegates::OnPreEngineInit.BroadcastAndClear();
-
         
         GEngine = this;
         Application = App;
@@ -44,13 +43,12 @@ namespace Lumina
         Scripting::Initialize();
         
         RenderManager = EngineSubsystems.AddSubsystem<FRenderManager>();
-        EngineViewport = GRenderContext->CreateViewport(Windowing::GetPrimaryWindowHandle()->GetExtent());
+        EngineViewport = GRenderContext->CreateViewport(Windowing::GetPrimaryWindowHandle()->GetExtent(), "Engine Viewport");
 
         ProcessNewlyLoadedCObjects();
         
         FEntityComponentRegistry::Get().RegisterAll();
         
-        InputSubsystem = EngineSubsystems.AddSubsystem<FInputSubsystem>();
         AssetRegistry = EngineSubsystems.AddSubsystem<FAssetRegistry>();
         AssetManager = EngineSubsystems.AddSubsystem<FAssetManager>();
         WorldManager = EngineSubsystems.AddSubsystem<FWorldManager>();
@@ -60,6 +58,7 @@ namespace Lumina
         #if WITH_DEVELOPMENT_TOOLS
         DeveloperToolUI = CreateDevelopmentTools();
         DeveloperToolUI->Initialize(UpdateContext);
+        Application->GetEventProcessor().RegisterEventHandler(DeveloperToolUI);
         #endif
         
         FCoreDelegates::OnPostEngineInit.BroadcastAndClear();
@@ -86,7 +85,6 @@ namespace Lumina
         EngineSubsystems.RemoveSubsystem<FWorldManager>();
         EngineSubsystems.RemoveSubsystem<FAssetManager>();
         EngineSubsystems.RemoveSubsystem<FAssetRegistry>();
-        EngineSubsystems.RemoveSubsystem<FInputSubsystem>();
         
         ShutdownCObjectSystem();
         
@@ -124,9 +122,7 @@ namespace Lumina
                 UpdateContext.UpdateStage = EUpdateStage::FrameStart;
                 
                 RenderManager->FrameStart(UpdateContext);
-                
-                InputSubsystem->Update(UpdateContext);
-                
+
                 #if WITH_DEVELOPMENT_TOOLS
                 DeveloperToolUI->StartFrame(UpdateContext);
                 DeveloperToolUI->Update(UpdateContext);
@@ -258,7 +254,7 @@ namespace Lumina
     
     void FEngine::SetEngineViewportSize(const glm::uvec2& InSize)
     {
-        EngineViewport = GRenderContext->CreateViewport(InSize);
+        EngineViewport = GRenderContext->CreateViewport(InSize, "Engine Viewport");
     }
 
 }

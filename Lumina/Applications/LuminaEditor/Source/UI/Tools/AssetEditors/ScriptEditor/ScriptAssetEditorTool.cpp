@@ -89,23 +89,6 @@ namespace Lumina
 				id.mDeclaration = "Built-in function";
 				langDef.mIdentifiers.insert(std::make_pair(std::string(k), id));
 			}
-
-			sol::state& LuaState = Scripting::FScriptingContext::Get().GetState();
-			sol::state_view View(LuaState);
-			View.for_each([&](sol::object Key, sol::object Value)
-			{
-				if (!Key.is<std::string>())
-				{
-					return;
-				}
-
-				std::string KeyStr = Key.as<std::string>();
-    
-				TextEditor::Identifier id;
-				id.mDeclaration = "Global Identifier";
-				langDef.mIdentifiers.insert(std::make_pair(KeyStr, id));
-			});
-
 			
 	
 			langDef.mTokenRegexStrings.push_back(std::make_pair<std::string, TextEditor::PaletteIndex>("L?\\\"(\\\\.|[^\\\"])*\\\"", TextEditor::PaletteIndex::String));

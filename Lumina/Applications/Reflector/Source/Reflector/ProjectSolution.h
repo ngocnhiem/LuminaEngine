@@ -16,7 +16,7 @@ namespace Lumina::Reflection
         const eastl::string& GetPath() const { return Path; }
         const eastl::string& GetParentPath() const { return ParentPath; }
 
-        void AddReflectedProject(const FReflectedProject& Project) { ReflectedProjects.push_back(Project); }
+        void AddReflectedProject(FReflectedProject&& Project) { ReflectedProjects.push_back(std::move(Project)); }
         bool HasProjects() const { return !ReflectedProjects.empty(); }
         void GetProjects(eastl::vector<FReflectedProject>& Projects) const { Projects = ReflectedProjects; }
         

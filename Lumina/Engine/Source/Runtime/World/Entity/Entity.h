@@ -17,18 +17,18 @@ namespace Lumina
         Entity() = default;
         Entity(const entt::entity& InHandle, CWorld* InWorld)
             : EntityHandle(InHandle)
-            , World(InWorld)
+            , WeakWorld(InWorld)
         {
             Assert(EntityHandle != entt::null)
-            Assert(World.IsValid())
+            Assert(WeakWorld.IsValid())
         }
 
         LUMINA_API FArchive& Serialize(FArchive& Ar);
 
-        LUMINA_API bool IsValid() const                    { return EntityHandle != entt::null && World.IsValid(); }
+        LUMINA_API bool IsValid() const                    { return EntityHandle != entt::null && WeakWorld.IsValid(); }
         LUMINA_API bool IsChild();
         LUMINA_API Entity GetParent();
-        LUMINA_API CWorld* GetWorld() const                { return World; }
+        LUMINA_API CWorld* GetWorld() const                { return WeakWorld.Lock(); }
         LUMINA_API entt::entity GetHandle() const          { return EntityHandle; }
         LUMINA_API entt::entity GetHandleChecked() const   { Assert(EntityHandle != entt::null) return EntityHandle; }
 
@@ -72,69 +72,78 @@ namespace Lumina
         
         operator entt::entity() const               { return EntityHandle; }
         operator uint32()                           { return static_cast<uint32>(EntityHandle); }
-        operator bool() const                       { return EntityHandle != entt::null && World.IsValid(); }
+        operator bool() const                       { return EntityHandle != entt::null && WeakWorld.IsValid(); }
         bool operator==(const Entity& other) const  { return EntityHandle == other.EntityHandle; }
         bool operator!=(const Entity& other) const  { return !(*this == other); }
 
     
     private:
 
-        entt::entity EntityHandle;
-        TObjectPtr<CWorld> World;
+        entt::entity EntityHandle = entt::null;
+        TWeakObjectPtr<CWorld> WeakWorld;
     };
 
     
     template <typename T, typename... Args>
     decltype(auto) Entity::Emplace(Args&&... args)
     {
+        CWorld* World = WeakWorld.Lock();
         return World->GetEntityRegistry().emplace<T>(EntityHandle, std::forward<Args>(args)...);
     }
 
     template <typename T, typename ... Args>
     T& Entity::EmplaceOrReplace(Args&&... args)
     {
+        CWorld* World = WeakWorld.Lock();
         return World->GetEntityRegistry().emplace_or_replace<T>(EntityHandle, std::forward<Args>(args)...);
     }
 
     template <typename T>
     bool Entity::HasComponent() const
     {
+        CWorld* World = WeakWorld.Lock();
         return World->GetEntityRegistry_Immutable().all_of<T>(EntityHandle);
     }
     
     template <typename T>
     T* Entity::TryGetComponent()
     {
+        CWorld* World = WeakWorld.Lock();
         return World->GetEntityRegistry().try_get<T>(EntityHandle);
     }
 
     template <typename T>
     T& Entity::GetComponent()
     {
+        CWorld* World = WeakWorld.Lock();
         return World->GetEntityRegistry().get<T>(EntityHandle);
     }
 
     template <typename T, typename ... Func>
     T& Entity::Patch(Func&&... func)
     {
+        CWorld* World = WeakWorld.Lock();
         return World->GetEntityRegistry().patch<T>(GetHandle(), std::forward<Func>(func)...);
     }
 
     template <typename T>
     T& Entity::GetOrAddComponent()
     {
+        CWorld* World = WeakWorld.Lock();
         return World->GetEntityRegistry().get_or_emplace<T>(EntityHandle);
     }
 
     template <typename T>
     const T& Entity::GetConstComponent() const
     {
+        CWorld* World = WeakWorld.Lock();
         return World->GetEntityRegistry_Immutable().get<T>(EntityHandle);
     }
 
     template <typename T>
     SIZE_T Entity::RemoveComponent()
     {
+        CWorld* World = WeakWorld.Lock();
         return World->GetEntityRegistry().remove<T>(EntityHandle);
     }
 }

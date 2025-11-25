@@ -9,7 +9,6 @@
 #include "World/Entity/Components/CameraComponent.h"
 #include "World/Entity/Components/EditorComponent.h"
 #include "World/Entity/Systems/EditorEntityMovementSystem.h"
-#include "World/Subsystems/FCameraManager.h"
 
 namespace Lumina
 {
@@ -17,7 +16,6 @@ namespace Lumina
         : ToolContext(Context)
         , ToolName(DisplayName)
         , World(InWorld)
-        , EditorEntity()
     {
         ToolFlags |= EEditorToolFlags::Tool_WantsToolbar;
     }
@@ -29,12 +27,12 @@ namespace Lumina
 
     void FEditorTool::Initialize()
     {
-        SetDisplayName(ToolName);
+        ToolName = std::format("{0} {1}", GetTitlebarIcon(), GetToolName().c_str()).c_str();
         
         if (HasWorld())
         {
-            GEngine->GetEngineSubsystem<FWorldManager>()->AddWorld(World);
             World->InitializeWorld();
+            
             if (World->IsPlayWorld())
             {
                 World->BeginPlay();
@@ -62,8 +60,7 @@ namespace Lumina
         if (HasWorld())
         {
             World->ShutdownWorld();
-            UpdateContext.GetSubsystem<FWorldManager>()->RemoveWorld(World);
-            World.Get()->ConditionalBeginDestroy();
+            World->ForceDestroyNow();
             World = nullptr;
         }
         
@@ -81,10 +78,7 @@ namespace Lumina
         {
             if (ImGui::MenuItem(LE_ICON_CONTENT_SAVE"##Save"))
             {
-                Task::AsyncTask(1, 1, [this](uint32, uint32, uint32)
-                {
-                    OnSave();
-                });
+                OnSave();
             }
         }
 
@@ -127,10 +121,12 @@ namespace Lumina
         float t = (ViewportSize.x - 500) / (1200 - 500);
         t = glm::clamp(t, 0.0f, 1.0f);
         float NewFOV = glm::mix(120.0f, 50.0f, t);
-        
-        SCameraComponent& CameraComponent =  World->GetActiveCamera();
-        CameraComponent.SetAspectRatio(AspectRatio);
-        CameraComponent.SetFOV(NewFOV);
+
+        if (SCameraComponent* CameraComponent =  World->GetActiveCamera())
+        {
+            CameraComponent->SetAspectRatio(AspectRatio);
+            CameraComponent->SetFOV(NewFOV);
+        }
         
         /** Mostly for debug, so we can easily see if there's some transparency issue */
         ImGui::GetWindowDrawList()->AddRectFilled(WindowPosition, WindowBottomRight, IM_COL32(0, 0, 0, 255));
@@ -247,12 +243,5 @@ namespace Lumina
         {
             ImGui::Text(pText);
         }
-    }
-    
-    void FEditorTool::SetDisplayName(FString NewName)
-    {
-        Assert(!NewName.empty())
-        
-        ToolName.sprintf("%s %s", GetTitlebarIcon(), NewName.data());
     }
 }

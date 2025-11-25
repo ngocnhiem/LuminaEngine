@@ -79,6 +79,7 @@ namespace Lumina::Reflection
             
             if (std::filesystem::exists(ProjectPath.c_str()))
             {
+                std::cout << "Found Project: " << ProjectPath.c_str() << "\n";
                 ProjectFilePaths.push_back(std::move(ProjectPath));
             }
             else

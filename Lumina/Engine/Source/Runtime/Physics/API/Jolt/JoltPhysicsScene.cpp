@@ -6,9 +6,9 @@
 #include "Jolt/Physics/Body/BodyCreationSettings.h"
 #include "Jolt/Physics/Collision/Shape/BoxShape.h"
 #include "Jolt/Physics/Collision/Shape/SphereShape.h"
+#include "World/Entity/Components/PhysicsComponent.h"
 #include "World/World.h"
 #include "World/Entity/Components/DirtyComponent.h"
-#include "World/Entity/Components/PhysicsComponent.h"
 #include "World/Entity/Components/TransformComponent.h"
 
 using namespace JPH::literals;
@@ -113,8 +113,6 @@ namespace Lumina::Physics
 
     FJoltPhysicsScene::~FJoltPhysicsScene()
     {
-        JoltInterfaceLayer.reset();
-        JoltSystem.reset();
     }
 
     void FJoltPhysicsScene::PreUpdate()

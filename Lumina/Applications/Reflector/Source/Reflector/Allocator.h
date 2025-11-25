@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include <cstdlib>
-#include <stdint.h>
 
 class FLinearAllocator
 {

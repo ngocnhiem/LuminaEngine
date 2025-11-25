@@ -25,7 +25,9 @@ namespace Lumina
         
         static CThumbnailManager& Get();
 
-        void GetOrLoadThumbnailsForPackage(const FString& PackagePath);
+        void TryLoadThumbnailsForPackage(const FString& PackagePath);
+
+        static FPackageThumbnail* GetThumbnailForPackage(CPackage* Package);
         
         LUM_PROPERTY(NotSerialized)
         TObjectPtr<CStaticMesh> CubeMesh;
@@ -35,8 +37,6 @@ namespace Lumina
 
         LUM_PROPERTY(NotSerialized)
         TObjectPtr<CStaticMesh> PlaneMesh;
-        
-        static TAtomic<CThumbnailManager*> ThumbnailManagerSingleton;
         
     };
 }

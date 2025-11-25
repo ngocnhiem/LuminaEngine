@@ -96,10 +96,6 @@ namespace Lumina
         Swapchain = vkbSwapchain->swapchain;
     	
         std::vector<VkImage> RawImages = vkbSwapchain->get_images().value();
-    	
-
-    	FRHICommandListRef CommandList = Context->CreateCommandList(FCommandListInfo::Graphics());
-    	CommandList->Open();
 
     	SwapchainImages.clear();
     	SwapchainImages.reserve(SWAPCHAIN_IMAGES);
@@ -115,55 +111,56 @@ namespace Lumina
         	ImageDescription.bKeepInitialState = true;
         	ImageDescription.DebugName = "Swapchain Image";
 
-        	TRefCountPtr<FVulkanImage> Image = MakeRefCount<FVulkanImage>(Context->GetDevice(), ImageDescription, RawImage, true);
+        	TRefCountPtr<FVulkanImage> Image = MakeRefCount<FVulkanImage>(Context->GetDevice(), ImageDescription, RawImage, FVulkanImage::EInternal::ExternallyManaged);
 
         	FInlineString ObjectName = FInlineString("SwapchainImage: ").append(eastl::to_string(i).c_str());
         	Context->SetObjectName(Image, ObjectName.c_str(), EAPIResourceType::Image);
 			SwapchainImages.push_back(Image);
         }
 
-
-    	CommandList->Close();
-    	Context->ExecuteCommandList(CommandList);
-
-    	if (bFromResize && (!PresentSemaphores.empty() || !AcquireSemaphores.empty()))
+    	if (!bFromResize)
     	{
-    		for (VkSemaphore Semaphore : PresentSemaphores)
-		    {
-			    vkDestroySemaphore(Device, Semaphore, VK_ALLOC_CALLBACK);
-		    }
-			for (VkSemaphore Semaphore : AcquireSemaphores)
-			{
-				vkDestroySemaphore(Device, Semaphore, VK_ALLOC_CALLBACK);
-			}
+    		if ((!PresentSemaphores.empty() || !AcquireSemaphores.empty()))
+    		{
+    			for (VkSemaphore Semaphore : PresentSemaphores)
+    			{
+    				vkDestroySemaphore(Device, Semaphore, VK_ALLOC_CALLBACK);
+    			}
+    			for (VkSemaphore Semaphore : AcquireSemaphores)
+    			{
+    				vkDestroySemaphore(Device, Semaphore, VK_ALLOC_CALLBACK);
+    			}
 
-    		PresentSemaphores.clear();
-    		AcquireSemaphores.clear();
-	    }
+    			PresentSemaphores.clear();
+    			AcquireSemaphores.clear();
+    		}
 
     	
-    	SIZE_T NumPresentSemaphores = SwapchainImages.size();
-    	PresentSemaphores.reserve(NumPresentSemaphores);
-    	for (SIZE_T i = 0; i < NumPresentSemaphores; ++i)
-    	{
-    		VkSemaphoreCreateInfo CreateInfo = {};
-    		CreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-    		VkSemaphore Semaphore;
-    		VK_CHECK(vkCreateSemaphore(Device, &CreateInfo, VK_ALLOC_CALLBACK, &Semaphore));
-    		PresentSemaphores.push_back(Semaphore);
+    		SIZE_T NumPresentSemaphores = SwapchainImages.size();
+    		PresentSemaphores.reserve(NumPresentSemaphores);
+    		for (SIZE_T i = 0; i < NumPresentSemaphores; ++i)
+    		{
+    			VkSemaphoreCreateInfo CreateInfo = {};
+    			CreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    			VkSemaphore Semaphore;
+    			VK_CHECK(vkCreateSemaphore(Device, &CreateInfo, VK_ALLOC_CALLBACK, &Semaphore));
+    			PresentSemaphores.push_back(Semaphore);
+    		}
+
+    		SIZE_T NumAcquireSemaphores = std::max<uint32>(FRAMES_IN_FLIGHT, SwapchainImages.size());
+    		AcquireSemaphores.reserve(NumAcquireSemaphores);
+
+    		for (SIZE_T i = 0; i < NumAcquireSemaphores; ++i)
+    		{
+    			VkSemaphoreCreateInfo CreateInfo = {};
+    			CreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    			VkSemaphore Semaphore;
+    			VK_CHECK(vkCreateSemaphore(Device, &CreateInfo, VK_ALLOC_CALLBACK, &Semaphore));
+    			AcquireSemaphores.push_back(Semaphore);
+    		}
     	}
 
-    	SIZE_T NumAcquireSemaphores = std::max<uint32>(FRAMES_IN_FLIGHT, SwapchainImages.size());
-		AcquireSemaphores.reserve(NumAcquireSemaphores);
-
-	    for (SIZE_T i = 0; i < NumAcquireSemaphores; ++i)
-	    {
-	    	VkSemaphoreCreateInfo CreateInfo = {};
-	    	CreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-	    	VkSemaphore Semaphore;
-	    	VK_CHECK(vkCreateSemaphore(Device, &CreateInfo, VK_ALLOC_CALLBACK, &Semaphore));
-	    	AcquireSemaphores.push_back(Semaphore);
-	    }
+    	CurrentImageIndex = 0;
     }
 
     void FVulkanSwapchain::RecreateSwapchain(const glm::uvec2& Extent)
@@ -194,19 +191,28 @@ namespace Lumina
     	
     	VkSemaphore Semaphore = AcquireSemaphores[AcquireSemaphoreIndex];
     	VkResult Result = VK_RESULT_MAX_ENUM;
-    	
-	   	Result = vkAcquireNextImageKHR(Context->GetDevice()->GetDevice(), Swapchain, UINT64_MAX, Semaphore, nullptr, &CurrentImageIndex);
-    	if (Result == VK_SUBOPTIMAL_KHR || Result == VK_ERROR_OUT_OF_DATE_KHR)
-    	{
-    		bNeedsResize = true;
-    	}
-    	
+
+    	const int MaxAttempts = 3;
+	    for (int Attempt = 0; Attempt < MaxAttempts; ++Attempt)
+	    {
+	    	Result = vkAcquireNextImageKHR(Context->GetDevice()->GetDevice(), Swapchain, UINT64_MAX, Semaphore, nullptr, &CurrentImageIndex);
+
+	    	if ((Result == VK_ERROR_OUT_OF_DATE_KHR || Result == VK_SUBOPTIMAL_KHR) && Attempt < MaxAttempts)
+	    	{
+	    		RecreateSwapchain(Windowing::GetPrimaryWindowHandle()->GetExtent());
+	    		GEngine->GetEngineSubsystem<FRenderManager>()->SwapchainResized(Windowing::GetPrimaryWindowHandle()->GetExtent());
+	    	}
+		    else
+		    {
+			    break;
+		    }
+	    }
+
     	AcquireSemaphoreIndex = (AcquireSemaphoreIndex + 1) % AcquireSemaphores.size();
     	
-    	if (Result == VK_SUCCESS || Result == VK_SUBOPTIMAL_KHR)
+    	if ((Result == VK_SUCCESS || Result == VK_SUBOPTIMAL_KHR))
     	{
     		Context->GetQueue(ECommandQueue::Graphics)->AddWaitSemaphore(Semaphore, 0, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
-    		return true;
     	}
 
     	return false;
@@ -236,10 +242,10 @@ namespace Lumina
 		    Result = vkQueuePresentKHR(Queue->Queue, &PresentInfo);
 	    }
 
-    	if (!(Result == VK_SUCCESS || Result == VK_SUBOPTIMAL_KHR || Result == VK_ERROR_OUT_OF_DATE_KHR) || bNeedsResize)
+    	if (!(Result == VK_SUCCESS || Result == VK_SUBOPTIMAL_KHR || Result == VK_ERROR_OUT_OF_DATE_KHR))
     	{
-    		RecreateSwapchain(Windowing::GetPrimaryWindowHandle()->GetExtent());
-    		GEngine->GetEngineSubsystem<FRenderManager>()->SwapchainResized(Windowing::GetPrimaryWindowHandle()->GetExtent());
+    		LOG_CRITICAL("Failed to present an image!");
+    		return false;
     	}
 
 #ifndef _WIN32

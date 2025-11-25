@@ -55,6 +55,7 @@ namespace Lumina
         virtual CEdGraphNode* OnNodeRemoved(CEdGraphNode* Node) { return nullptr; }
 
         void SetNodeSelectedCallback(const TFunction<void(CEdGraphNode*)>& Callback) { NodeSelectedCallback = Callback; }
+        void SetPreNodeDeletedCallback(const TFunction<void(CEdGraphNode*)>& Callback) { PreNodeDeletedCallback = Callback; }
 
 
     private:
@@ -79,7 +80,9 @@ namespace Lumina
         
         THashSet<CClass*>                               SupportedNodes;
         TVector<FAction>                                Actions;
+        
         TFunction<void(CEdGraphNode*)>                  NodeSelectedCallback;
+        TFunction<void(CEdGraphNode*)>                  PreNodeDeletedCallback;
 
         SIZE_T                                          NextID = 1;
 

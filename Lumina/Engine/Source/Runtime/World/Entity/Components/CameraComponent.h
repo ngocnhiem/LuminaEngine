@@ -1,6 +1,11 @@
 #pragma once
 #include "Component.h"
+#include "Core/Engine/Engine.h"
+#include "Scripting/Lua/Scripting.h"
 #include "Renderer/ViewVolume.h"
+#include "Core/Object/Class.h"
+#include "World/Entity/Registry/EntityRegistry.h"
+#include "EntityComponentRegistry.h"
 #include "CameraComponent.generated.h"
 
 

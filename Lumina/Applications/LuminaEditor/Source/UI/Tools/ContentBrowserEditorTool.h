@@ -178,6 +178,8 @@ namespace Lumina
         {
         }
 
+        bool OnEvent(FEvent& Event) override;
+        
         void RefreshContentBrowser();
         bool IsSingleWindowTool() const override { return true; }
         const char* GetTitlebarIcon() const override { return LE_ICON_FORMAT_LIST_BULLETED_TYPE; }
@@ -196,9 +198,7 @@ namespace Lumina
     private:
 
         void TryImport(const FString& Path);
-
-        void OnWindowDropped(FWindow* Window, int NumPaths, const char** Paths);
-
+        
         ObjectRename::EObjectRenameResult HandleRenameEvent(const FString& OldPath, const FString& NewPath);
         
         void DrawDirectoryBrowser(const FUpdateContext& Contxt, bool bIsFocused, ImVec2 Size);

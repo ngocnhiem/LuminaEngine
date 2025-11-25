@@ -1,14 +1,11 @@
 #include "pch.h"
 #include "RenderManager.h"
 
-#if LUMINA_RENDERER_VULKAN
 #include "API/Vulkan/VulkanRenderContext.h"
 #include "Tools/UI/ImGui/Vulkan/VulkanImGuiRender.h"
-#endif
 
 #include "RHIGlobals.h"
 #include "Core/Profiler/Profile.h"
-#include "RenderGraph/RenderGraph.h"
 #include "Tools/UI/ImGui/ImGuiRenderer.h"
 
 namespace Lumina
@@ -18,8 +15,13 @@ namespace Lumina
     void FRenderManager::Initialize()
     {
         GRenderContext = Memory::New<FVulkanRenderContext>();
+        
+        #if defined(LE_DEBUG)
         GRenderContext->Initialize(FRenderContextDesc{true});
-
+        #else
+        GRenderContext->Initialize(FRenderContextDesc{false});
+        #endif
+        
         #if WITH_DEVELOPMENT_TOOLS
         ImGuiRenderer = Memory::New<FVulkanImGuiRender>();
         ImGuiRenderer->Initialize();

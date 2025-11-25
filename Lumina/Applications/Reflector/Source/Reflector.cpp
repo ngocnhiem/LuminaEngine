@@ -1,9 +1,9 @@
 
 
-#include <iostream>
 #include <chrono>
-#include <filesystem>
 #include <cstdlib>
+#include <filesystem>
+#include <iostream>
 
 #include "StringHash.h"
 #include "Reflector/Allocator.h"
@@ -122,7 +122,6 @@ void operator delete[](void* ptr, std::align_val_t alignment, const std::nothrow
     // no-op: memory never freed
 }
 
-
 int main(int argc, char* argv[])
 {
     Lumina::FStringHash::Initialize();
@@ -175,7 +174,8 @@ int main(int argc, char* argv[])
     
     if (SolutionToReflect.empty() || std::filesystem::path(SolutionToReflect.c_str()).extension() != ".sln")
     {
-        std::cout << "[WARNING] Specified path does not exist, or is not a solution file: " << slnPath.string() << "\n";
+        std::cout << "[WARNING] Specified path does not exist, or is not a solution file: " 
+                  << SolutionToReflect.c_str() << "\n";
         return 1;
     }
 

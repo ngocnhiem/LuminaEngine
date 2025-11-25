@@ -23,7 +23,7 @@ namespace Lumina
         FEditorTool::Deinitialize(UpdateContext);
     }
 
-    FString FAssetEditorTool::GetToolName() const
+    FName FAssetEditorTool::GetToolName() const
     {
         return Asset->GetPathName();
     }

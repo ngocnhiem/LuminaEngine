@@ -122,7 +122,7 @@ namespace Lumina
 
     private:
 
-        TObjectPtr<CObject> Object;
+        TWeakObjectPtr<CObject> Object;
         ImGuiTextFilter SearchFilter;
     };
 

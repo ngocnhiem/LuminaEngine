@@ -36,8 +36,7 @@ namespace Lumina::Scripting
 
         LUMINA_API static FScriptingContext& Get();
 
-        LUMINA_API sol::state& GetState() { return State; }
-        LUMINA_API const sol::state& GetState() const { return State; }
+        LUMINA_API sol::state_view GetState() { return sol::state_view(State); }
 
         void Initialize();
         void Shutdown();

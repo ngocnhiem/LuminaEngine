@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Component.h"
-#include "EntityComponentRegistry.h"
 #include "Containers/Name.h"
 #include "NameComponent.generated.h"
 

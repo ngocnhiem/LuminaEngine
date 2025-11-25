@@ -3,10 +3,9 @@
 
 #include "pch.h"
 #include "Window.h"
-
+#include "Events/Event.h"
 #include "stb_image.h"
 #include "Core/Application/Application.h"
-#include "Events/ApplicationEvent.h"
 #include "Paths/Paths.h"
 #include "Platform/Platform.h"
 #include "Renderer/RHIIncl.h"
@@ -51,8 +50,7 @@ namespace
 
 namespace Lumina
 {
-	FWindowDropEvent FWindow::OnWindowDropped;
-	FWindowResizeEvent FWindow::OnWindowResized;
+	FWindowResizeDelegate FWindow::OnWindowResized;
 	
 	GLFWmonitor* GetCurrentMonitor(GLFWwindow* window)
 	{
@@ -120,7 +118,20 @@ namespace Lumina
 				}
 				
 				glfwSetWindowSize(Window, Specs.Extent.x, Specs.Extent.y);
+				
+				int wx, wy;
+				glfwGetWindowSize(Window, &wx, &wy);
+
+				int mx, my, mw, mh;
+				glfwGetMonitorWorkarea(currentMonitor, &mx, &my, &mw, &mh);
+
+				int newX = mx + (mw - wx) / 2;
+				int newY = my + (mh - wy) / 2;
+
+				glfwSetWindowPos(Window, newX, newY);
 			}
+
+			
 
 
 			LOG_TRACE("Initializing Window: {0} (Width: {1}p Height: {2}p)", Specs.Title, Specs.Extent.x, Specs.Extent.y);
@@ -129,9 +140,15 @@ namespace Lumina
 			int Channels;
 			FString IconPathStr = Paths::GetEngineResourceDirectory() + "/Textures/Lumina.png";
 			Icon.pixels = stbi_load(IconPathStr.c_str(), &Icon.width, &Icon.height, &Channels, 4);
-			glfwSetWindowIcon(Window, 1, &Icon);
-			stbi_image_free(Icon.pixels);
-			
+			if (Icon.pixels)
+			{
+				glfwSetWindowIcon(Window, 1, &Icon);
+				stbi_image_free(Icon.pixels);
+			}
+
+			glfwSetMouseButtonCallback(Window, MouseButtonCallback);
+			glfwSetCursorPosCallback(Window, MousePosCallback);
+			glfwSetKeyCallback(Window, KeyCallback);
 			glfwSetWindowUserPointer(Window, this);
 			glfwSetWindowSizeCallback(Window, WindowResizeCallback);
 			glfwSetDropCallback(Window, WindowDropCallback);
@@ -150,6 +167,24 @@ namespace Lumina
 	void FWindow::ProcessMessages()
 	{
 		glfwPollEvents();
+	}
+
+	glm::uvec2 FWindow::GetExtent() const
+	{
+		glm::ivec2 ReturnVal;
+		glfwGetWindowSize(Window, &ReturnVal.x, &ReturnVal.y);
+
+		return ReturnVal;
+	}
+
+	uint32 FWindow::GetWidth() const
+	{
+		return GetExtent().x;
+	}
+
+	uint32 FWindow::GetHeight() const
+	{
+		return GetExtent().y;
 	}
 
 	bool FWindow::IsWindowMaximized() const
@@ -203,19 +238,101 @@ namespace Lumina
 		glfwSetWindowShouldClose(Window, GLFW_TRUE);
 	}
 
+	void FWindow::MouseButtonCallback(GLFWwindow* window, int Button, int Action, int Mods)
+	{
+		double xpos, ypos;
+		glfwGetCursorPos(window, &xpos, &ypos);
+
+		switch (Action)
+		{
+		case GLFW_PRESS:
+			{
+				FApplication::Get().GetEventProcessor().Dispatch<FMouseButtonPressedEvent>(static_cast<EMouseCode>(Button),xpos, ypos);
+			}
+			break;
+
+		case GLFW_RELEASE:
+			{
+				FApplication::Get().GetEventProcessor().Dispatch<FMouseButtonReleasedEvent>(static_cast<EMouseCode>(Button), xpos, ypos);
+			}
+			break;
+		}
+	}
+
+	void FWindow::MousePosCallback(GLFWwindow* window, double xpos, double ypos)
+	{
+		FWindow* WindowHandle = (FWindow*)glfwGetWindowUserPointer(window);
+
+		if (WindowHandle->bFirstMouseUpdate)
+		{
+			WindowHandle->LastMouseX = xpos;
+			WindowHandle->LastMouseY = ypos;
+			WindowHandle->bFirstMouseUpdate = false;
+
+			FApplication::Get().GetEventProcessor().Dispatch<FMouseMovedEvent>(xpos, ypos, 0.0, 0.0);
+			return;
+		}
+
+		double DeltaX = xpos - WindowHandle->LastMouseX;
+		double DeltaY = ypos - WindowHandle->LastMouseY;
+
+		WindowHandle->LastMouseX = xpos;
+		WindowHandle->LastMouseY = ypos;
+
+		FApplication::Get().GetEventProcessor().Dispatch<FMouseMovedEvent>(xpos, ypos, DeltaX, DeltaY);
+	}
+
+	void FWindow::KeyCallback(GLFWwindow* window, int Key, int Scancode, int Action, int Mods)
+	{
+		bool Ctrl  = Mods & GLFW_MOD_CONTROL;
+		bool Shift = Mods & GLFW_MOD_SHIFT;
+		bool Alt   = Mods & GLFW_MOD_ALT;
+		bool Super = Mods & GLFW_MOD_SUPER;
+		
+		switch (Action)
+		{
+		case GLFW_RELEASE:
+			{
+				FApplication::Get().GetEventProcessor().Dispatch<FKeyReleasedEvent>(static_cast<EKeyCode>(Key), Ctrl, Shift, Alt, Super);
+			}
+			break;
+		case GLFW_PRESS:
+			{
+				FApplication::Get().GetEventProcessor().Dispatch<FKeyPressedEvent>(static_cast<EKeyCode>(Key), Ctrl, Shift, Alt, Super);
+			}
+			break;
+		case GLFW_REPEAT:
+			{
+				FApplication::Get().GetEventProcessor().Dispatch<FKeyPressedEvent>(static_cast<EKeyCode>(Key), Ctrl, Shift, Alt, Super, /* Repeat */ true);
+			}
+			break;
+		}
+	}
+
 	void FWindow::WindowResizeCallback(GLFWwindow* window, int width, int height)
 	{
 		auto WindowHandle = (FWindow*)glfwGetWindowUserPointer(window);
 		WindowHandle->Specs.Extent.x = width;
 		WindowHandle->Specs.Extent.y = height;
+		
+		FApplication::Get().GetEventProcessor().Dispatch<FWindowResizeEvent>(width, height);
+		
 		OnWindowResized.Broadcast(WindowHandle, WindowHandle->Specs.Extent);
 	}
 
 	void FWindow::WindowDropCallback(GLFWwindow* Window, int PathCount, const char* Paths[])
 	{
-		auto WindowHandle = (FWindow*)glfwGetWindowUserPointer(Window);
+		double xpos, ypos;
+		glfwGetCursorPos(Window, &xpos, &ypos);
+		
+		TVector<FString> StringPaths;
 
-		OnWindowDropped.Broadcast(WindowHandle, PathCount, Paths);
+		for (int i = 0; i < PathCount; ++i)
+		{
+			StringPaths.emplace_back(Paths[i]);
+		}
+		
+		FApplication::Get().GetEventProcessor().Dispatch<FFileDropEvent>(StringPaths, (float)xpos, (float)ypos);
 	}
 
 	void FWindow::WindowCloseCallback(GLFWwindow* window)

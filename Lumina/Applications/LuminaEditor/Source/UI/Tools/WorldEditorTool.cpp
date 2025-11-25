@@ -132,7 +132,7 @@ namespace Lumina
             {
                 for (CEntitySystem* System : World->GetSystemsForUpdateStage((EUpdateStage)i))
                 {
-                    SystemsListView.AddItemToTree<FSystemListViewItem>(nullptr, eastl::move(System));
+                    SystemsListView.AddItemToTree<FSystemListViewItem>(nullptr, System);
                 }
             }
         };
@@ -513,7 +513,9 @@ namespace Lumina
 
         if (SelectedEntity.IsValid() && CameraComponent.GetViewVolume().GetFrustum().IsInside(SelectedEntity.GetWorldTransform().Location))
         {
-            glm::mat4 EntityMatrix = SelectedEntity.GetWorldMatrix();
+            STransformComponent& TransformComponent = SelectedEntity.GetComponent<STransformComponent>();
+            
+            glm::mat4 EntityMatrix = TransformComponent.GetMatrix();
             ImGuizmo::Manipulate(glm::value_ptr(ViewMatrix), glm::value_ptr(ProjectionMatrix), GuizmoOp, GuizmoMode, glm::value_ptr(EntityMatrix));
             
             if (ImGuizmo::IsUsing())
@@ -538,14 +540,9 @@ namespace Lumina
                     glm::decompose(WorldMatrix, Scale, Rotation, Translation, Skew, Perspective);
                 }
         
-                STransformComponent& TransformComponent = SelectedEntity.GetComponent<STransformComponent>();
-        
-                if (Translation != TransformComponent.GetLocation() || Rotation != TransformComponent.GetRotation() || Scale != TransformComponent.GetScale())
-                {
-                    TransformComponent.SetLocation(Translation);
-                    TransformComponent.SetRotation(Rotation);
-                    TransformComponent.SetScale(Scale);
-                }
+                TransformComponent.SetLocation(Translation);
+                TransformComponent.SetScale(Scale);
+                TransformComponent.SetRotation(Rotation);
             }
         }
 
@@ -564,17 +561,17 @@ namespace Lumina
             MousePosInViewport.x = glm::clamp(MousePosInViewport.x, 0.0f, ViewportSize.x - 1.0f);
             MousePosInViewport.y = glm::clamp(MousePosInViewport.y, 0.0f, ViewportSize.y - 1.0f);
 
-            float scaleX = static_cast<float>(PickerWidth) / ViewportSize.x;
-            float scaleY = static_cast<float>(PickerHeight) / ViewportSize.y;
+            float ScaleX = static_cast<float>(PickerWidth) / ViewportSize.x;
+            float ScaleY = static_cast<float>(PickerHeight) / ViewportSize.y;
 
-            uint32 texX = static_cast<uint32>(MousePosInViewport.x * scaleX);
-            uint32 texY = static_cast<uint32>(MousePosInViewport.y * scaleY);
+            uint32 TexX = static_cast<uint32>(MousePosInViewport.x * ScaleX);
+            uint32 TexY = static_cast<uint32>(MousePosInViewport.y * ScaleY);
             
             bool bOverImGuizmo = bImGuizmoUsedOnce ? ImGuizmo::IsOver() : false;
             bool bLeftMouseButtonClicked = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
             if ((!bOverImGuizmo) && bLeftMouseButtonClicked)
             {
-                entt::entity EntityHandle = World->GetRenderer()->GetEntityAtPixel(texX, texY);
+                entt::entity EntityHandle = World->GetRenderer()->GetEntityAtPixel(TexX, TexY);
                 if (EntityHandle == entt::null)
                 {
                     SetSelectedEntity({});
@@ -583,7 +580,6 @@ namespace Lumina
                 {
                     SetSelectedEntity(Entity(EntityHandle, World));
                 }
-            
             }
         }
     }
@@ -957,17 +953,17 @@ namespace Lumina
         if (World.IsValid())
         {
             World->ShutdownWorld();
-            GEngine->GetEngineSubsystem<FWorldManager>()->RemoveWorld(World);
-            World->ConditionalBeginDestroy();
+            World->ForceDestroyNow();
             World = nullptr;
         }
         
         World = InWorld;
         World->InitializeWorld();
-        GEngine->GetEngineSubsystem<FWorldManager>()->AddWorld(World);
+        
         EditorEntity = World->SetupEditorWorld();
 
         SetSelectedEntity({});
+        SelectedSystem = nullptr;
         
         SystemsListView.MarkTreeDirty();
         OutlinerListView.MarkTreeDirty();
@@ -1335,7 +1331,7 @@ namespace Lumina
             uint32 SystemCount = 0;
             for (uint8 i = 0; i < (uint8)EUpdateStage::Max; ++i)
             {
-                SystemCount += World->GetSystemsForUpdateStage((EUpdateStage)i).size();
+                SystemCount += (uint32)World->GetSystemsForUpdateStage((EUpdateStage)i).size();
             }
             
             ImGui::BeginGroup();

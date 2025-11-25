@@ -1,8 +1,8 @@
 ﻿#pragma once
 
-#include "Component.h"
 #include "World/Entity/Entity.h"
 #include "RenderComponent.generated.h"
+
 
 namespace Lumina
 {

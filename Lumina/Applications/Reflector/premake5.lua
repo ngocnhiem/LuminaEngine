@@ -9,12 +9,6 @@ project "Reflector"
     targetdir ("%{LuminaEngineDirectory}/Binaries/" .. outputdir)
     objdir ("%{LuminaEngineDirectory}/Intermediates/Obj/" .. outputdir .. "/%{prj.name}")
 
-    configmap
-	{
-		["Debug"] = "Release",
-		["Development"] = "Release",
-	}
-
 
 	prebuildcommands 
 	{
@@ -56,9 +50,8 @@ project "Reflector"
 
 	files
 	{
-		"Source/**.h",
 		"Source/**.cpp",
-		"%{wks.location}/Lumina/Engine/ThirdParty/xxhash/**.h",
+		"Source/**.h",
 		"%{wks.location}/Lumina/Engine/ThirdParty/xxhash/**.c",
 	}
 
@@ -72,10 +65,7 @@ project "Reflector"
 		"%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/EA/EABase/include/common",
 		"%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/EA/EASTL/include/",
 		"%{LuminaEngineDirectory}/External/LLVM/include/",
-	    "%{wks.location}/Intermediates/Reflection/Reflector/",
-	    
-	    reflection_directory();
-		includedependencies();
 		
+		includedependencies(),
 	}
 

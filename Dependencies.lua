@@ -1,43 +1,59 @@
--- Grab Vulkan SDK path
-
+-- Validate required environment variables
 VULKAN_SDK = os.getenv("VULKAN_SDK")
 LuminaEngineDirectory = os.getenv("LUMINA_DIR")
 
-IncludeDir = {}
-IncludeDir["spdlog"] = 	                "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/spdlog/include/"
-IncludeDir["glfw"]	 = 	                "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/GLFW/include"
-IncludeDir["glm"]	 = 	                "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/GLM/"
-IncludeDir["imgui"]	 = 	                "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/imgui/"
-IncludeDir["vkbootstrap"] =             "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/vk-bootstrap/"
-IncludeDir["VulkanMemoryAllocator"] =   "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/VulkanMemoryAllocator/"
-IncludeDir["fastgltf"] =                "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/fastgltf/include"
-IncludeDir["stb"] =                     "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/stb_image/"
-IncludeDir["meshoptimizer"] =           "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/meshoptimizer/src/"
-IncludeDir["vulkan"] =                  "%{VULKAN_SDK}/Include/"
-IncludeDir["volk"] =                    "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/volk/"
-IncludeDir["EnkiTS"] =                  "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/EnkiTS/src/"
-IncludeDir["SPIRV_Reflect"] =           "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/SPIRV-Reflect/"
-IncludeDir["json"] =                    "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/json/include/"
-IncludeDir["entt"] =					"%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/entt/single_include/"
-IncludeDir["ImGuizmo"] =                "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/ImGuizmo/"
-IncludeDir["EASTL"] =                   "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/EA/EASTL/include/"
-IncludeDir["EABase"] =                  "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/EA/EABase/include/Common/"
-IncludeDir["rpmalloc"] =                "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/rpmalloc/"
-IncludeDir["xxhash"] =                  "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/xxhash/"
-IncludeDir["tracy"] =                  	"%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/tracy/public"
-IncludeDir["RenderDoc"] =               "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/RenderDoc"
-IncludeDir["ConcurrentQueue"] =         "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/concurrentqueue/"
-IncludeDir["JoltPhysics"] =             "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/JoltPhysics"
-IncludeDir["Sol2"] =                    "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/sol2/include/"
-IncludeDir["Lua"] =                     "%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/lua/include/"
-
-outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
-
-function reflection_directory()
-    return "%{LuminaEngineDirectory}/Intermediates/Reflection/%{prj.name}/"
+if not VULKAN_SDK then
+    error("VULKAN_SDK environment variable not set. Please install Vulkan SDK.")
 end
 
+if not LuminaEngineDirectory then
+    error("LUMINA_DIR environment variable not set. Run Setup.py first.")
+end
 
+-- Helper function for consistent paths
+local function enginePath(subpath)
+    return path.join(LuminaEngineDirectory, subpath)
+end
+
+-- Include directories
+IncludeDir = {}
+IncludeDir["Main"]                  = enginePath("Lumina/Engine/ThirdParty/")
+IncludeDir["spdlog"]                = enginePath("Lumina/Engine/ThirdParty/spdlog/include")
+IncludeDir["glfw"]                  = enginePath("Lumina/Engine/ThirdParty/GLFW/include")
+IncludeDir["glm"]                   = enginePath("Lumina/Engine/ThirdParty/GLM")
+IncludeDir["imgui"]                 = enginePath("Lumina/Engine/ThirdParty/imgui")
+IncludeDir["vkbootstrap"]           = enginePath("Lumina/Engine/ThirdParty/vk-bootstrap")
+IncludeDir["VMA"]                   = enginePath("Lumina/Engine/ThirdParty/VulkanMemoryAllocator")
+IncludeDir["fastgltf"]              = enginePath("Lumina/Engine/ThirdParty/fastgltf/include")
+IncludeDir["stb"]                   = enginePath("Lumina/Engine/ThirdParty/stb_image")
+IncludeDir["meshoptimizer"]         = enginePath("Lumina/Engine/ThirdParty/meshoptimizer/src")
+IncludeDir["vulkan"]                = path.join(VULKAN_SDK, "Include")
+IncludeDir["volk"]                  = enginePath("Lumina/Engine/ThirdParty/volk")
+IncludeDir["EnkiTS"]                = enginePath("Lumina/Engine/ThirdParty/EnkiTS/src")
+IncludeDir["SPIRV_Reflect"]         = enginePath("Lumina/Engine/ThirdParty/SPIRV-Reflect")
+IncludeDir["json"]                  = enginePath("Lumina/Engine/ThirdParty/json/include")
+IncludeDir["entt"]                  = enginePath("Lumina/Engine/ThirdParty/entt/single_include")
+IncludeDir["ImGuizmo"]              = enginePath("Lumina/Engine/ThirdParty/ImGuizmo")
+IncludeDir["EASTL"]                 = enginePath("Lumina/Engine/ThirdParty/EA/EASTL/include")
+IncludeDir["EABase"]                = enginePath("Lumina/Engine/ThirdParty/EA/EABase/include/Common")
+IncludeDir["rpmalloc"]              = enginePath("Lumina/Engine/ThirdParty/rpmalloc")
+IncludeDir["xxhash"]                = enginePath("Lumina/Engine/ThirdParty/xxhash")
+IncludeDir["tracy"]                 = enginePath("Lumina/Engine/ThirdParty/tracy/public")
+IncludeDir["RenderDoc"]             = enginePath("Lumina/Engine/ThirdParty/RenderDoc")
+IncludeDir["ConcurrentQueue"]       = enginePath("Lumina/Engine/ThirdParty/concurrentqueue")
+IncludeDir["JoltPhysics"]           = enginePath("Lumina/Engine/ThirdParty/JoltPhysics")
+IncludeDir["Sol2"]                  = enginePath("Lumina/Engine/ThirdParty/sol2/include")
+IncludeDir["Lua"]                   = enginePath("Lumina/Engine/ThirdParty/lua/include")
+IncludeDir["LuminaReflectDir"]      = path.join("%{wks.location}", "Intermediates/Reflection/Lumina")
+
+-- Output directory pattern
+outputdir               = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
+
+-- Reflection paths
+reflection_dir          = path.join("%{wks.location}", "Intermediates/Reflection/%{prj.name}")
+reflection_unity_file   = path.join(reflection_dir, "ReflectionUnity.gen.cpp")
+
+-- Get all include directories as an array
 function includedependencies()
     local includes = {}
     for _, dir in pairs(IncludeDir) do

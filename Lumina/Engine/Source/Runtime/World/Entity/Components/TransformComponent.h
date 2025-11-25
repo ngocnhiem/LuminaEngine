@@ -21,6 +21,10 @@ namespace Lumina
         STransformComponent(const glm::vec3& InPosition)
             :Transform(InPosition)
         {}
+
+        STransformComponent(const glm::mat4& InMatrix)
+            : Transform(InMatrix)
+        {}
         
         FORCEINLINE FTransform& GetTransform() { return Transform; }
         FORCEINLINE void SetTransform(const FTransform& InTransform) { Transform = InTransform; }
@@ -154,11 +158,14 @@ namespace Lumina
         
     public:
 
+        /** The local transform of an entity */
         LUM_PROPERTY(Editable, Category = "Transform")
         FTransform Transform;
-        
+
+        /** World transform of an entity */
         FTransform WorldTransform = Transform;
-        
+
+        /** The cached matrix always refers to the matrix in world space.*/
         glm::mat4 CachedMatrix = WorldTransform.GetMatrix();
     };
     

@@ -13,8 +13,8 @@ namespace Lumina
     {
     public:
         
-        FAssetEditorTool(IEditorToolContext* Context, const FString& AssetName, CObject* InAsset)
-            : FEditorTool(Context, AssetName, nullptr)
+        FAssetEditorTool(IEditorToolContext* Context, const FString& AssetName, CObject* InAsset, CWorld* InWorld = nullptr)
+            : FEditorTool(Context, AssetName, InWorld)
             , PropertyTable(FPropertyTable(InAsset, InAsset->GetClass()))
             , bAssetLoadBroadcasted(false)
         {
@@ -30,7 +30,7 @@ namespace Lumina
         void OnInitialize() override;
         void Deinitialize(const FUpdateContext& UpdateContext) override;
         void Update(const FUpdateContext& UpdateContext) override;
-        FString GetToolName() const override;
+        FName GetToolName() const override;
         virtual void OnAssetLoadFinished() { }
         void OnSave() override;
 

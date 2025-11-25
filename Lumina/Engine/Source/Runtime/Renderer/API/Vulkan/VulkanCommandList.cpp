@@ -146,8 +146,8 @@ namespace Lumina
         CurrentCommandBuffer->AddReferencedResource(Src);
         CurrentCommandBuffer->AddReferencedResource(Dst);
 
-        FTextureSlice ResolvedDstSlice = DstSlice.Resolve(Dst->DescRef);
-        FTextureSlice ResolvedSrcSlice = SrcSlice.Resolve(Src->DescRef);
+        FTextureSlice ResolvedDstSlice = DstSlice.Resolve(Dst->GetDescription());
+        FTextureSlice ResolvedSrcSlice = SrcSlice.Resolve(Src->GetDescription());
 
         if (PendingState.IsInState(EPendingCommandState::AutomaticBarriers))
         {
@@ -159,13 +159,13 @@ namespace Lumina
         FVulkanImage* VulkanImageSrc = (FVulkanImage*)Src;
         FVulkanImage* VulkanImageDst = (FVulkanImage*)Dst;
         
-        VkBlitImageInfo2 BlitInfo       = {};
-        BlitInfo.sType                  = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2;
-        BlitInfo.srcImage               = Src->GetAPI<VkImage>();
-        BlitInfo.srcImageLayout         = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        BlitInfo.dstImage               = Dst->GetAPI<VkImage>();
-        BlitInfo.dstImageLayout         = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-        BlitInfo.filter                 = VK_FILTER_LINEAR;
+        VkBlitImageInfo2 BlitInfo                   = {};
+        BlitInfo.sType                              = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2;
+        BlitInfo.srcImage                           = Src->GetAPI<VkImage>();
+        BlitInfo.srcImageLayout                     = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        BlitInfo.dstImage                           = Dst->GetAPI<VkImage>();
+        BlitInfo.dstImageLayout                     = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        BlitInfo.filter                             = VK_FILTER_LINEAR;
 
         VkImageBlit2 BlitRegion                     = {};
         BlitRegion.sType                            = VK_STRUCTURE_TYPE_IMAGE_BLIT_2;
@@ -859,7 +859,9 @@ namespace Lumina
 
     void FVulkanCommandList::SetPermanentImageState(FRHIImage* Image, EResourceStates StateBits)
     {
-        StateTracker.SetPermanentTextureState(Image, AllSubresources, StateBits);
+        FVulkanImage* VulkanImage = static_cast<FVulkanImage*>(Image);
+
+        StateTracker.SetPermanentTextureState(VulkanImage, AllSubresources, StateBits);
 
         if (CurrentCommandBuffer)
         {
@@ -869,7 +871,9 @@ namespace Lumina
 
     void FVulkanCommandList::SetPermanentBufferState(FRHIBuffer* Buffer, EResourceStates StateBits)
     {
-        StateTracker.SetPermanentBufferState(Buffer, StateBits);
+        FVulkanBuffer* VulkanBuffer = static_cast<FVulkanBuffer*>(Buffer);
+
+        StateTracker.SetPermanentBufferState(VulkanBuffer, StateBits);
         
         if (CurrentCommandBuffer)
         {
@@ -879,17 +883,22 @@ namespace Lumina
 
     void FVulkanCommandList::BeginTrackingImageState(FRHIImage* Image, FTextureSubresourceSet Subresources, EResourceStates StateBits)
     {
-        StateTracker.BeginTrackingTextureState(Image, Subresources, StateBits);
+        FVulkanImage* VulkanImage = static_cast<FVulkanImage*>(Image);
+
+        StateTracker.BeginTrackingTextureState(VulkanImage, Subresources, StateBits);
     }
 
     void FVulkanCommandList::BeginTrackingBufferState(FRHIBuffer* Buffer, EResourceStates StateBits)
     {
-        StateTracker.BeginTrackingBufferState(Buffer, StateBits);
+        FVulkanBuffer* VulkanBuffer = static_cast<FVulkanBuffer*>(Buffer);
+
+        StateTracker.BeginTrackingBufferState(VulkanBuffer, StateBits);
     }
 
     void FVulkanCommandList::SetImageState(FRHIImage* Image, FTextureSubresourceSet Subresources, EResourceStates StateBits)
     {
-        StateTracker.RequireTextureState(Image, Subresources, StateBits);
+        FVulkanImage* VulkanImage = static_cast<FVulkanImage*>(Image);
+        StateTracker.RequireTextureState(VulkanImage, Subresources, StateBits);
 
         if (CurrentCommandBuffer)
         {
@@ -899,7 +908,9 @@ namespace Lumina
 
     void FVulkanCommandList::SetBufferState(FRHIBuffer* Buffer, EResourceStates StateBits)
     {
-        StateTracker.RequireBufferState(Buffer, StateBits);
+        FVulkanBuffer* VulkanBuffer = static_cast<FVulkanBuffer*>(Buffer);
+
+        StateTracker.RequireBufferState(VulkanBuffer, StateBits);
         
         if (CurrentCommandBuffer)
         {
@@ -909,12 +920,16 @@ namespace Lumina
 
     EResourceStates FVulkanCommandList::GetImageSubresourceState(FRHIImage* Image, uint32 ArraySlice, uint32 MipLevel)
     {
-        return StateTracker.GetTextureSubresourceState(Image, ArraySlice, MipLevel);
+        FVulkanImage* VulkanImage = static_cast<FVulkanImage*>(Image);
+
+        return StateTracker.GetTextureSubresourceState(VulkanImage, ArraySlice, MipLevel);
     }
 
     EResourceStates FVulkanCommandList::GetBufferState(FRHIBuffer* Buffer)
     {
-        return StateTracker.GetBufferState(Buffer);
+        FVulkanBuffer* VulkanBuffer = static_cast<FVulkanBuffer*>(Buffer);
+
+        return StateTracker.GetBufferState(VulkanBuffer);
     }
 
     void FVulkanCommandList::EnableAutomaticBarriers()
@@ -1731,12 +1746,16 @@ namespace Lumina
 
     void FVulkanCommandList::RequireTextureState(FRHIImage* Texture, FTextureSubresourceSet Subresources, EResourceStates StateBits)
     {
-        StateTracker.RequireTextureState(Texture, Subresources, StateBits);
+        FVulkanImage* VulkanImage = static_cast<FVulkanImage*>(Texture);
+
+        StateTracker.RequireTextureState(VulkanImage, Subresources, StateBits);
     }
 
     void FVulkanCommandList::RequireBufferState(FRHIBuffer* Buffer, EResourceStates StateBits)
     {
-        StateTracker.RequireBufferState(Buffer, StateBits);
+        FVulkanBuffer* VulkanBuffer = static_cast<FVulkanBuffer*>(Buffer);
+        
+        StateTracker.RequireBufferState(VulkanBuffer, StateBits);
     }
 
     void* FVulkanCommandList::GetAPIResourceImpl(EAPIResourceType Type)

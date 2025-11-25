@@ -293,6 +293,7 @@ namespace Lumina
             ReleaseWeakRefInternal();
         }
 
+        TObjectPtr<T> operator -> () { return Lock(); }
         bool operator==(const TWeakObjectPtr& Other) const { return Handle == Other.Handle; }
         bool operator!=(const TWeakObjectPtr& Other) const { return Handle != Other.Handle; }
         bool operator==(nullptr_t) const { return !IsValid(); }

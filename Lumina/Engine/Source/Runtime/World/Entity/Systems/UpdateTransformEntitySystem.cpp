@@ -11,12 +11,6 @@
 
 namespace Lumina
 {
-    
-    void CUpdateTransformEntitySystem::Initialize(FSystemContext& SystemContext)
-    {
-        
-    }
-
     void CUpdateTransformEntitySystem::Shutdown(FSystemContext& SystemContext)
     {
         
@@ -31,81 +25,71 @@ namespace Lumina
         
         if (!RelationshipGroup.empty())
         {
-            TVector<entt::entity> RootEntities;
+            TVector<entt::entity> DirtyEntities;
             for (auto entity : RelationshipGroup)
             {
-                bool IsRoot = true;
-                if (SystemContext.Has<true, SRelationshipComponent>(entity))
-                {
-                    auto& RelationshipComponent = SystemContext.Get<SRelationshipComponent>(entity);
-                    IsRoot = !RelationshipComponent.Parent.IsValid();
-                }
-        
-                if (IsRoot)
-                {
-                    RootEntities.push_back(entity);
-                }
+                DirtyEntities.push_back(entity);
             }
             
-            auto WorkCallable = [&](uint32 Index)
+            auto RelationshipTransformCallable = [&](uint32 Index)
             {
-                TFunction<void(entt::entity)> UpdateTransformRecursive;
-                UpdateTransformRecursive = [&](entt::entity entity)
-                {
-                    auto& TransformComponent = RelationshipGroup.get<STransformComponent>(entity);
-            
-                    if (SystemContext.Has<true, SRelationshipComponent>(entity))
-                    {
-                        auto& RelationshipComponent = SystemContext.Get<SRelationshipComponent>(entity);
-            
-                        if (RelationshipComponent.Parent.IsValid())
-                        {
-                            TransformComponent.WorldTransform = RelationshipComponent.Parent.GetComponent<STransformComponent>().WorldTransform * TransformComponent.Transform;
-                        }
-                        else
-                        {
-                            TransformComponent.WorldTransform = TransformComponent.Transform;
-                        }
-                        
-                        for (uint8 i = 0; i < RelationshipComponent.NumChildren; ++i)
-                        {
-                            Entity ChildEntity = RelationshipComponent.Children[i];
-                    
-                            UpdateTransformRecursive(ChildEntity.GetHandle());
-                        }
-                    }
-                    else
-                    {
-                        TransformComponent.WorldTransform = TransformComponent.Transform;
-                    }
-            
-                    if (SystemContext.Has<true, SCameraComponent>(entity))
-                    {
-                        glm::vec3 UpdatedForward = TransformComponent.WorldTransform.Rotation * FViewVolume::ForwardAxis;
-                        glm::vec3 UpdatedUp = TransformComponent.WorldTransform.Rotation * FViewVolume::UpAxis;
-                        
-                        SCameraComponent& Camera = SystemContext.Get<SCameraComponent>(entity);
-                        Camera.SetView(TransformComponent.WorldTransform.Location, UpdatedForward, UpdatedUp);
-                    }
-                    
-                    TransformComponent.CachedMatrix = TransformComponent.WorldTransform.GetMatrix();  
-                };
-            
+                entt::entity DirtyEntity = DirtyEntities[Index];
                 
-                entt::entity entity = RootEntities[Index];
-                UpdateTransformRecursive(entity);
+                // First, update the dirty entity itself
+                auto& DirtyTransform = RelationshipGroup.get<STransformComponent>(DirtyEntity);
+                auto& DirtyRelationship = RelationshipGroup.get<SRelationshipComponent>(DirtyEntity);
+                
+                if (DirtyRelationship.Parent.IsValid())
+                {
+                    glm::mat4 ParentWorldTransform         = DirtyRelationship.Parent.GetComponent<STransformComponent>().WorldTransform.GetMatrix();
+                    glm::mat4 LocalTransform               = DirtyTransform.Transform.GetMatrix();
+                    DirtyTransform.WorldTransform           = FTransform(ParentWorldTransform * LocalTransform);
+                }
+                else
+                {
+                    DirtyTransform.WorldTransform = DirtyTransform.Transform;
+                }
+                
+                DirtyTransform.CachedMatrix = DirtyTransform.WorldTransform.GetMatrix();
+                
+                // Recursively update only the children
+                TFunction<void(entt::entity)> UpdateChildrenRecursive;
+                UpdateChildrenRecursive = [&](entt::entity ParentEntity)
+                {
+                    auto& ParentRelationship = SystemContext.Get<SRelationshipComponent>(ParentEntity);
+                    
+                    for (uint8 i = 0; i < ParentRelationship.NumChildren; ++i)
+                    {
+                        Entity ChildEntity = ParentRelationship.Children[i];
+                        entt::entity ChildHandle = ChildEntity.GetHandle();
+                        
+                        auto& ParentTransform = SystemContext.Get<STransformComponent>(ParentEntity);
+                        auto& ChildTransform = SystemContext.Get<STransformComponent>(ChildHandle);
+
+                        glm::mat4 ParentWorldTransform = ParentTransform.WorldTransform.GetMatrix();
+                        glm::mat4 ChildLocalTransform = ChildTransform.Transform.GetMatrix();
+                        
+                        ChildTransform.WorldTransform = FTransform(ParentWorldTransform * ChildLocalTransform);
+                        ChildTransform.CachedMatrix = ChildTransform.WorldTransform.GetMatrix();
+                        
+                        UpdateChildrenRecursive(ChildHandle);
+                    }
+                };
+                
+                // Update all children of the dirty entity
+                UpdateChildrenRecursive(DirtyEntity);
             };
             
             // Only schedule tasks if there is a significant amount of transform updates required.
-            if (RootEntities.size() > 100)
+            if (DirtyEntities.size() > 100)
             {
-                Task::ParallelFor((uint32)RootEntities.size(), RootEntities.size() / 8, WorkCallable);
+                Task::ParallelFor((uint32)DirtyEntities.size(), (uint32)DirtyEntities.size(), RelationshipTransformCallable);
             }
             else
             {
-                for (uint32 i = 0; i < (uint32)RootEntities.size(); ++i)
+                for (uint32 i = 0; i < (uint32)DirtyEntities.size(); ++i)
                 {
-                    WorkCallable(i);
+                    RelationshipTransformCallable(i);
                 }
             }
         }

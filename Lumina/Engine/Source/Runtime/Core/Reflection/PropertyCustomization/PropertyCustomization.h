@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "Lumina.h"
 #include "Containers/Function.h"
 #include "Memory/SmartPtr.h"
 

@@ -28,7 +28,6 @@ workspace "Lumina"
         "TRACY_ENABLE",
     	"TRACY_CALLSTACK",
     	"TRACY_ON_DEMAND",
-		"TRACY_EXPORTS",
 	}
 
 	filter "action:vs"
@@ -54,9 +53,10 @@ workspace "Lumina"
     filter "system:windows"
         systemversion "latest"
         defines { "LE_PLATFORM_WINDOWS" }
-        
         buildoptions 
         { 
+            "/EHsc",
+            "/Zc:preprocessor",
             "/MP",      -- Multi-processor compilation
             "/Zc:inline", -- Remove unreferenced functions/data
             "/Zc:__cplusplus",
@@ -72,11 +72,13 @@ workspace "Lumina"
         symbols "On"
         editandcontinue "Off"
         defines { "LE_DEBUG", "_DEBUG", "JPH_DEBUG", }
+        flags { "NoRuntimeChecks", "NoIncrementalLink" }
+
 
     -- Release Configuration (Developer build with symbols)
     filter "configurations:Development"
-        vectorextensions "AVX2"
-        isaextensions { "BMI", "POPCNT", "LZCNT", "F16C" }
+        --vectorextensions "AVX2"
+        --isaextensions { "BMI", "POPCNT", "LZCNT", "F16C" }
         optimize "Speed"
         symbols "On" -- Keep symbols for profiling
         defines { "LE_RELEASE", "NDEBUG", "LUMINA_DEVELOPMENT" }
@@ -85,11 +87,11 @@ workspace "Lumina"
 
     -- Shipping Configuration (Maximum optimization, no symbols)
     filter "configurations:Shipping"
-        vectorextensions "AVX2"
-        isaextensions { "BMI", "POPCNT", "LZCNT", "F16C" }
+        --vectorextensions "AVX2"
+        --isaextensions { "BMI", "POPCNT", "LZCNT", "F16C" }
         optimize "Full"
         symbols "Off"
-        defines { "LE_SHIP", "NDEBUG" }
+        defines { "LE_SHIP", "NDEBUG", "LUMINA_SHIPPING" }
         removedefines { "TRACY_ENABLE" }
         flags { "LinkTimeOptimization" }
         

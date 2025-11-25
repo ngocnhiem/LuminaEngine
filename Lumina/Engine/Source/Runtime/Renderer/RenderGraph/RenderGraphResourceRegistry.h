@@ -20,7 +20,7 @@ namespace Lumina
         TRGHandleRegistry& operator=(TRGHandleRegistry&&) = default;
         TRGHandleRegistry& operator=(const TRGHandleRegistry&) = delete;
 
-        ~TRGHandleRegistry() { Clear(); }
+        ~TRGHandleRegistry() { }
 
 
         void Insert(T* Object)
@@ -40,7 +40,7 @@ namespace Lumina
         
         void Clear()
         {
-            for (int32 Index = Array.size() - 1; Index >= 0; --Index)
+            for (size_t Index = Array.size() - 1; Index > 0; --Index)
             {
                 Array[Index]->~T();
             }

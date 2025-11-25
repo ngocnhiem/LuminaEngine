@@ -19,8 +19,8 @@ namespace Lumina
 
         struct FManagedWorld
         {
-            EWorldType  Type;
-            CWorld*     World;
+            EWorldType          Type;
+            TObjectPtr<CWorld>  World;
         };
 
         void Initialize() override;

@@ -10,14 +10,12 @@
 #include "Memory/SmartPtr.h"
 #include "Physics/PhysicsScene.h"
 #include "World.generated.h"
+#include "Scene/RenderScene/RenderScene.h"
+#include "Subsystems/FCameraManager.h"
 
 
 namespace Lumina
 {
-    class FPhysicsScene;
-    class IRenderScene;
-    struct SRenderComponent;
-    class FCameraManager;
     struct FLineBatcherComponent;
     class CEntitySystem;
     class Entity;
@@ -68,7 +66,7 @@ namespace Lumina
          */
         void ShutdownWorld();
 
-        bool RegisterSystem(CEntitySystem* NewSystem, bool bInitialize);
+        bool RegisterSystem(CEntitySystem* NewSystem);
 
         Entity ConstructEntity(const FName& Name, const FTransform& Transform = FTransform());
         
@@ -77,14 +75,14 @@ namespace Lumina
         void DestroyEntity(Entity Entity);
 
         //LUM_DEPRECATED("0.0.1", "Access to the registry has been deprecated")
-        FEntityRegistry& GetEntityRegistry() { return EntityWorld.Registry; }
+        FEntityRegistry& GetEntityRegistry() const { return EntityWorld->Registry; }
 
         //LUM_DEPRECATED("0.0.1", "Access to the registry has been deprecated")
-        const FEntityRegistry& GetEntityRegistry_Immutable() const { return EntityWorld.Registry; }
+        const FEntityRegistry& GetEntityRegistry_Immutable() const { return EntityWorld->Registry; }
 
         uint32 GetNumEntities() const;
         void SetActiveCamera(entt::entity InEntity);
-        SCameraComponent& GetActiveCamera();
+        SCameraComponent* GetActiveCamera();
         entt::entity GetActiveCameraEntity() const;
 
         double GetWorldDeltaTime() const { return DeltaTime; }
@@ -101,9 +99,11 @@ namespace Lumina
 
         static CWorld* DuplicateWorldForPIE(CWorld* OwningWorld);
 
-        IRenderScene* GetRenderer() const { return RenderScene; }
+        IRenderScene* GetRenderer() const { return RenderScene.get(); }
 
-        const TVector<CEntitySystem*>& GetSystemsForUpdateStage(EUpdateStage Stage);
+        const TVector<TObjectPtr<CEntitySystem>>& GetSystemsForUpdateStage(EUpdateStage Stage);
+
+        void OnRelationshipComponentDestroyed(entt::registry& Registry, entt::entity EntityHandle);
 
         //~ Begin Debug Drawing
         void DrawDebugLine(const glm::vec3& Start, const glm::vec3& End, const glm::vec4& Color, float Thickness = 1.0f, float Duration = 1.0f);
@@ -123,24 +123,19 @@ namespace Lumina
         void SetSelectedEntity(entt::entity EntityID) { SelectedEntity = EntityID; }
         FORCEINLINE entt::entity GetSelectedEntity() const { return SelectedEntity; }
 
-        template<typename TFunc, EUpdateStage StageFilter = EUpdateStage::Max>
-        void ForEachSystem(TFunc&& Func)
+        template<typename TFunc>
+        void ForEachUniqueSystem(TFunc&& Func)
         {
-            if constexpr (StageFilter == EUpdateStage::Max)
+            TSet<CEntitySystem*> UniqueSystems;
+            for (uint8 i = 0; i < (uint8)EUpdateStage::Max; i++)
             {
-                for (uint8 i = 0; i < (uint8)EUpdateStage::Max; ++i)
+                for (CEntitySystem* System : SystemUpdateList[i])
                 {
-                    for (CEntitySystem* System : SystemUpdateList[i])
+                    if (UniqueSystems.count(System) == 0)
                     {
                         Func(System);
+                        UniqueSystems.emplace(System);
                     }
-                }
-            }
-            else
-            {
-                for (CEntitySystem* System : SystemUpdateList[(uint8)StageFilter])
-                {
-                    Func(System);
                 }
             }
         }
@@ -151,26 +146,28 @@ namespace Lumina
     
     private:
         
-        FEntityWorld                                    EntityWorld;
-        FLineBatcherComponent*                          LineBatcherComponent = nullptr;
+        TUniquePtr<FEntityWorld>                        EntityWorld;
+        TUniquePtr<FCameraManager>                      CameraManager;
+        TUniquePtr<IRenderScene>                        RenderScene;
+        TUniquePtr<Physics::IPhysicsScene>              PhysicsScene;
+        
+        TVector<TObjectPtr<CEntitySystem>>              SystemUpdateList[(int32)EUpdateStage::Max];
+        
+        entt::entity                                    LineBatcherEntity = entt::null;
+        entt::entity                                    SelectedEntity;
 
-        FCameraManager*                                 CameraManager = nullptr;
-        IRenderScene*                                   RenderScene = nullptr;
-        TUniquePtr<Physics::IPhysicsScene>              PhysicsScene = nullptr;
-        
-        TVector<CEntitySystem*>                         SystemUpdateList[(int32)EUpdateStage::Max];
-        
-        eastl::atomic<bool>                             bInitialized{false};
         
         int64                                           WorldIndex = -1;
         double                                          DeltaTime = 0.0;
         double                                          TimeSinceCreation = 0.0;
+        
+        uint32                                          bInitialized:1=0;
         uint32                                          bPaused:1=1;
         uint32                                          bActive:1=1;
         uint32                                          bIsPlayWorld:1=0;
         uint32                                          bDuplicatePIEWorld:1=0;
-        entt::entity                                    SelectedEntity;
+        
 
-        TVector<TObjectPtr<CEntitySystem>>              SystemsDuplicatedFromPIE;
+        TVector<CEntitySystem*>                         SystemsDuplicatedFromPIE;
     };
 }

@@ -23,7 +23,7 @@ namespace Lumina
 
         static void RegisterWithLua(sol::state& Lua);
 
-        LUMINA_API double GetDeltaTime() const { return DeltaTime; }
+        LUMINA_API double GetDeltaTime() const { return World->GetWorldDeltaTime(); }
         LUMINA_API double Time() const { return World->GetTimeSinceWorldCreation(); }
         
         
@@ -120,7 +120,6 @@ namespace Lumina
         
     private:
         
-        double DeltaTime = 0.0f;
         CWorld* World = nullptr;
         FEntityWorld* EntityWorld = nullptr;
     };

@@ -62,6 +62,19 @@ namespace Lumina
     {
     }
 
+    bool FEditorUI::OnEvent(FEvent& Event)
+    {
+        for (FEditorTool* Tool : EditorTools)
+        {
+            if (Tool->OnEvent(Event))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     void FEditorUI::Initialize(const FUpdateContext& UpdateContext)
     {
         PropertyCustomizationRegistry = Memory::New<FPropertyCustomizationRegistry>();
@@ -910,6 +923,7 @@ namespace Lumina
         Assert(Itr != EditorTools.end())
 
         EditorTools.erase(Itr);
+        
         for (auto MapItr = ActiveAssetTools.begin(); MapItr != ActiveAssetTools.end(); ++MapItr)
         {
             if (MapItr->second == Tool)
@@ -936,43 +950,59 @@ namespace Lumina
     
     void FEditorUI::OpenAssetEditor(CObject* InAsset)
     {
-        /** Temp garbage for now */
-        if (InAsset != nullptr && ActiveAssetTools.find(InAsset) == ActiveAssetTools.end())
+        if (InAsset == nullptr)
         {
-            FEditorTool* NewTool = nullptr;
-            if (InAsset->IsA<CMaterial>())
-            {
-                NewTool = CreateTool<FMaterialEditorTool>(this, InAsset);
-            }
-            else if (InAsset->IsA<CTexture>())
-            {
-                NewTool = CreateTool<FTextureEditorTool>(this, InAsset);
-            }
-            else if (InAsset->IsA<CStaticMesh>())
-            {
-                NewTool = CreateTool<FMeshEditorTool>(this, InAsset);
-            }
-            else if (InAsset->IsA<CMaterialInstance>())
-            {
-                NewTool = CreateTool<FMaterialInstanceEditorTool>(this, InAsset);
-            }
-            else if (InAsset->IsA<CArchetype>())
-            {
-                NewTool = CreateTool<FArchetypeEditorTool>(this, InAsset);
-            }
-            else if (InAsset->IsA<CWorld>())
-            {
-                WorldEditorTool->SetWorld(Cast<CWorld>(InAsset));
-            }
-            else if (InAsset->IsA<CScriptAsset>())
-            {
-                NewTool = CreateTool<FScriptAssetEditorTool>(this, InAsset);
-            }
+            return;
+        }
 
-            if (NewTool)
-            {
-                ActiveAssetTools.insert_or_assign(InAsset, NewTool);
-            }
+        auto Itr = ActiveAssetTools.find(InAsset);
+        if (Itr != ActiveAssetTools.end())
+        {
+            const char* Name = Itr->second->GetToolName().c_str();
+            ImGui::SetWindowFocus(Name);
+            return;
+        }
+
+        if (WorldEditorTool->GetWorld() == InAsset)
+        {
+            const char* Name = WorldEditorTool->GetToolName().c_str();
+            ImGui::SetWindowFocus(Name);
+            return;
+        }
+        
+        FEditorTool* NewTool = nullptr;
+        if (InAsset->IsA<CMaterial>())
+        {
+            NewTool = CreateTool<FMaterialEditorTool>(this, InAsset);
+        }
+        else if (InAsset->IsA<CTexture>())
+        {
+            NewTool = CreateTool<FTextureEditorTool>(this, InAsset);
+        }
+        else if (InAsset->IsA<CStaticMesh>())
+        {
+            NewTool = CreateTool<FMeshEditorTool>(this, InAsset);
+        }
+        else if (InAsset->IsA<CMaterialInstance>())
+        {
+            NewTool = CreateTool<FMaterialInstanceEditorTool>(this, InAsset);
+        }
+        else if (InAsset->IsA<CArchetype>())
+        {
+            NewTool = CreateTool<FArchetypeEditorTool>(this, InAsset);
+        }
+        else if (InAsset->IsA<CWorld>())
+        {
+            WorldEditorTool->SetWorld(Cast<CWorld>(InAsset));
+        }
+        else if (InAsset->IsA<CScriptAsset>())
+        {
+            NewTool = CreateTool<FScriptAssetEditorTool>(this, InAsset);
+        }
+
+        if (NewTool)
+        {
+            ActiveAssetTools.insert_or_assign(InAsset, NewTool);
         }
     }
 

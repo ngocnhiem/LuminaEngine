@@ -11,12 +11,12 @@ namespace Lumina::Reflection
     
     FReflectedHeader::FReflectedHeader(const eastl::string& Path)
         : HeaderPath(Path)
-        , bSkip(false)
+        , bSkipCodeGen(0)
     {
         std::filesystem::path FilesystemPath = Path.c_str();
         FileName = FilesystemPath.stem().string().c_str();
     }
-    
+
     bool FReflectedHeader::Parse()
     {
         std::ifstream HeaderFile(HeaderPath.c_str(), std::ios::in | std::ios::binary | std::ios::ate);

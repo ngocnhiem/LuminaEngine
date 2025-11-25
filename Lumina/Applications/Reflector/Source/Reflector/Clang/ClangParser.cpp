@@ -132,7 +132,7 @@ namespace Lumina::Reflection
             {
                 return false;
             }
-#endif
+#else
             
             for (const auto& Entry : std::filesystem::directory_iterator(ProjectReflectionDirectory.c_str()))
             {
@@ -143,8 +143,9 @@ namespace Lumina::Reflection
                     std::cout << "Failed to delete: " << Entry.path() << " (" << ec.message() << ")\n";
                 }
             }
+#endif
             
-            const eastl::string AmalgamationPath = ProjectReflectionDirectory + "/ReflectHeaders.h";
+            const eastl::string AmalgamationPath = ProjectReflectionDirectory + "/ReflectHeaders.gen.h";
             
             std::ofstream AmalgamationFile(AmalgamationPath.c_str());
             AmalgamationFile << "#pragma once\n\n";

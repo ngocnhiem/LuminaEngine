@@ -3,6 +3,7 @@
 #include "Module/API.h"
 #include "Core/Engine/Engine.h"
 #include "Core/Utils/CommandLineParser.h"
+#include "Events/EventProcessor.h"
 
 namespace Lumina
 {
@@ -44,6 +45,8 @@ namespace Lumina
 
 		static void RequestExit();
 
+		FEventProcessor& GetEventProcessor() { return EventProcessor; }
+	
 	protected:
 
 		virtual FEngine* CreateEngine() = 0;
@@ -58,9 +61,10 @@ namespace Lumina
 		
 	protected:
 
+		FEventProcessor				EventProcessor;
+		
 		bool bExitRequested			= false;
-
-
+		
 		FWindow*					MainWindow = nullptr;
 		
 		FString ApplicationName =	"Unnamed Application";

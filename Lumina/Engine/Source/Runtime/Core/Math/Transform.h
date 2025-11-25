@@ -1,8 +1,10 @@
 #pragma once
 #include <spdlog/fmt/fmt.h>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 
 namespace Lumina
 {
@@ -26,11 +28,18 @@ namespace Lumina
               Scale(1.0f, 1.0f, 1.0f)
         {}
 
-        FTransform(const glm::vec3& location, const glm::vec3& eulerAngles, const glm::vec3& scale)
+        FTransform(const glm::vec3& location, const glm::vec3& EulerAngles, const glm::vec3& scale)
             : Location(location),
-              Rotation(glm::quat(glm::radians(eulerAngles))),
+              Rotation(glm::quat(glm::radians(EulerAngles))),
               Scale(scale)
         {
+        }
+
+        FTransform(const glm::mat4& InMatrix)
+        {
+            glm::vec3 Skew;
+            glm::vec4 Perspective;
+            glm::decompose(InMatrix, Scale, Rotation, Location, Skew, Perspective);
         }
 
         glm::mat4 GetMatrix() const
@@ -85,15 +94,13 @@ namespace Lumina
             FTransform Result;
             Result.Scale    = Scale * Other.Scale;
             Result.Rotation = Rotation * Other.Rotation;
-            Result.Location = Location + Rotation * (Scale * Other.Location);
+            Result.Location = (Rotation * (Scale * Other.Location)) + Location;
             return Result;
         }
 
         FTransform& operator*=(const FTransform& Other)
         {
-            Location    = Location + Rotation * (Scale * Other.Location);
-            Rotation    = Rotation * Other.Rotation;
-            Scale       = Scale * Other.Scale;
+            *this = operator*(Other);
             return *this;
         }
 

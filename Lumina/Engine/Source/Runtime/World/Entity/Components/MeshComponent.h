@@ -3,8 +3,8 @@
 #include "Module/API.h"
 #include "RenderComponent.h"
 #include "Core/Object/ObjectHandleTyped.h"
-#include "MeshComponent.generated.h"
 #include "World/Scene/RenderScene/MeshBatch.h"
+#include "MeshComponent.generated.h"
 
 namespace Lumina
 {

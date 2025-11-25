@@ -83,7 +83,7 @@ namespace Lumina
 
         for (IRHIResource* Resource : ResourcesSnapshot)
         {
-            Resource->Delete();
+            Memory::Delete(Resource);
         }
 
         LUM_ASSERT(FRHIResourceList::Get().ResourceList.empty())
@@ -113,7 +113,7 @@ namespace Lumina
         Desc.Extent = InSize;
         Desc.InitialState = EResourceStates::RenderTarget;
         Desc.bKeepInitialState = true;
-        Desc.DebugName = "Viewport Render Target";
+        Desc.DebugName = DebugName;
 
         RenderTarget = RenderContext->CreateImage(Desc);
     }

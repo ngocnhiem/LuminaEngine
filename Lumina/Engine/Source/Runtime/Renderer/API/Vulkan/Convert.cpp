@@ -141,8 +141,8 @@ namespace Lumina::Vk
             {
                 const FResourceStateMappingInternal& mapping = g_ResourceStateMap[bitIndex];
 
-                Assert(uint32(mapping.State) == bit);
-                Assert(result.ImageLayout == VK_IMAGE_LAYOUT_UNDEFINED || mapping.ImageLayout == VK_IMAGE_LAYOUT_UNDEFINED || result.ImageLayout == mapping.ImageLayout);
+                Assert(uint32(mapping.State) == bit)
+                Assert(result.ImageLayout == VK_IMAGE_LAYOUT_UNDEFINED || mapping.ImageLayout == VK_IMAGE_LAYOUT_UNDEFINED || result.ImageLayout == mapping.ImageLayout)
 
                 result.State = EResourceStates(result.State | mapping.State);
                 result.accessMask |= mapping.accessMask;

@@ -6,7 +6,7 @@
 
 namespace Lumina
 {
-    void CScriptEntitySystem::PostConstructForWorld(const CWorld* World)
+    void CScriptEntitySystem::PostConstructForWorld(CWorld* World)
     {
         if (Script.IsValid() == false)
         {
@@ -20,19 +20,11 @@ namespace Lumina
         
         
         OnScriptLoaded();
-        
-    }
 
-    void CScriptEntitySystem::Initialize(FSystemContext& SystemContext)
-    {
-        CallLuaFunc(LuaInitialize, SystemContext);
+        FSystemContext SystemContext(World);
+        CallLuaFunc(LuaPostConstruct, SystemContext);
     }
-
-    void CScriptEntitySystem::InitializeEditor(FSystemContext& SystemContext)
-    {
-        
-    }
-
+    
     void CScriptEntitySystem::WorldBeginPlay(FSystemContext& SystemContext)
     {
         CallLuaFunc(LuaBeginPlay, SystemContext);
@@ -46,14 +38,6 @@ namespace Lumina
 
     void CScriptEntitySystem::Update(FSystemContext& SystemContext)
     {
-        LUMINA_PROFILE_SCOPE();
-
-        if (bReloadRequested)
-        {
-            OnScriptLoaded();
-            bReloadRequested = false;
-        }
-        
         CallLuaFunc(LuaUpdate, SystemContext);
     }
 
@@ -62,7 +46,7 @@ namespace Lumina
         CallLuaFunc(LuaShutdown, SystemContext);
         Script->PostScriptReloaded.Remove(DelegateHandle);
 
-        Scripting::FScriptingContext::Get().GetState().collect_gc();
+        //Scripting::FScriptingContext::Get().GetState().collect_gc();
     }
 
     void CScriptEntitySystem::CopyProperties(CEntitySystem* Other)
@@ -71,14 +55,25 @@ namespace Lumina
         Script = OtherScriptSystem->Script;
     }
 
-    sol::protected_function_result CScriptEntitySystem::CallLuaFunc(const sol::protected_function& Function, FSystemContext& Context) const
+    sol::protected_function_result CScriptEntitySystem::CallLuaFunc(const sol::protected_function& Function, FSystemContext& Context)
     {
+        LUMINA_PROFILE_SCOPE();
+
+        if (bReloadRequested)
+        {
+            OnScriptLoaded();
+            bReloadRequested = false;
+        }
+        
+        
         if (!Script.IsValid() || !Function.valid())
         {
             return sol::protected_function_result();
         }
 
-        sol::protected_function_result Result = Function(&Context);
+        Environment["ScriptContext"] = Context;
+
+        sol::protected_function_result Result = Function();
         if (!Result.valid())
         {
             sol::error err = Result;
@@ -90,7 +85,7 @@ namespace Lumina
 
     void CScriptEntitySystem::OnScriptLoaded()
     {
-        sol::state& State = Scripting::FScriptingContext::Get().GetState();
+        sol::state_view State = Scripting::FScriptingContext::Get().GetState();
         Environment = sol::environment(State, sol::create, State.globals());
         sol::protected_function_result result = State.safe_script(Script->GetScript().c_str(), Environment);
         
@@ -98,7 +93,7 @@ namespace Lumina
         {
             sol::error err = result;
             LOG_ERROR("Lua script failed: {}", err.what());
-            LuaInitialize   = sol::protected_function();
+            LuaPostConstruct   = sol::protected_function();
             LuaBeginPlay    = sol::protected_function();
             LuaUpdate       = sol::protected_function();
             LuaEndPlay      = sol::protected_function();
@@ -106,8 +101,8 @@ namespace Lumina
             return;
         }
 
-        sol::object InitObj = Environment["Initialize"];
-        LuaInitialize = (InitObj.valid() && InitObj.get_type() == sol::type::function) ? sol::protected_function(InitObj) : sol::protected_function();
+        sol::object InitObj = Environment["PostConstruct"];
+        LuaPostConstruct = (InitObj.valid() && InitObj.get_type() == sol::type::function) ? sol::protected_function(InitObj) : sol::protected_function();
 
         sol::object BeginPlayObj = Environment["BeginPlay"];
         LuaBeginPlay = (BeginPlayObj.valid() && BeginPlayObj.get_type() == sol::type::function) ? sol::protected_function(BeginPlayObj) : sol::protected_function();

@@ -14,7 +14,6 @@
 #include "Core/Object/Package/Thumbnail/PackageThumbnail.h"
 #include "Core/Windows/Window.h"
 #include "EASTL/sort.h"
-#include "Input/Input.h"
 #include "Paths/Paths.h"
 #include "Platform/Process/PlatformProcess.h"
 #include "Project/Project.h"
@@ -53,7 +52,26 @@ namespace Lumina
             bInitialized = false;
         }
     };
-    
+
+    bool FContentBrowserEditorTool::OnEvent(FEvent& Event)
+    {
+        if (Event.IsA<FFileDropEvent>())
+        {
+            FFileDropEvent& FileEvent = Event.As<FFileDropEvent>();
+
+            ImVec2 DropCursor = ImVec2(FileEvent.GetMouseX(), FileEvent.GetMouseY());
+
+            for (const FString& Path : FileEvent.GetPaths())
+            {
+                PendingDrops.emplace_back(FPendingOSDrop{ Path, DropCursor });
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
     void FContentBrowserEditorTool::RefreshContentBrowser()
     {
         ContentBrowserTileView.MarkTreeDirty();
@@ -62,9 +80,6 @@ namespace Lumina
 
     void FContentBrowserEditorTool::OnInitialize()
     {
-        FWindow::OnWindowDropped.AddMember(this, &FContentBrowserEditorTool::OnWindowDropped);
-        
-        
         using namespace Import::Textures;
 
         for (TObjectIterator<CFactory> It; It; ++It)
@@ -95,7 +110,7 @@ namespace Lumina
         
         SelectedPath = GEditorEngine->GetProject().GetProjectContentDirectory().c_str();
 
-        GEngine->GetEngineSubsystem<FAssetRegistry>()->GetOnAssetRegistryUpdated().AddMember(this, &FContentBrowserEditorTool::RefreshContentBrowser);
+        (void)GEngine->GetEngineSubsystem<FAssetRegistry>()->GetOnAssetRegistryUpdated().AddMember(this, &FContentBrowserEditorTool::RefreshContentBrowser);
         
         ContentBrowserTileViewContext.DragDropFunction = [this] (FTileViewItem* DropItem)
         {
@@ -453,7 +468,7 @@ namespace Lumina
                 {
                     FAssetData* Asset = Assets[Index];
                     FString PackageFullPath = Paths::ResolveVirtualPath(Asset->PackageName.ToString());
-                    CThumbnailManager::Get().GetOrLoadThumbnailsForPackage(PackageFullPath);
+                    CThumbnailManager::Get().TryLoadThumbnailsForPackage(PackageFullPath);
                 });
                 
                 for (FAssetData* Asset : Assets)
@@ -689,16 +704,7 @@ namespace Lumina
             }
         }
     }
-
-    void FContentBrowserEditorTool::OnWindowDropped(FWindow*, int NumPaths, const char** Paths)
-    {
-        ImVec2 DropCursor = ImVec2(Input::GetMousePosition().x, Input::GetMousePosition().y);
-        
-        for (int i = 0; i < NumPaths; ++i)
-        {
-            PendingDrops.emplace_back(FPendingOSDrop{ FString(Paths[i]), DropCursor });
-        }
-    }
+    
 
     ObjectRename::EObjectRenameResult FContentBrowserEditorTool::HandleRenameEvent(const FString& OldPath, const FString& NewPath)
     {
@@ -877,18 +883,21 @@ namespace Lumina
 
         for (auto it = SelectedFSPath.begin(); it != SelectedFSPath.end(); ++it)
         {
-            current /= *it;
-
             if (!bStarted)
             {
                 if (it->string() == "Content")
                 {
                     bStarted = true;
+                    current /= *it;
                 }
                 else
                 {
                     continue;
                 }
+            }
+            else
+            {
+                current /= *it;
             }
 
             ImGui::PushID((int)std::distance(SelectedFSPath.begin(), it));
@@ -906,7 +915,7 @@ namespace Lumina
 
             auto next = it;
             ++next;
-            
+    
             if (next != SelectedFSPath.end())
             {
                 ImGui::TextUnformatted(LE_ICON_ARROW_RIGHT);

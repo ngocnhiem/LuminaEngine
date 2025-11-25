@@ -135,7 +135,9 @@ namespace Lumina
         void SetSelection(FTreeListViewItem* Item, const FTreeListViewContext& Context);
         
     private:
-
+        
+        void RequestScrollTo(const FTreeListViewItem* Item);
+        
         void RebuildTree(const FTreeListViewContext& Context);
         
         void DrawListItem(FTreeListViewItem* ItemToDraw, const FTreeListViewContext& Context);
@@ -151,6 +153,10 @@ namespace Lumina
         TVector<FTreeListViewItem*>             Selections;
         TVector<FTreeListViewItem*>             ListItems;
 
+        float                                   EstimatedRowHeight = -1.0f;
+        int32                                   FirstVisibleRowItemIndex = 0;
+        bool                                    bMaintainVisibleRowIndex = false;
+        
         uint8                                   bDirty:1;
         uint8                                   bCurrentlyDrawing:1;
     };

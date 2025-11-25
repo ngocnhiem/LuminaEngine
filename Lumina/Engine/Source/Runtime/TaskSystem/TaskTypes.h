@@ -3,7 +3,6 @@
 #include "TaskScheduler.h"
 #include "Containers/Function.h"
 #include "Core/Templates/LuminaTemplate.h"
-#include "Memory/Memory.h"
 #include "Platform/GenericPlatform.h"
 
 namespace Lumina
@@ -35,7 +34,10 @@ namespace Lumina
     {
     public:
 
-        FLambdaTask(ETaskPriority Priority, uint32 SetSize, uint32 MinRange, TaskSetFunction TaskFunctor)
+        FLambdaTask(const FLambdaTask&) = delete;
+        FLambdaTask& operator=(const FLambdaTask&) = delete;
+
+        FLambdaTask(ETaskPriority Priority, uint32 SetSize, uint32 MinRange, TaskSetFunction&& TaskFunctor)
         {
             m_Priority = (enki::TaskPriority)Priority;
             m_SetSize = SetSize;
@@ -52,7 +54,7 @@ namespace Lumina
             Function(range_.start, range_.end, threadnum_);
         }
 
-        void Reset(ETaskPriority Priority, uint32 SetSize, uint32 MinRange, TaskSetFunction TaskFunctor)
+        void Reset(ETaskPriority Priority, uint32 SetSize, uint32 MinRange, TaskSetFunction&& TaskFunctor)
         {
             m_Priority = (enki::TaskPriority)Priority;
             m_SetSize = SetSize;

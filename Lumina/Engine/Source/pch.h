@@ -1,5 +1,9 @@
 #pragma once
 
+#if defined(LE_PLATFORM_WINDOWS)
+#include <windows.h>
+#endif
+
 // ===================
 // Standard Library
 // ===================
@@ -31,6 +35,7 @@
 #include <atomic>
 #include <type_traits>
 #include <optional>
+#include <filesystem>
 #include <variant>
 #include <span>
 #include <limits>
@@ -49,10 +54,31 @@
 #include <eastl/unordered_map.h>
 #include <eastl/set.h>
 #include <eastl/unordered_set.h>
+#include <eastl/hash_set.h>
+#include <eastl/hash_map.h>
+#include <eastl/fixed_hash_set.h>
+#include <eastl/fixed_hash_map.h>
+#include <eastl/fixed_vector.h>
+#include <eastl/fixed_string.h>
+#include <eastl/atomic.h>
+#include <eastl/numeric_limits.h>
+#include <eastl/any.h>
+#include <eastl/sort.h>
+#include <eastl/memory.h>
 #include <eastl/string.h>
+#include <eastl/string_view.h>
 #include <eastl/algorithm.h>
 #include <eastl/functional.h>
 #include <eastl/memory.h>
+#include <eastl/unique_ptr.h>
+#include <eastl/shared_ptr.h>
+#include <eastl/weak_ptr.h>
+#include <eastl/deque.h>
+#include <eastl/list.h>
+#include <eastl/stack.h>
+#include <eastl/queue.h>
+#include <eastl/bitset.h>
+
 
 // ===================
 // Third-Party Libraries
@@ -64,23 +90,9 @@
 #include <glm/gtx/transform.hpp>
 #include <entt/entt.hpp>
 #include <sol/sol.hpp>
-#include <Jolt/Jolt.h>
 #include <spdlog/spdlog.h>
 
-// ===================
-// Engine Core
-// ===================
-#include "Core/LuminaMacros.h"
-#include "Lumina.h"
-#include "Core/Math/Math.h"
-#include "Core/Assertions/Assert.h"
-#include "Log/Log.h"
-#include "Memory/Memory.h"
-#include "Containers/String.h"
-#include "Containers/Name.h"
-#include "Containers/Array.h"
-#include "Platform/Platform.h"
-#include "Platform/GenericPlatform.h"
-#include "Renderer/RHIIncl.h"
-
-
+#if defined(LE_DEBUG) && !defined(JPH_ENABLE_ASSERTS)
+#define JPH_ENABLE_ASSERTS
+#endif
+#include <Jolt/Jolt.h>

@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/UpdateContext.h"
+#include "Events/EventProcessor.h"
 
 
 namespace Lumina
@@ -12,7 +13,7 @@ namespace Lumina
 
 namespace Lumina
 {
-    class LUMINA_API IDevelopmentToolUI
+    class LUMINA_API IDevelopmentToolUI : public IEventHandler
     {
     public:
         IDevelopmentToolUI() = default;

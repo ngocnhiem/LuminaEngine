@@ -2,7 +2,7 @@
 
 #include <volk/volk.h>
 #define VK_NO_PROTOTYPES
-#include "vk_mem_alloc.h"
+#include "VulkanMemoryAllocator/vk_mem_alloc.h"
 #include "Containers/Array.h"
 #include "Core/Threading/Thread.h"
 #include "Memory/Memory.h"
@@ -143,8 +143,6 @@ namespace Lumina
         IDeviceChild(FVulkanDevice* InDevice)
             :Device(InDevice)
         {}
-        
-        virtual ~IDeviceChild() = default;
         
         FVulkanDevice* Device = nullptr;
     };

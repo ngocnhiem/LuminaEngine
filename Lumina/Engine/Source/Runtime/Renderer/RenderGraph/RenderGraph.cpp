@@ -89,29 +89,28 @@ namespace Lumina
         }
         else
         {
-            TFixedVector<FLambdaTask*, 4> AsyncTasks;
+            TFixedVector<FLambdaTask, 1> AsyncTasks;
             TFixedVector<ICommandList*, 1> AllCommandLists;
         
             FRHICommandListRef CommandList = GRenderContext->CreateCommandList(FCommandListInfo::Graphics());
             AllCommandLists.push_back(CommandList);
             CommandList->Open();
-
-            for (int PassIndex = 0; PassIndex < Passes.size(); ++PassIndex)
+            
+            for (size_t PassIndex = 0; PassIndex < Passes.size(); ++PassIndex)
             {
                 FRGPassHandle Pass = Passes[PassIndex];
-                
                 // The user has promised us this pass can now run at any time without issues, so we dispatch it and keep going.
                 if (Pass->GetDescriptor()->HasAnyFlag(ERGExecutionFlags::Async))
                 {
-                    uint32 AsyncPassIndex = AllCommandLists.size();
+                    size_t AsyncPassIndex = AllCommandLists.size();
                     AllCommandLists.push_back(nullptr);
-                    
-                    Task::AsyncTask(1, 1, [Pass, AsyncPassIndex, &AllCommandLists](uint32 Start, uint32 End, uint32 Thread)
+
+                    Task::AsyncTask(1, 1, [&AllCommandLists, AsyncPassIndex, Pass](uint32, uint32, uint32)
                     {
                         FRHICommandListRef LocalCommandList = GRenderContext->CreateCommandList(FCommandListInfo::Graphics());
                         
                         AllCommandLists[AsyncPassIndex] = LocalCommandList;
-
+                
                         LocalCommandList->Open();
                         Pass->Execute(*LocalCommandList);
                         LocalCommandList->Close();
@@ -127,7 +126,7 @@ namespace Lumina
             
             GTaskSystem->WaitForAll();
             
-            GRenderContext->ExecuteCommandLists(AllCommandLists.data(), AllCommandLists.size(), ECommandQueue::Graphics);   
+            GRenderContext->ExecuteCommandLists(AllCommandLists.data(), (uint32)AllCommandLists.size(), ECommandQueue::Graphics);   
         }
     }
 

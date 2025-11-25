@@ -1,31 +1,31 @@
 ﻿#pragma once
-#include "World/Entity/Entity.h"
+#include "Core/Object/ObjectHandleTyped.h"
+#include "World/Entity/Components/CameraComponent.h"
 
 
 namespace Lumina
 {
+    class CWorld;
+
     class FCameraManager
     {
     public:
 
         FCameraManager(CWorld* InWorld)
-            : World(InWorld)
+            : WeakWorld(InWorld)
         {
             
         }
         
-        void SetActiveCamera(entt::entity InEntity)
-        {
-            ActiveCameraEntity = InEntity;
-        }
+        FORCEINLINE void SetActiveCamera(entt::entity InEntity) { ActiveCameraEntity = InEntity; }
         
-        entt::entity GetActiveCameraEntity() const { return ActiveCameraEntity; }
-        SCameraComponent& GetCameraComponent() const { return World->GetEntityRegistry().get<SCameraComponent>(ActiveCameraEntity); }
+        FORCEINLINE entt::entity GetActiveCameraEntity() const { return ActiveCameraEntity; }
+        SCameraComponent* GetCameraComponent() const;
     
 
     private:
 
-        TObjectPtr<CWorld> World;
+        TWeakObjectPtr<CWorld> WeakWorld;
         entt::entity ActiveCameraEntity = entt::null;
     
     };

@@ -4,12 +4,12 @@
 #include "Includes/Common.glsl"
 
 layout(set = 0, binding = 0) uniform sampler2D uHDRSceneColor;
-layout(set = 0, binding = 1) uniform sampler2D uBayerDither;
 
 layout(push_constant) uniform PushConstants
 {
     float Exposure;
-} PC;
+    float Time;
+};
 
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 oFragColor;
@@ -35,12 +35,19 @@ vec3 Uncharted2Tonemap(vec3 x)
     return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
 }
 
+vec3 ScreenSpaceDither(vec2 vScreenPos)
+{
+    // Iestyn's RGB dither (7 asm instructions) from Portal 2 X360, slightly modified.
+    vec3 vDither = vec3(dot(vec2(171.0, 231.0), vScreenPos.xy + Time));
+    vDither.rgb = fract(vDither.rgb / vec3(103.0, 71.0, 97.0)) - vec3(0.5, 0.5, 0.5);
+    return (vDither.rgb / 255.0) * 0.375;
+}
+
 void main()
 {
     vec3 hdrColor = texture(uHDRSceneColor, vTexCoord).rgb;
     
-    float exposure = 1.0;
-    hdrColor *= exposure;
+    hdrColor *= Exposure;
 
     // Tonemap
     vec3 toneMappedColor = ACESFilm(hdrColor);
@@ -48,7 +55,7 @@ void main()
     // Gamma correction
     toneMappedColor = pow(toneMappedColor, vec3(1.0 / 2.2));
     
-    toneMappedColor += vec4(texture(uBayerDither, gl_FragCoord.xy / 8.0) / 32.0 - (1.0 / 256.0)).rgb;
+    toneMappedColor += ScreenSpaceDither(gl_FragCoord.xy);
     
     oFragColor = vec4(toneMappedColor, 1.0);
 }

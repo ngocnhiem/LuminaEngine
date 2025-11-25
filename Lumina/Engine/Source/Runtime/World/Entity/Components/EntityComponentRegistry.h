@@ -1,7 +1,7 @@
 ﻿#pragma once
+
 #include "Module/API.h"
 #include "Containers/Array.h"
-#include "Core/Singleton/Singleton.h"
 
 namespace Lumina
 {

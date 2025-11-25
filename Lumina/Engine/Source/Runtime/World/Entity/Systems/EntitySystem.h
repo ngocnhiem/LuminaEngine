@@ -50,13 +50,7 @@ namespace Lumina
         virtual const FUpdatePriorityList* GetRequiredUpdatePriorities() { return nullptr; }
 
         /** Called when the system is actually constructed for a world, the world and it's systems are not safe at this point */
-        virtual void PostConstructForWorld(const CWorld* World) { }
-
-        /** Called when the system is first constructed for the world during play */
-        virtual void Initialize(FSystemContext& SystemContext) { }
-
-        /** Called when the system is first constructed for the world in editor */
-        virtual void InitializeEditor(FSystemContext& SystemContext) { }
+        virtual void PostConstructForWorld(CWorld* World) { }
 
         /** called when the first has begun a play session **/
         virtual void WorldBeginPlay(FSystemContext& SystemContext) { }

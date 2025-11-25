@@ -20,22 +20,20 @@ namespace Lumina
     static const char* MeshPropertiesName        = "MeshProperties";
 
     FMeshEditorTool::FMeshEditorTool(IEditorToolContext* Context, CObject* InAsset)
-    : FAssetEditorTool(Context, InAsset->GetName().c_str(), InAsset)
+    : FAssetEditorTool(Context, InAsset->GetName().c_str(), InAsset, NewObject<CWorld>())
     {
-        World = NewObject<CWorld>();
-
-        Entity DirectionalLightEntity = World->ConstructEntity("Directional Light");
-        DirectionalLightEntity.Emplace<SDirectionalLightComponent>();
-        DirectionalLightEntity.Emplace<SEnvironmentComponent>();
-        
-        MeshEntity = World->ConstructEntity("MeshEntity");
-        
-        MeshEntity.Emplace<SStaticMeshComponent>().StaticMesh = Cast<CStaticMesh>(InAsset);
-        MeshEntity.GetComponent<STransformComponent>().SetLocation(glm::vec3(0.0f, 0.0f, -2.5f));
     }
 
 void FMeshEditorTool::OnInitialize()
 {
+    Entity DirectionalLightEntity = World->ConstructEntity("Directional Light");
+    DirectionalLightEntity.Emplace<SDirectionalLightComponent>();
+    DirectionalLightEntity.Emplace<SEnvironmentComponent>();
+    
+    MeshEntity = World->ConstructEntity("MeshEntity");
+    MeshEntity.Emplace<SStaticMeshComponent>().StaticMesh = Cast<CStaticMesh>(Asset.Get());
+    MeshEntity.GetComponent<STransformComponent>().SetLocation(glm::vec3(0.0f, 0.0f, -2.5f));
+        
     CreateToolWindow(MeshPropertiesName, [this](const FUpdateContext& Cxt, bool bFocused)
     {
         CStaticMesh* StaticMesh = Cast<CStaticMesh>(Asset.Get());

@@ -192,7 +192,8 @@ namespace Lumina
 }
 
 #define DECLARE_MULTICAST_DELEGATE(DelegateName, ...) \
-struct DelegateName : public Lumina::TMulticastDelegate<void, __VA_ARGS__> {}
+struct DelegateName \
+: public Lumina::TMulticastDelegate<void __VA_OPT__(,) __VA_ARGS__> {}
 
 #define DECLARE_MULTICAST_DELEGATE_R(DelegateName, ...) \
 struct DelegateName : public Lumina::TMulticastDelegate<__VA_ARGS__> {}

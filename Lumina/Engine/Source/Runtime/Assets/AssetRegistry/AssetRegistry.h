@@ -1,7 +1,5 @@
 #pragma once
 
-#include <filesystem>
-
 #include "AssetData.h"
 #include "Assets/AssetHeader.h"
 #include "Core/DisableAllWarnings.h"
@@ -9,10 +7,6 @@
 #include "Core/Delegates/Delegate.h"
 #include "Core/Serialization/MemoryArchiver.h"
 #include "Core/Threading/Thread.h"
-
-PRAGMA_DISABLE_ALL_WARNINGS
-#include "EASTL/internal/atomic/atomic.h"
-PRAGMA_ENABLE_ALL_WARNINGS
 
 #define FILE_EXTENSION ".lasset"
 

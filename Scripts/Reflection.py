@@ -99,7 +99,7 @@ def build_reflector(solution_path, project_name, configuration="Debug", platform
             break
     
     if not project_path:
-        print(Fore.RED + Style.BRIGHT + f"✗ Project file not found for {project_name}")
+        print(Fore.RED + Style.BRIGHT + f"Project file not found for {project_name}")
         print(Fore.YELLOW + "Searched in:")
         for path in possible_project_paths:
             print(Fore.YELLOW + f"  - {path}")

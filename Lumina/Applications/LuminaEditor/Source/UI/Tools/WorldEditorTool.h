@@ -65,8 +65,8 @@ namespace Lumina
                 : FTreeListViewItem(InParent)
                 , System(InSystem)
             {
-                Hash = System->GetName();
-                Name = System->GetName();
+                Hash = System.Lock()->GetName();
+                Name = System.Lock()->GetName();
             }
 
             ~FSystemListViewItem() override { }
@@ -79,13 +79,13 @@ namespace Lumina
                 return Name;
             }
 
-            CEntitySystem* GetSystem() const { return System; }
+            CEntitySystem* GetSystem() const { return System.Lock(); }
             
         private:
 
             uint64 Hash;
             FName Name;
-            TObjectPtr<CEntitySystem> System;
+            TWeakObjectPtr<CEntitySystem> System;
         };
 
         struct FEntityListFilterState

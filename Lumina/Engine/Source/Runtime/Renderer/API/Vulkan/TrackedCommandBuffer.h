@@ -34,8 +34,8 @@ namespace Lumina
         
         
         /** Keep alive any resources that this current command buffer uses */
-        TFixedVector<TRefCountPtr<IRHIResource>, 20>    ReferencedResources;
-        TFixedVector<TRefCountPtr<FRHIBuffer>, 20>      ReferencedStagingResources;
+        TFixedVector<TRefCountPtr<IRHIResource>, 100>       ReferencedResources;
+        TFixedVector<TRefCountPtr<FRHIBuffer>, 50>          ReferencedStagingResources;
 
     };
 }

@@ -1,75 +1,34 @@
-#pragma once
-#include "InputSubsystem.h"
-#include "Events/KeyCodes.h"
+﻿#pragma once
 
-namespace Lumina
+#include "Platform/GenericPlatform.h"
+
+namespace Lumina::Input
 {
-    namespace Input
+    enum class EKeyState : uint8
     {
-        LUMINA_API inline bool IsKeyPressed(KeyCode Key)
-        {
-            return GEngine->GetEngineSubsystem<FInputSubsystem>()->IsKeyPressed(Key);
-        }
+        Up = 0,
+        Down = 1,
+        Repeated = 2,
+    };
 
-        LUMINA_API inline void DisableCursor()
-        {
-            GEngine->GetEngineSubsystem<FInputSubsystem>()->SetCursorMode(GLFW_CURSOR_DISABLED);
-        }
+    enum class EMouseState : uint8
+    {
+        Up = 0,
+        Down = 1,
+    };
 
-        LUMINA_API inline void HideCursor()
-        {
-            GEngine->GetEngineSubsystem<FInputSubsystem>()->SetCursorMode(GLFW_CURSOR_HIDDEN);
-        }
+    enum class EInputMode : uint8
+    {
+        Normal = 0,
+        Hidden,
+        Disabled
+    };
 
-        LUMINA_API inline void EnableCursor()
-        {
-            GEngine->GetEngineSubsystem<FInputSubsystem>()->SetCursorMode(GLFW_CURSOR_NORMAL);
-        }
-        
-        LUMINA_API inline bool IsKeyDown(KeyCode Key)
-        {
-            return GEngine->GetEngineSubsystem<FInputSubsystem>()->IsKeyDown(Key);
-        }
-
-        LUMINA_API inline bool IsKeyReleased(KeyCode Key)
-        {
-            return GEngine->GetEngineSubsystem<FInputSubsystem>()->IsKeyReleased(Key);
-        }
-        
-        LUMINA_API inline bool IsMouseButtonPressed(MouseCode Button)
-        {
-            return GEngine->GetEngineSubsystem<FInputSubsystem>()->IsMouseButtonPressed(Button);
-        }
-
-        LUMINA_API inline bool IsMouseButtonDown(MouseCode Button)
-        {
-            return GEngine->GetEngineSubsystem<FInputSubsystem>()->IsMouseButtonDown(Button);
-        }
-        
-        LUMINA_API inline bool IsMouseButtonReleased(MouseCode Button)
-        {
-            return GEngine->GetEngineSubsystem<FInputSubsystem>()->IsMouseButtonReleased(Button);
-        }
-
-        LUMINA_API inline glm::vec2 GetMousePosition()
-        {
-            return GEngine->GetEngineSubsystem<FInputSubsystem>()->GetMousePosition();
-        }
-
-        LUMINA_API inline glm::vec2 GetMouseDelta()
-        {
-            return GEngine->GetEngineSubsystem<FInputSubsystem>()->GetMouseDelta();
-        }
-
-        LUMINA_API inline float GetMouseDeltaPitch()
-        {
-            return GEngine->GetEngineSubsystem<FInputSubsystem>()->GetMouseDeltaY();
-        }
-
-        LUMINA_API inline float GetMouseDeltaYaw()
-        {
-            return GEngine->GetEngineSubsystem<FInputSubsystem>()->GetMouseDeltaX();
-        }
-        
-    }
+    enum class EInputDevice : uint8
+    {
+        Keyboard = 0,
+        Mouse,
+        Gamepad,
+        Touch
+    };
 }

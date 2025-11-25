@@ -27,11 +27,16 @@ namespace Lumina
     static const char* GLSLPreviewName             = "GLSL Preview";
 
     FMaterialEditorTool::FMaterialEditorTool(IEditorToolContext* Context, CObject* InAsset)
-        : FAssetEditorTool(Context, InAsset->GetName().c_str(), InAsset)
+        : FAssetEditorTool(Context, InAsset->GetName().c_str(), InAsset, NewObject<CWorld>())
         , CompilationResult()
         , NodeGraph(nullptr)
     {
-        World = NewObject<CWorld>();
+    }
+
+
+    void FMaterialEditorTool::OnInitialize()
+    {
+        FAssetEditorTool::OnInitialize();
 
         Entity DirectionalLightEntity = World->ConstructEntity("Directional Light");
         DirectionalLightEntity.Emplace<SDirectionalLightComponent>();
@@ -44,13 +49,7 @@ namespace Lumina
         SStaticMeshComponent& StaticMeshComponent = MeshEntity.Emplace<SStaticMeshComponent>();
         StaticMeshComponent.StaticMesh = CThumbnailManager::Get().SphereMesh;
         StaticMeshComponent.MaterialOverrides.resize(CThumbnailManager::Get().SphereMesh->Materials.size());
-        StaticMeshComponent.MaterialOverrides[0] = CastAsserted<CMaterialInterface>(InAsset);
-    }
-
-
-    void FMaterialEditorTool::OnInitialize()
-    {
-        FAssetEditorTool::OnInitialize();
+        StaticMeshComponent.MaterialOverrides[0] = CastAsserted<CMaterialInterface>(Asset.Get());
         
         CreateToolWindow(MaterialGraphName, [this](const FUpdateContext& Cxt, bool bFocused)
         {
@@ -92,6 +91,14 @@ namespace Lumina
                 }
             }
         });
+
+        NodeGraph->SetPreNodeDeletedCallback([this](const CEdGraphNode* Node)
+        {
+            if (Node == SelectedNode)
+            {
+                GetPropertyTable()->SetObject(nullptr, nullptr);
+            }
+        });
     }
     
     void FMaterialEditorTool::OnDeinitialize(const FUpdateContext& UpdateContext)
@@ -110,9 +117,9 @@ namespace Lumina
         const ImVec2 WindowBottomRight = { WindowPosition.x + ViewportSize.x, WindowPosition.y + ViewportSize.y };
         float AspectRatio = (ViewportSize.x / ViewportSize.y);
         
-        SCameraComponent& CameraComponent =  World->GetActiveCamera();
-        CameraComponent.SetAspectRatio(AspectRatio);
-        CameraComponent.SetFOV(60.0f);
+        SCameraComponent* CameraComponent =  World->GetActiveCamera();
+        CameraComponent->SetAspectRatio(AspectRatio);
+        CameraComponent->SetFOV(60.0f);
         
         /** Mostly for debug, so we can easily see if there's some transparency issue */
         ImGui::GetWindowDrawList()->AddRectFilled(WindowPosition, WindowBottomRight, IM_COL32(0, 0, 0, 255));

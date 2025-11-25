@@ -13,7 +13,6 @@ namespace Lumina
         ENTITY_SYSTEM(CEditorEntityMovementSystem, RequiresUpdate(EUpdateStage::Paused))
     public:
         
-        void Initialize(FSystemContext& SystemContext) override;
         void Shutdown(FSystemContext& SystemContext) override;
 
         void Update(FSystemContext& SystemContext) override;

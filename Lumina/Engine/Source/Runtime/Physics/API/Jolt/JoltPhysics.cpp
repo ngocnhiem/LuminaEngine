@@ -24,6 +24,31 @@ namespace Lumina::Physics
         }
         LOG_TRACE("Jolt Physics - {}", buffer);
     }
+
+    void* JPHCustomAllocate(size_t size)
+    {
+        return Memory::Malloc(size);
+    }
+
+    void* JPHCustomReallocate(void* block, size_t oldSize, size_t newSize)
+    {
+        return Memory::Realloc(block, newSize);
+    }
+
+    void JPHCustomFree(void* block)
+    {
+        Memory::Free(block);
+    }
+
+    void* JPHCustomAlignedAllocate(size_t size, size_t alignment)
+    {
+        return Memory::Malloc(size, alignment);
+    }
+
+    void JPHCustomAlignedFree(void* block)
+    {
+        Memory::Free(block);
+    }
     
     static bool JoltAssertionFailed(const char* expr, const char* msg, const char* file, uint32 line)
     {
@@ -33,10 +58,14 @@ namespace Lumina::Physics
     
     void FJoltPhysicsContext::Initialize()
     {
-        JPH::RegisterDefaultAllocator();
+        JPH::Trace              = JoltTraceCallback;
+        JPH::AssertFailed       = JoltAssertionFailed;
 
-        JPH::Trace = JoltTraceCallback;
-        JPH::AssertFailed = JoltAssertionFailed;
+        JPH::Reallocate         = JPHCustomReallocate;
+        JPH::Allocate           = JPHCustomAllocate;
+        JPH::Free               = JPHCustomFree;
+        JPH::AlignedAllocate    = JPHCustomAlignedAllocate;
+        JPH::AlignedFree        = JPHCustomAlignedFree;
         
         JPH::Factory::sInstance = Memory::New<JPH::Factory>();
 

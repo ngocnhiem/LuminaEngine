@@ -1,9 +1,11 @@
 #include "CoreTypeCustomization.h"
 #include "imgui.h"
 #include "Assets/AssetTypes/Textures/Texture.h"
+#include "Core/Object/Package/Thumbnail/PackageThumbnail.h"
 #include "Core/Reflection/Type/Properties/ObjectProperty.h"
 #include "Paths/Paths.h"
 #include "Renderer/RenderManager.h"
+#include "thumbnails/thumbnailmanager.h"
 #include "Tools/UI/ImGui/ImGuiDesignIcons.h"
 #include "Tools/UI/ImGui/ImGuiX.h"
 #include "UI/EditorUI.h"
@@ -25,13 +27,30 @@ namespace Lumina
         {
             const auto& Style = ImGui::GetStyle();
 
-            const char* Label = Object ? Object->GetName().c_str() : "<None>";
+            TObjectPtr<CObject> HardObject = Object.Lock();
+
+            const char* Label = HardObject.IsValid() ? Object->GetName().c_str() : "<None>";
             ImGui::BeginDisabled(Object == nullptr);
 
-            // Temporary stuff.
-            ImTextureRef ButtonTexture = ImGuiX::ToImTextureRef(Paths::GetEngineResourceDirectory() + "/Textures/SkeletalMeshIcon.png");
+            TOptional<ImTextureRef> ButtonTexture;
+            if (Object.IsValid())
+            {
+                FString FullPath = Paths::ResolveVirtualPath(Object->GetPathName());
+                CThumbnailManager::Get().TryLoadThumbnailsForPackage(FullPath);
+                if (FRHIImage* Image = CThumbnailManager::GetThumbnailForPackage(Object->GetPackage())->LoadedImage)
+                {
+                    ButtonTexture = ImGuiX::ToImTextureRef(Image);
+                }
+            }
+
+
+            if (!ButtonTexture.has_value())
+            {
+                ButtonTexture = ImGuiX::ToImTextureRef(Paths::GetEngineResourceDirectory() + "/Textures/SkeletalMeshIcon.png");
+            }
+
             
-            ImGui::ImageButton(Label, ButtonTexture, ImVec2(64, 64));
+            ImGui::ImageButton(Label, ButtonTexture.value(), ImVec2(64, 64));
             ImGui::EndDisabled();
 
             if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
@@ -115,7 +134,7 @@ namespace Lumina
             ImGui::BeginDisabled(Object == nullptr);
             if (ImGui::Button(LE_ICON_CONTENT_COPY "##Copy", GButtonSize))
             {
-                ImGui::SetClipboardText(Object->GetPathName().c_str());
+                ImGui::SetClipboardText(HardObject->GetPathName().c_str());
             }
 
             ImGui::SameLine();
@@ -155,11 +174,14 @@ namespace Lumina
 
     void FCObjectPropertyCustomization::UpdatePropertyValue(TSharedPtr<FPropertyHandle> Property)
     {
-        Property->Property->SetValue(Property->ContainerPtr, Object, Property->Index);
+        TObjectPtr<CObject> Value = Object.Lock();
+        Property->Property->SetValue(Property->ContainerPtr, Value, Property->Index);
     }
 
     void FCObjectPropertyCustomization::HandleExternalUpdate(TSharedPtr<FPropertyHandle> Property)
     {
-        Property->Property->GetValue(Property->ContainerPtr, &Object, Property->Index);
+        TObjectPtr<CObject> Value;
+        Property->Property->GetValue(Property->ContainerPtr, &Value, Property->Index);
+        Object = Value;
     }
 }

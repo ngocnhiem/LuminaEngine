@@ -46,7 +46,7 @@ namespace Lumina::Vulkan
 
 // Macro to check Vulkan function results and log errors if necessary
 
-#ifdef LE_DEBUG
+#ifndef LUMINA_SHIPPING
 #define VK_CHECK(x)                                                                 \
 do {                                                                                \
     VkResult result = (x);                                                          \
@@ -61,7 +61,8 @@ do {                                                                            
             #x, __FILE__, __LINE__, result, Vulkan::VkResultToString(result));      \
         if (result == VK_ERROR_DEVICE_LOST)                                         \
         {                                                                           \
-            std::exit(static_cast<uint32>(result));                                 \
+            __debugbreak();                                                         \
+            std::abort();                                                           \
         }                                                                           \
     }                                                                               \
 } while (0)

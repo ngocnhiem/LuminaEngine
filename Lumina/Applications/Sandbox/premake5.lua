@@ -25,16 +25,12 @@ project "Sandbox"
     	"EA",
     	"EnkiTS",
 		"Tracy",
-		"XXHash",
-		"RPMalloc",
-		"EnTT",
 	 }
 	 
 	files
 	{
 		"Source/**.h",
 		"Source/**.cpp",
-		"%{wks.location}/Intermediates/Reflection/Sandbox/**.h",
         "%{wks.location}/Intermediates/Reflection/Sandbox/**.cpp",
 	}
 
@@ -46,9 +42,8 @@ project "Sandbox"
 		"%{LuminaEngineDirectory}/Lumina/Engine/",
 	    "%{LuminaEngineDirectory}/Lumina/Engine/Source/",
 	    "%{LuminaEngineDirectory}/Lumina/Engine/Source/Runtime/",
-	    "%{LuminaEngineDirectory}/Intermediates/Reflection/Lumina/",
 
-	    reflection_directory();
-		includedependencies();
+	    reflection_dir,
+		includedependencies(),
 	}
 	 

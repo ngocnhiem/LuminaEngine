@@ -565,6 +565,11 @@ namespace Lumina
         
         Categories.clear();
         CategoryMap.clear();
+
+        if (Struct == nullptr || Object == nullptr)
+        {
+            return;
+        }
         
         FProperty* Current = Struct->LinkedProperty;
         while (Current != nullptr)
@@ -621,8 +626,8 @@ namespace Lumina
     {
         Object = InObject;
         Struct = StructType;
-
         ChangeEventCallbacks.OwnerStruct = StructType;
+
         RebuildTree();
     }
 

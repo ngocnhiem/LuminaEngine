@@ -1,6 +1,5 @@
 include(os.getenv("LUMINA_DIR") .. "/Dependencies.lua")
 
-
 project "Editor"
 	kind "ConsoleApp"
 
@@ -8,6 +7,11 @@ project "Editor"
     
     targetdir ("%{wks.location}/Binaries/" .. outputdir)
     objdir ("%{wks.location}/Intermediates/Obj/" .. outputdir .. "/%{prj.name}")   
+
+	prebuildcommands 
+    {
+        'python "%{LuminaEngineDirectory}/Scripts/RunReflection.py" "%{wks.location}\\Lumina.sln"'
+    }
 	
     libdirs
     {
@@ -25,10 +29,10 @@ project "Editor"
 	 
 	files
 	{
-		"Source/**.h",
 		"Source/**.cpp",
-		"%{wks.location}/Intermediates/Reflection/Editor/**.h",
-        "%{wks.location}/Intermediates/Reflection/Editor/**.cpp",
+		"Source/**.h",
+		
+		reflection_unity_file,
 	}
 
 	includedirs
@@ -39,8 +43,8 @@ project "Editor"
 		"%{LuminaEngineDirectory}/Lumina/Engine/",
 	    "%{LuminaEngineDirectory}/Lumina/Engine/Source/",
 	    "%{LuminaEngineDirectory}/Lumina/Engine/Source/Runtime/",
-	    "%{LuminaEngineDirectory}/Intermediates/Reflection/Lumina/",
 
-	    reflection_directory();
-		includedependencies();
+	    reflection_dir,
+
+		includedependencies(),
 	}

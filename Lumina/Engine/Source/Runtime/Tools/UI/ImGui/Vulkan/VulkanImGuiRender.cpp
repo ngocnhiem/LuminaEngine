@@ -103,33 +103,35 @@ namespace Lumina
 		IImGuiRenderer::Initialize();
     	LUMINA_PROFILE_SCOPE();
 
-        VkDescriptorPoolSize PoolSizes[] = 
-		{ 
-			{ VK_DESCRIPTOR_TYPE_SAMPLER,					1000 },
-			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,	1000 },
-			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,				1000 },
-			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,				1000 },
-			{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,		1000 },
-			{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,		1000 },
-			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,			1000 },
-			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,			1000 },
-			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,	1000 },
-			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC,	1000 },
-			{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,			1000 } 
-		};
-
-        VkDescriptorPoolCreateInfo PoolInfo =  {};
-        PoolInfo.sType			= VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        PoolInfo.flags			= VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-        PoolInfo.maxSets		= 1000;
-        PoolInfo.poolSizeCount	= (uint32)std::size(PoolSizes);
-        PoolInfo.pPoolSizes		= PoolSizes;
-		
 		VulkanRenderContext		= (FVulkanRenderContext*)GRenderContext;
-		
-        VK_CHECK(vkCreateDescriptorPool(VulkanRenderContext->GetDevice()->GetDevice(), &PoolInfo, VK_ALLOC_CALLBACK, &DescriptorPool));
+
+
+        //VkDescriptorPoolSize PoolSizes[] = 
+		//{ 
+		//	{ VK_DESCRIPTOR_TYPE_SAMPLER,					1000 },
+		//	{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,	1000 },
+		//	{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,				1000 },
+		//	{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,				1000 },
+		//	{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,		1000 },
+		//	{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,		1000 },
+		//	{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,			1000 },
+		//	{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,			1000 },
+		//	{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,	1000 },
+		//	{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC,	1000 },
+		//	{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,			1000 } 
+		//};
+		//
+        //VkDescriptorPoolCreateInfo PoolInfo =  {};
+        //PoolInfo.sType			= VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        //PoolInfo.flags			= VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+        //PoolInfo.maxSets		= 1000;
+        //PoolInfo.poolSizeCount	= (uint32)std::size(PoolSizes);
+        //PoolInfo.pPoolSizes		= PoolSizes;
+		//
+		//
+        //VK_CHECK(vkCreateDescriptorPool(VulkanRenderContext->GetDevice()->GetDevice(), &PoolInfo, VK_ALLOC_CALLBACK, &DescriptorPool));
     	
-        VulkanRenderContext->SetVulkanObjectName("ImGui Descriptor Pool", VK_OBJECT_TYPE_DESCRIPTOR_POOL, reinterpret_cast<uint64>(DescriptorPool));
+        //VulkanRenderContext->SetVulkanObjectName("ImGui Descriptor Pool", VK_OBJECT_TYPE_DESCRIPTOR_POOL, reinterpret_cast<uint64>(DescriptorPool));
     	
         Assert(ImGui_ImplGlfw_InitForVulkan(Windowing::GetPrimaryWindowHandle()->GetWindow(), true))
 
@@ -149,7 +151,8 @@ namespace Lumina
         InitInfo.PhysicalDevice					= VulkanRenderContext->GetDevice()->GetPhysicalDevice();
         InitInfo.Device							= VulkanRenderContext->GetDevice()->GetDevice();
         InitInfo.Queue							= VulkanRenderContext->GetQueue(ECommandQueue::Graphics)->Queue;
-        InitInfo.DescriptorPool					= DescriptorPool;
+        //InitInfo.DescriptorPool					= DescriptorPool;
+		InitInfo.DescriptorPoolSize				= 1000;
         InitInfo.MinImageCount					= 2;
         InitInfo.ImageCount						= 3;
         InitInfo.UseDynamicRendering			= true;
@@ -176,33 +179,18 @@ namespace Lumina
 
     void FVulkanImGuiRender::Deinitialize()
     {
+		LOG_INFO("Vulkan ImGui Renderer shutting down with {} images", Images.size());
+		FRecursiveScopeLock Lock(Mutex);
+
 		VulkanRenderContext->WaitIdle();
 
-		FRecursiveScopeLock Lock(Mutex);
-		DestroyImTexture(SquareWhiteTexture.first);
 		SquareWhiteTexture = {};
 		
-		TFixedVector<uint64, 10> ToDelete;
-
-		LOG_INFO("Vulkan ImGui Renderer shutting down with {} images", Images.size());
-
-		for (auto& KVP : Images)
-		{
-			ToDelete.push_back(KVP.first);
-		}
-		
-		for (uint64 Delete : ToDelete)
-		{
-			DestroyImTexture(Delete);
-		}
-
 		Images.clear();
+    	//vkDestroyDescriptorPool(VulkanRenderContext->GetDevice()->GetDevice(), DescriptorPool, VK_ALLOC_CALLBACK);
+		DescriptorPool = nullptr;
 		
     	ImGui_ImplVulkan_Shutdown();
-    	
-    	vkDestroyDescriptorPool(VulkanRenderContext->GetDevice()->GetDevice(), DescriptorPool, VK_ALLOC_CALLBACK);
-		DescriptorPool = nullptr;
-    	
     	ImGui_ImplGlfw_Shutdown();
 		ImPlot::DestroyContext();
     	ImGui::DestroyContext();
@@ -241,9 +229,8 @@ namespace Lumina
 			if (ImDrawData* DrawData = ImGui::GetDrawData())
 			{
 				FRenderPassDesc::FAttachment Attachment; Attachment
-					.SetImage(GEngine->GetEngineViewport()->GetRenderTarget())
-					.SetLoadOp(ERenderLoadOp::Load);
-
+					.SetImage(GEngine->GetEngineViewport()->GetRenderTarget());
+				
 				for (FRHIImage* Image : ReferencedImages)
 				{
 					CmdList.SetImageState(Image, AllSubresources, EResourceStates::ShaderResource);
@@ -258,9 +245,7 @@ namespace Lumina
 				.SetRenderArea(RenderArea);
 		
 				CmdList.BeginRenderPass(RenderPass);
-				{
-					ImGui_ImplVulkan_RenderDrawData(DrawData, CmdList.GetAPI<VkCommandBuffer>());
-				}
+				ImGui_ImplVulkan_RenderDrawData(DrawData, CmdList.GetAPI<VkCommandBuffer>());
 				CmdList.EndRenderPass();
 			}
 		});
