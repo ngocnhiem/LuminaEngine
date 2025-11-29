@@ -2,7 +2,7 @@
 #include "Memory.h"
 #include "Core/Profiler/Profile.h"
 
-#undef LUMINA_RPMALLOC
+//#undef LUMINA_RPMALLOC
 
 namespace Lumina
 {
@@ -24,6 +24,7 @@ namespace Lumina
             GIsMemorySystemInitialized = true;
 #endif
             std::cout << "[Lumina] - Memory System Initialized\n";
+            std::cout.flush();
         }
     }
     

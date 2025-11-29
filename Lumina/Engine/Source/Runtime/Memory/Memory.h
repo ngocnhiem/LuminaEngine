@@ -35,6 +35,11 @@ namespace Lumina::Memory
         memset(ptr, 0, sizeof(T));
     }
 
+    LUMINA_API inline void Memset(void* Ptr, int Val, size_t Size)
+    {
+        std::memset(Ptr, Val, Size);
+    }
+
     LUMINA_API inline bool IsAligned(void const* ptr, size_t n)
     {
         return (reinterpret_cast<uintptr_t>(ptr) % n) == 0;

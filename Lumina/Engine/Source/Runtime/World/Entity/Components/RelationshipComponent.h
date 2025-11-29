@@ -3,18 +3,21 @@
 #include "Module/API.h"
 #include "Containers/Array.h"
 #include "Platform/GenericPlatform.h"
-#include "World/Entity/Entity.h"
 
 
 namespace Lumina
 {
-    struct LUMINA_API SRelationshipComponent
+    struct LUMINA_API FRelationshipComponent
     {
-        constexpr static uint8 MaxChildren = 32;
+        constexpr static uint32 MaxChildren = 32;
+
         
-        Entity Parent {};
+        entt::entity                        Parent = entt::null;
+        uint32                              NumChildren = 0;
         
-        uint8 NumChildren = 0;
-        TArray<Entity, MaxChildren> Children {};
+        TArray<entt::entity, MaxChildren>   Children {};
     };
+
+    struct FParentEntityTag { };
+    struct FChildEntityTag { };
 }

@@ -7,16 +7,24 @@
 #include "Class.h"
 #include "DeferredRegistry.h"
 #include "Lumina.h"
-#include "ObjectAllocator.h"
 #include "ObjectArray.h"
 #include "ObjectHash.h"
+#include "Core/Console/ConsoleVariable.h"
 #include "EASTL/sort.h"
 #include "Log/Log.h"
 #include "Memory/Memory.h"
 #include "Package/Package.h"
 
+
+
 namespace Lumina
 {
+
+    static TAutoConsoleVariable<int32> MaxCObjectCount(
+        "c.MaxCObjectCount",
+        INT16_MAX,
+        "Defined the maximum number of allowed CObjects");
+    
     LUMINA_API FCObjectArray GObjectArray;
 
     /** Objects that will not be destroyed */
@@ -309,7 +317,7 @@ namespace Lumina
 
     void InitializeCObjectSystem()
     {
-        GObjectArray.AllocateObjectPool(1000);
+        GObjectArray.AllocateObjectPool(MaxCObjectCount.GetValue());
     }
 
     void ShutdownCObjectSystem()

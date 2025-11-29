@@ -100,7 +100,7 @@ namespace Lumina
 
     void FTreeListView::ClearTree()
     {
-        Allocator.Reset();
+        Allocator.Compact();
         ListItems.clear();
     }
 

@@ -33,7 +33,6 @@ IncludeDir["EnkiTS"]                = enginePath("Lumina/Engine/ThirdParty/EnkiT
 IncludeDir["SPIRV_Reflect"]         = enginePath("Lumina/Engine/ThirdParty/SPIRV-Reflect")
 IncludeDir["json"]                  = enginePath("Lumina/Engine/ThirdParty/json/include")
 IncludeDir["entt"]                  = enginePath("Lumina/Engine/ThirdParty/entt/single_include")
-IncludeDir["ImGuizmo"]              = enginePath("Lumina/Engine/ThirdParty/ImGuizmo")
 IncludeDir["EASTL"]                 = enginePath("Lumina/Engine/ThirdParty/EA/EASTL/include")
 IncludeDir["EABase"]                = enginePath("Lumina/Engine/ThirdParty/EA/EABase/include/Common")
 IncludeDir["rpmalloc"]              = enginePath("Lumina/Engine/ThirdParty/rpmalloc")

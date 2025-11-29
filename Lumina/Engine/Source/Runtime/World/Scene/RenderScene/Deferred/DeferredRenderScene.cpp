@@ -1354,21 +1354,14 @@ namespace Lumina
                                     IndirectDrawArguments[BatchedDraws[SortKey]].InstanceCount++;
                                 }
 
-                                glm::uvec4 PackedID;
-                                PackedID.x = (uint32)entity;
-                                PackedID.y = (uint32)BatchedDraws[SortKey]; // Get index of indirect draw batch.
-                                PackedID.z = 0;
-                                if (entity == World->GetSelectedEntity())
-                                {
-                                    PackedID.z = true;
-                                }
-                            
                                 InstanceData.emplace_back(FInstanceData
                                 {
-                                    .Transform = TransformMatrix,
-                                    .SphereBounds = SphereBounds,
-                                    .PackedID = PackedID,
-                                });   
+                                    .Transform      = TransformMatrix,
+                                    .SphereBounds   = SphereBounds,
+                                    .EntityID       = (uint32)entity,
+                                    .BatchedDrawID  = (uint32)BatchedDraws[SortKey],
+                                    .bSelected      = entity == World->GetSelectedEntity(),
+                                });  
                             }
                         }
                         else
@@ -1428,8 +1421,11 @@ namespace Lumina
                                         {
                                             .Transform      = Matrix,
                                             .SphereBounds   = SphereBounds,
-                                            .PackedID       = PackedID,
-                                        });
+                                            .EntityID       = (uint32)entity,
+                                            .BatchedDrawID  = (uint32)BatchedDraws[SortKey],
+                                            .bSelected      = entity == World->GetSelectedEntity(),
+                                            .Reserved       = 0, 
+                                        }); 
                                     }
                                 }
                             }

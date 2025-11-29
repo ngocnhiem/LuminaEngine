@@ -97,18 +97,17 @@ namespace Lumina
         GetOnAssetRegistryUpdated().Broadcast();
     }
 
-    void FAssetRegistry::AssetDeleted(CPackage* Package)
+    void FAssetRegistry::AssetDeleted(FName Package)
     {
         FScopeLock Lock(AssetsMutex);
 
-        FName PathName = Package->GetName();
-        LUM_ASSERT(AssetPackageMap.find(PathName) != AssetPackageMap.end())
+        LUM_ASSERT(AssetPackageMap.find(Package) != AssetPackageMap.end())
 
-        FAssetData* Data = AssetPackageMap.at(PathName);
-        AssetPackageMap.erase(PathName);
+        FAssetData* Data = AssetPackageMap.at(Package);
+        AssetPackageMap.erase(Package);
         Assets.erase(Data);
 
-        FString ParentPath = Paths::Parent(PathName.ToString());
+        FString ParentPath = Paths::Parent(Package.ToString());
         if (!ParentPath.empty() && ParentPath.back() == ':')
         {
             ParentPath.append("//");
@@ -306,7 +305,7 @@ namespace Lumina
             DependencyMap[NewRef].insert(Asset);
         }
     }
-
+    LUMINA_DISABLE_OPTIMIZATION
     void FAssetRegistry::ProcessPackagePath(FStringView Path)
     {
         FScopeLock Lock(AssetsMutex);
@@ -378,7 +377,7 @@ namespace Lumina
         }
         AssetsByPath[ParentPath].push_back(AssetData);
     }
-
+    LUMINA_ENABLE_OPTIMIZATION
     void FAssetRegistry::ClearAssets()
     {
         FScopeLock Lock(AssetsMutex);

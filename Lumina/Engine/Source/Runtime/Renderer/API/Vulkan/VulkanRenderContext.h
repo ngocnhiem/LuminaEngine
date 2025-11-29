@@ -209,7 +209,9 @@ namespace Lumina
         void CreateBindingSetAndLayout(const TBitFlags<ERHIShaderType>& Visibility, uint16 Binding, const FBindingSetDesc& Desc, FRHIBindingLayoutRef& OutLayout, FRHIBindingSetRef& OutBindingSet) override;
         NODISCARD FRHIComputePipelineRef CreateComputePipeline(const FComputePipelineDesc& Desc) override;
         NODISCARD FRHIGraphicsPipelineRef CreateGraphicsPipeline(const FGraphicsPipelineDesc& Desc, const FRenderPassDesc& RenderPassDesc) override;
-        
+
+
+        NODISCARD const FRenderContextDesc& GetRenderContextDescription() const override { return Description; }
 
         //-------------------------------------------------------------------------------------
 
@@ -217,7 +219,7 @@ namespace Lumina
         
         void FlushPendingDeletes() override;
         
-        void SetVulkanObjectName(FString Name, VkObjectType ObjectType, uint64 Handle);
+        void SetVulkanObjectName(FName Name, VkObjectType ObjectType, uint64 Handle);
         FVulkanRenderContextFunctions& GetDebugUtils();
     
     private:

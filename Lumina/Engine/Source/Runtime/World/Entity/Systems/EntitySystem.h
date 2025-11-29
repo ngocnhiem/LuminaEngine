@@ -8,13 +8,6 @@
 
 namespace Lumina
 {
-    class FEntityRegistry;
-    class Entity;
-    class FSubsystemManager;
-}
-
-namespace Lumina
-{
 
     LUM_CLASS()
     class LUMINA_API CEntitySystemRegistry : public CObject
@@ -22,13 +15,13 @@ namespace Lumina
         GENERATED_BODY()
     public:
 
-        void RegisterSystem(class CEntitySystem* NewSystem);
+        void RegisterSystem(CEntitySystem* NewSystem);
 
         static CEntitySystemRegistry& Get();
 
         void GetRegisteredSystems(TVector<TObjectPtr<CEntitySystem>>& Systems);
 
-        TVector<TObjectPtr<class CEntitySystem>> RegisteredSystems;
+        TVector<TObjectPtr<CEntitySystem>> RegisteredSystems;
 
         static CEntitySystemRegistry* Singleton;
 
@@ -49,28 +42,17 @@ namespace Lumina
         /** Retrieves the update priority and stage for this system */
         virtual const FUpdatePriorityList* GetRequiredUpdatePriorities() { return nullptr; }
 
-        /** Called when the system is actually constructed for a world, the world and it's systems are not safe at this point */
-        virtual void PostConstructForWorld(CWorld* World) { }
-
-        /** called when the first has begun a play session **/
-        virtual void WorldBeginPlay(FSystemContext& SystemContext) { }
+        /** Gives the system a chance to register itself to listeners via a dispatcher */
+        virtual void RegisterEventListeners(FSystemContext& SystemContext) { }
         
         /** Called per-update, for each required system */
         virtual void Update(FSystemContext& SystemContext) { }
 
-        /** called when the first has ended a play session **/
-        virtual void WorldEndPlay(FSystemContext& SystemContext) { }
-        
-        /** Called when the system is removed from the world, (and world shutdown) */
-        virtual void Shutdown(FSystemContext& SystemContext) { }
-
-        /** Called when a PIE starts, and you may want to copy state to the new system */
-        virtual void CopyProperties(CEntitySystem* Other) { }
         
     };
 }
 
 
-#define ENTITY_SYSTEM(Type, ... )\
+#define ENTITY_SYSTEM( ... )\
 static const FUpdatePriorityList PriorityList; \
 virtual const FUpdatePriorityList* GetRequiredUpdatePriorities() override { static const FUpdatePriorityList PriorityList = FUpdatePriorityList(__VA_ARGS__); return &PriorityList; }

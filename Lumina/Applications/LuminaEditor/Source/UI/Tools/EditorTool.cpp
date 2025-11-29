@@ -8,6 +8,7 @@
 #include "World/WorldManager.h"
 #include "World/Entity/Components/CameraComponent.h"
 #include "World/Entity/Components/EditorComponent.h"
+#include "World/Entity/Components/VelocityComponent.h"
 #include "World/Entity/Systems/EditorEntityMovementSystem.h"
 
 namespace Lumina
@@ -16,6 +17,7 @@ namespace Lumina
         : ToolContext(Context)
         , ToolName(DisplayName)
         , World(InWorld)
+        , EditorEntity(entt::null)
     {
         ToolFlags |= EEditorToolFlags::Tool_WantsToolbar;
     }
@@ -28,23 +30,19 @@ namespace Lumina
     void FEditorTool::Initialize()
     {
         ToolName = std::format("{0} {1}", GetTitlebarIcon(), GetToolName().c_str()).c_str();
-        
+
         if (HasWorld())
         {
-            World->InitializeWorld();
+            if (World->GetRenderer() == nullptr)
+            {
+                World->InitializeWorld();
+            }
             
-            if (World->IsPlayWorld())
-            {
-                World->BeginPlay();
-            }
-            else
-            {
-                EditorEntity = World->SetupEditorWorld();
-            }
-
+            SetupWorldForTool();
+            
             Internal_CreateViewportTool();
         }
-        
+
         OnInitialize();
     }
 
@@ -65,6 +63,42 @@ namespace Lumina
         }
         
         ToolWindows.clear();
+    }
+
+    void FEditorTool::SetWorld(CWorld* InWorld)
+    {
+        if (World == InWorld)
+        {
+            return;
+        }
+        
+        if (World.IsValid())
+        {
+            World->ShutdownWorld();
+            World->ForceDestroyNow();
+            World = nullptr;
+        }
+        
+        World = InWorld;
+
+        if (World->GetRenderer() == nullptr)
+        {
+            World->InitializeWorld();
+        }
+        
+        SetupWorldForTool();
+    }
+
+    void FEditorTool::SetupWorldForTool()
+    {
+        EditorEntity = World->ConstructEntity("Editor Entity");
+        World->GetEntityRegistry().emplace<SCameraComponent>(EditorEntity);
+        World->GetEntityRegistry().emplace<FHideInSceneOutliner>(EditorEntity);
+        World->GetEntityRegistry().emplace<FEditorComponent>(EditorEntity);
+        World->GetEntityRegistry().emplace<SVelocityComponent>(EditorEntity).Speed = 50.0f;
+        World->GetEntityRegistry().get<STransformComponent>(EditorEntity).SetLocation(glm::vec3(0.0f, 0.0f, 1.5f));
+        
+        World->SetActiveCamera(EditorEntity);
     }
 
     void FEditorTool::DrawMainToolbar(const FUpdateContext& UpdateContext)
@@ -129,7 +163,7 @@ namespace Lumina
         }
         
         /** Mostly for debug, so we can easily see if there's some transparency issue */
-        ImGui::GetWindowDrawList()->AddRectFilled(WindowPosition, WindowBottomRight, IM_COL32(0, 0, 0, 255));
+        ImGui::GetWindowDrawList()->AddRectFilled(WindowPosition, WindowBottomRight, IM_COL32(255, 0, 0, 255));
         
         
         if (bViewportHovered)
@@ -224,12 +258,7 @@ namespace Lumina
         
         return pToolWindow;
     }
-
-    void FEditorTool::SetEditorCameraEnabled(bool bNewEnable)
-    {
-        EditorEntity.GetComponent<SEditorComponent>().bEnabled = bNewEnable;
-    }
-
+    
     void FEditorTool::DrawHelpTextRow(const char* pLabel, const char* pText) const
     {
         ImGui::TableNextRow();

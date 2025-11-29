@@ -1,4 +1,8 @@
 ﻿#pragma once
+
+#define USE_IMGUI_API
+#include <imgui.h>
+#include "Tools/UI/ImGui/ImGuizmo.h"
 #include "UI/Tools/AssetEditors/AssetEditorTool.h"
 
 namespace Lumina

@@ -1,16 +1,13 @@
 #include "pch.h"
 #include "Project.h"
-
 #include "Log/Log.h"
 #include "Platform/Filesystem/FileHelper.h"
-#include <nlohmann/json.hpp>
 #include <string>
-
 #include "Assets/AssetRegistry/AssetRegistry.h"
-#include "Core/Engine/Engine.h"
 #include "Core/Module/ModuleManager.h"
 #include "Core/Object/ObjectBase.h"
 #include "Paths/Paths.h"
+#include "Scripting/Lua/Scripting.h"
 #include "world/entity/components/EntityComponentRegistry.h"
 
 
@@ -27,8 +24,10 @@ namespace Lumina
         Settings.ProjectName = Paths::FileName(ProjectPath, true);
         Settings.ProjectPath = ProjectPath;
         
-        Paths::Mount("project://", GetProjectContentDirectory());
+        Paths::Mount("project://", GetProjectGameDirectory());
 
+        Scripting::FScriptingContext::Get().LoadScriptsInDirectoryRecursively(GetProjectScriptsDirectory());
+        
         FString ProjectSolutionPath = Paths::Parent(Paths::RemoveExtension(ProjectPath));
 #if LE_DEBUG
 		FString Path = ProjectSolutionPath + "/Binaries/Debug/" + Settings.ProjectName + ".dll";
@@ -66,6 +65,28 @@ namespace Lumina
     {
         std::filesystem::path Path = GetProjectSettings().ProjectPath.c_str();
         Path = Path.parent_path() / "Game" / "Content";
+        FString StringPath(Path.string().c_str());
+
+        StringUtils::ReplaceAllOccurrencesInPlace(StringPath, "\\", "/");
+        
+        return StringPath;
+    }
+
+    FString FProject::GetProjectGameDirectory() const
+    {
+        std::filesystem::path Path = GetProjectSettings().ProjectPath.c_str();
+        Path = Path.parent_path() / "Game";
+        FString StringPath(Path.string().c_str());
+
+        StringUtils::ReplaceAllOccurrencesInPlace(StringPath, "\\", "/");
+        
+        return StringPath;
+    }
+
+    FString FProject::GetProjectScriptsDirectory() const
+    {
+        std::filesystem::path Path = GetProjectSettings().ProjectPath.c_str();
+        Path = Path.parent_path() / "Game" / "Scripts";
         FString StringPath(Path.string().c_str());
 
         StringUtils::ReplaceAllOccurrencesInPlace(StringPath, "\\", "/");

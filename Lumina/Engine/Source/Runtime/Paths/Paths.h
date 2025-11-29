@@ -89,6 +89,13 @@ namespace Lumina::Paths
     
     /** Gets the engine installation directory (one level above the engine binary). */
     LUMINA_API FString GetEngineInstallDirectory();
+
+    LUMINA_API void NormalizePath(FString& Path);
+
+    LUMINA_API bool PathsEqual(FStringView A, FStringView B);
+
+    LUMINA_API FString Parent(FStringView Path, bool bRemoveTrailingSlash = true);
+
     
     /**
      * Sets an environment variable in a cross-platform way.
@@ -107,9 +114,11 @@ namespace Lumina::Paths
     template<typename T>
     concept ValidStringType = requires(T s)
     {
-        typename            T::value_type;
-        { s.c_str() }       -> std::convertible_to<const typename T::value_type*>;
-    };
+        typename T::value_type;
+    } && (
+        requires(T s) { { s.c_str() } -> std::convertible_to<const T::value_type*>; } ||
+        requires(T s) { { s.data() } -> std::convertible_to<const T::value_type*>; }
+    );
     
     /**
      * Combines multiple path segments into a single normalized path string.
@@ -123,12 +132,6 @@ namespace Lumina::Paths
         return Path.string().c_str();
     }
 
-    
-    template<ValidStringType StringType>
-    NODISCARD StringType Parent(const StringType& path)
-    {
-        return std::filesystem::path::path(path.c_str()).parent_path().generic_string().c_str();
-    }
     
 
     template<ValidStringType StringType>

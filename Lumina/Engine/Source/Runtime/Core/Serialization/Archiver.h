@@ -65,7 +65,7 @@ namespace Lumina
         FORCEINLINE bool virtual IsReading() const { return HasFlag(EArchiverFlags::Reading); }
 
         FORCEINLINE void SetHasError(bool bIsError) { bHasError = bIsError; }
-        FORCEINLINE bool HasError() const { return bHasError; }
+        FORCEINLINE virtual bool HasError() const { return bHasError; }
 
         FORCEINLINE static FPackageFileVersion GetEngineVersion()
         {
@@ -294,7 +294,6 @@ namespace Lumina
         requires (std::is_enum_v<EnumType>)
         {
             return *this << reinterpret_cast<std::underlying_type_t<EnumType>&>(Value);
-
         }
 
     private:
@@ -313,7 +312,7 @@ namespace Lumina
     private:
 
         TBitFlags<EArchiverFlags> Flags;
-        uint8 bHasError:1;
+        uint8 bHasError:1 = false;
         SIZE_T ArMaxSerializeSize = INT32_MAX;
 
     };

@@ -72,7 +72,6 @@ namespace Lumina
 
     CThumbnailManager& CThumbnailManager::Get()
     {
-
         static std::once_flag Flag;
         std::call_once(Flag, []()
         {
@@ -98,8 +97,7 @@ namespace Lumina
             {
                 return;
             }
-        
-        
+            
             FRHIImageDesc ImageDesc;
             ImageDesc.Dimension = EImageDimension::Texture2D;
             ImageDesc.Extent = {256, 256};
@@ -107,20 +105,20 @@ namespace Lumina
             ImageDesc.Flags.SetFlag(EImageCreateFlags::ShaderResource);
             FRHIImageRef Image = GRenderContext->CreateImage(ImageDesc);
         
-            FRHICommandListRef CommandList = GRenderContext->CreateCommandList(FCommandListInfo::Graphics());
+            FRHICommandListRef CommandList = GRenderContext->CreateCommandList(FCommandListInfo::Compute());
             CommandList->Open();
             CommandList->BeginTrackingImageState(Image, AllSubresources, EResourceStates::Common);
             
             const uint8 BytesPerPixel = RHI::Format::BytesPerBlock(ImageDesc.Format);
-            const uint32 RowBytes = 256 * BytesPerPixel;
+            const uint32 RowBytes = ImageDesc.Extent.y * BytesPerPixel;
             
             TVector<uint8> FlippedData(Thumbnail->ImageData.size());
-            for (uint32 Y = 0; Y < 256; ++Y)
+            Task::ParallelFor(ImageDesc.Extent.y, ImageDesc.Extent.y, [&](uint32 Y)
             {
                 const uint32 FlippedY = 255 - Y;
                 Memory::Memcpy(FlippedData.data() + (FlippedY * RowBytes), Thumbnail->ImageData.data() + (Y * RowBytes), RowBytes);
-            }
-        
+            });
+
             const uint32 RowPitch = RowBytes;
             constexpr uint32 DepthPitch = 0;
         
@@ -131,7 +129,7 @@ namespace Lumina
             
             CommandList->Close();
         
-            GRenderContext->ExecuteCommandList(CommandList);
+            GRenderContext->ExecuteCommandList(CommandList, ECommandQueue::Compute);
         
             Thumbnail->LoadedImage = Image;
             Thumbnail->bDirty = false;

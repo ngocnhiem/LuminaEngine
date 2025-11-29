@@ -16,4 +16,9 @@ namespace Lumina
         FName                   TypeName;
         sol::table              LuaTable;
     };
+
+    struct LUMINA_API FLuaScriptsContainerComponent
+    {
+        TArray<TVector<Scripting::FLuaScriptEntry>, (uint32)EUpdateStage::Max> Scripts;
+    };
 }

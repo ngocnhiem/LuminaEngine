@@ -339,15 +339,14 @@ namespace Lumina
             return;
         }
 
-        uint32 MinRowPitch = std::min(DeviceRowPitch, RowPitch);
-        uint8* RESTRICT MappedPtrBase = static_cast<uint8*>(UploadCPUVA);
-        const uint8* RESTRICT SourceBase = static_cast<const uint8*>(Data);
+        uint32 MinRowPitch      = std::min(DeviceRowPitch, RowPitch);
+        uint8* MappedPtrBase    = static_cast<uint8*>(UploadCPUVA);
+        const uint8* SourceBase = static_cast<const uint8*>(Data);
 
-        for (uint32 slice = 0; slice < MipDepth; ++slice)
+        for (uint32 Slice = 0; Slice < MipDepth; ++Slice)
         {
-            const uint8* RESTRICT SourcePtr = SourceBase + static_cast<size_t>(slice) * static_cast<size_t>(DepthPitch);
-            uint8* RESTRICT MappedPtr = MappedPtrBase + slice * static_cast<uint64>(DeviceNumRows) * DeviceRowPitch;
-
+            const uint8* SourcePtr  = SourceBase + static_cast<size_t>(Slice) * static_cast<size_t>(DepthPitch);
+            uint8* MappedPtr        = MappedPtrBase + Slice * static_cast<uint64>(DeviceNumRows) * DeviceRowPitch;
             for (uint32 row = 0; row < DeviceNumRows; ++row)
             {
                 Memory::Memcpy(MappedPtr, SourcePtr, MinRowPitch);

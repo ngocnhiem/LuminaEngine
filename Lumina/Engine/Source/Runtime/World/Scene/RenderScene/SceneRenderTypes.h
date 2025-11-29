@@ -280,11 +280,15 @@ namespace Lumina
         glm::uvec4 GridSize;
     };
 
-    struct FInstanceData
+    struct alignas(16) FInstanceData
     {
         glm::mat4   Transform;
         glm::vec4   SphereBounds;
-        glm::uvec4  PackedID;
+        
+        uint32      EntityID;
+        uint32      BatchedDrawID;
+        uint32      bSelected;
+        uint32      Reserved;
     };
     
     VERIFY_SSBO_ALIGNMENT(FInstanceData)

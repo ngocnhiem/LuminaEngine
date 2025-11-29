@@ -74,43 +74,43 @@ namespace Lumina
     bool CPackage::DestroyPackage(const FString& PackageName)
     {
         // First we need to load the package before destroying it.*/
-        CPackage* Package = LoadPackage(PackageName);
-        if (Package == nullptr)
+        CPackage* Package = FindObject<CPackage>(nullptr, PackageName);
+        if (Package)
         {
-            return false;
-        }
+            LUM_ASSERT(Package->FullyLoad())
 
-        LUM_ASSERT(Package->FullyLoad())
-
-        TVector<TObjectPtr<CObject>> ExportObjects;
-        ExportObjects.reserve(20);
-        GetObjectsWithPackage(Package, ExportObjects);
+            TVector<TObjectPtr<CObject>> ExportObjects;
+            ExportObjects.reserve(20);
+            GetObjectsWithPackage(Package, ExportObjects);
         
-        for (CObject* ExportObject : ExportObjects)
-        {
-            if (ExportObject->IsAsset())
+            for (CObject* ExportObject : ExportObjects)
             {
-                FObjectReferenceReplacerArchive Ar(ExportObject, nullptr);
-                for (TObjectIterator<CObject> Itr; Itr; ++Itr)
+                if (ExportObject->IsAsset())
                 {
-                    CObject* Object = *Itr;
-                    Object->Serialize(Ar);
+                    FObjectReferenceReplacerArchive Ar(ExportObject, nullptr);
+                    for (TObjectIterator<CObject> Itr; Itr; ++Itr)
+                    {
+                        CObject* Object = *Itr;
+                        Object->Serialize(Ar);
+                    }
+                }
+            
+                if (ExportObject != Package)
+                {
+                    ExportObject->ConditionalBeginDestroy();
                 }
             }
-            
-            if (ExportObject != Package)
-            {
-                ExportObject->ConditionalBeginDestroy();
-            }
-        }
         
-        Package->ExportTable.clear();
-        Package->ImportTable.clear();
+            Package->ExportTable.clear();
+            Package->ImportTable.clear();
+            
+            Package->RemoveFromRoot();
+            Package->ConditionalBeginDestroy();
+        }
 
-        GEngine->GetEngineSubsystem<FAssetRegistry>()->AssetDeleted(Package);
 
-        Package->RemoveFromRoot();
-        Package->ConditionalBeginDestroy();
+        GEngine->GetEngineSubsystem<FAssetRegistry>()->AssetDeleted(PackageName);
+
         
         return true;
     }

@@ -1,79 +1,88 @@
 #include "pch.h"
 #include "SystemContext.h"
-
 #include "sol/sol.hpp"
 #include "World/World.h"
-#include "World/Entity/Entity.h"
 #include "World/Entity/Components/DirtyComponent.h"
 #include "World/Entity/Components/LuaComponent.h"
+#include "world/entity/components/namecomponent.h"
 
 namespace Lumina
 {
     FSystemContext::FSystemContext(CWorld* InWorld)
+        : Registry(InWorld->EntityRegistry)
     {
-        World = InWorld;
-        EntityWorld = World->EntityWorld.get();
-        EntityWorld->Lock();
+        
     }
-
+    
     FSystemContext::~FSystemContext()
     {
-        EntityWorld->Unlock();
     }
 
     void FSystemContext::RegisterWithLua(sol::state& Lua)
     {
         sol::usertype<FSystemContext> ContextType = Lua.new_usertype<FSystemContext>("SystemContext", sol::no_constructor);
         
-        ContextType["DeltaTime"] = sol::readonly_property([](const FSystemContext& Ctx) { return Ctx.GetDeltaTime(); });
-        ContextType["Time"] = sol::readonly_property([](const FSystemContext& Ctx) { return Ctx.Time(); });
+        ContextType["GetDeltaTime"]     = &FSystemContext::GetDeltaTime;
+        ContextType["GetTime"]          = &FSystemContext::GetTime;
+        ContextType["GetUpdateStage"]   = &FSystemContext::GetUpdateStage;
+        ContextType["GetTransform"]     = &FSystemContext::GetEntityTransform;
+        ContextType["View"]             = &FSystemContext::MakeLuaView;
+        ContextType["BindEvent"]        = &FSystemContext::BindLuaEvent;
+        ContextType["DirtyTransform"]   = &FSystemContext::MarkEntityTransformDirty;
+        ContextType["Emplace"]          = &FSystemContext::LuaEmplace;
+        ContextType["SetActiveCamera"]  = &FSystemContext::LuaSetActiveCamera;
         
-        ContextType["GetTransform"] = [](FSystemContext& Ctx, sol::this_state S, uint32 EntityID)
-        {
-            return Ctx.Get<STransformComponent>((entt::entity)EntityID);
-        };
-        
-        ContextType["View"] = &FSystemContext::MakeLuaView;
-
-        
-        ContextType["DirtyTransform"] = [](FSystemContext& Ctx, uint32 EntityID)
-        {
-          Ctx.EmplaceOrReplace<FNeedsTransformUpdate>((entt::entity)(EntityID));  
-        };
-
-        ContextType["Emplace"] = [](const FSystemContext& Ctx, uint32 EntityID, sol::table Table) -> sol::table
-        {
-            const char* ComponentName = Table["__type"].get<const char*>();
-            entt::hashed_string HashedString = entt::hashed_string(ComponentName);
-            
-            // This type is resolvable, so we use the emplacement function there.
-            if (entt::meta_type Meta = entt::resolve(HashedString))
-            {
-                using namespace entt::literals;
-                void* RegistryPointer = &Ctx.EntityWorld->Registry;
-                entt::meta_any NewComponent = Meta.invoke("addcomponent"_hs, {}, (entt::entity)EntityID, RegistryPointer);
-                void** Type = NewComponent.try_cast<void*>();
-                
-                return Scripting::FScriptingContext::Get().ConvertToSolObjectFromName(FName(ComponentName), Table.lua_state(), *Type);
-            }
-
-            // This type is not native resolvable, so we're assuming the user created a new lua type.
-            
-            SLuaComponent& NewComponent = Ctx.EntityWorld->Registry.storage<SLuaComponent>(HashedString).emplace((entt::entity)EntityID);
-            
-            NewComponent.TypeName = ComponentName;
-            NewComponent.LuaTable = Table;
-
-            return NewComponent.LuaTable;
-        };
-
-
-        ContextType["SetActiveCamera"] = [](FSystemContext& Ctx, uint32 EntityID) { Ctx.SetActiveCamera((entt::entity)EntityID); };
     }
 
-    void FSystemContext::SetActiveCamera(entt::entity NewCameraEntity)
+
+    STransformComponent& FSystemContext::GetEntityTransform(uint32 Entity)
     {
-        World->SetActiveCamera(NewCameraEntity);
+        return Get<STransformComponent>((entt::entity)Entity);
+    }
+
+    void FSystemContext::MarkEntityTransformDirty(uint32 Entity)
+    {
+        EmplaceOrReplace<FNeedsTransformUpdate>((entt::entity)(Entity));  
+    }
+
+    entt::entity FSystemContext::Create(const FName& Name, const FTransform& Transform) const
+    {
+        entt::entity EntityID = Registry.create();
+        Registry.emplace<STransformComponent>(EntityID, Transform);
+        Registry.emplace<SNameComponent>(EntityID, Name);
+        Registry.emplace_or_replace<FNeedsTransformUpdate>(EntityID);
+        return EntityID;
+    }
+
+    void FSystemContext::LuaSetActiveCamera(uint32 Entity)
+    {
+        Dispatcher.trigger<FSwitchActiveCameraEvent>(FSwitchActiveCameraEvent{(entt::entity)Entity});
+    }
+
+    sol::table FSystemContext::LuaEmplace(uint32 Entity, sol::table Type)
+    {
+        const char* ComponentName = Type["__type"].get<const char*>();
+        entt::hashed_string HashedString = entt::hashed_string(ComponentName);
+            
+        // This type is resolvable, so we use the emplacement function there.
+        if (entt::meta_type Meta = entt::resolve(HashedString))
+        {
+            using namespace entt::literals;
+            void* RegistryPointer = &Registry;
+            entt::meta_any NewComponent = Meta.invoke("addcomponent"_hs, {}, (entt::entity)Entity, RegistryPointer);
+            void* ComponentType = *NewComponent.try_cast<void*>();
+                
+            return Scripting::FScriptingContext::Get().ConvertToSolObjectFromName(FName(ComponentName), Type.lua_state(), ComponentType);
+        }
+
+        // This type is not native resolvable, so we're assuming the user created a new lua type.
+            
+        SLuaComponent& NewComponent = Registry.storage<SLuaComponent>(HashedString).emplace((entt::entity)Entity);
+            
+        NewComponent.TypeName = ComponentName;
+        NewComponent.LuaTable = Type;
+
+        return NewComponent.LuaTable;
     }
 
     sol::table FSystemContext::MakeLuaView(sol::variadic_args Types)
@@ -103,7 +112,7 @@ namespace Lumina
                 auto HashedComponentName = entt::hashed_string(LuaName.c_str());
                 entt::meta_type Meta = entt::resolve(HashedComponentName);
             
-                if (entt::basic_sparse_set<>* Storage = EntityWorld->Registry.storage(Meta.info().hash()))
+                if (entt::basic_sparse_set<>* Storage = Registry.storage(Meta.info().hash()))
                 {
                     Scripting::FLuaConverter::ToFunctionType* FunctionPtr = Scripting::FScriptingContext::Get().GetSolConverterFunctionPtrByName(LuaName);
                     Storages.emplace_back(FComponentInfo{ LuaName, Storage, FunctionPtr });
@@ -114,7 +123,7 @@ namespace Lumina
             {
                 FName LuaName = Arg.get<const char*>();
                 uint32 HashedComponentName = entt::hashed_string(LuaName.c_str());
-                if (entt::basic_sparse_set<>* Storage = EntityWorld->Registry.storage(HashedComponentName))
+                if (entt::basic_sparse_set<>* Storage = Registry.storage(HashedComponentName))
                 {
                     Scripting::FLuaConverter::ToFunctionType* FunctionPtr = Scripting::FScriptingContext::Get().GetSolConverterFunctionPtrByName("STagComponent");
                     Storages.emplace_back(FComponentInfo{ LuaName, Storage, FunctionPtr });
@@ -148,43 +157,9 @@ namespace Lumina
         return ViewTable;
     }
     
-    void FSystemContext::SetActiveCamera(entt::entity New) const
-    {
-        World->SetActiveCamera(Entity(New, World));
-    }
 
-    void FSystemContext::DrawDebugLine(const glm::vec3& Start, const glm::vec3& End, const glm::vec4& Color, float Thickness, float Duration) const
+    void FSystemContext::BindLuaEvent(sol::table Table, sol::function Function)
     {
-        World->DrawDebugLine(Start, End, Color, Thickness, Duration);
-    }
-
-    void FSystemContext::DrawDebugBox(const glm::vec3& Center, const glm::vec3& Extents, const glm::quat& Rotation, const glm::vec4& Color, float Thickness, float Duration) const
-    {
-        World->DrawDebugBox(Center, Extents, Rotation, Color, Thickness, Duration);
-    }
-
-    void FSystemContext::DrawDebugSphere(const glm::vec3& Center, float Radius, const glm::vec4& Color, uint8 Segments, float Thickness, float Duration) const
-    {
-        World->DrawDebugSphere(Center, Radius, Color, Segments, Thickness, Duration);
-    }
-
-    void FSystemContext::DrawDebugCone(const glm::vec3& Apex, const glm::vec3& Direction, float AngleRadians, float Length, const glm::vec4& Color, uint8 Segments, uint8 Stacks, float Thickness, float Duration) const
-    {
-        World->DrawDebugCone(Apex, Direction, AngleRadians, Length, Color, Segments, Stacks, Thickness, Duration);
-    }
-
-    void FSystemContext::DrawFrustum(const glm::mat4& Matrix, float zNear, float zFar, const glm::vec4& Color, float Thickness, float Duration) const
-    {
-        World->DrawFrustum(Matrix, zNear, zFar, Color, Thickness, Duration);
-    }
-
-    void FSystemContext::DrawArrow(const glm::vec3& Start, const glm::vec3& Direction, float Length, const glm::vec4& Color, float Thickness, float Duration, float HeadSize) const
-    {
-        World->DrawArrow(Start, Direction, Length, Color, Thickness, Duration, HeadSize);
-    }
-
-    void FSystemContext::DrawViewVolume(const FViewVolume& ViewVolume, const glm::vec4& Color, float Thickness, float Duration) const
-    {
-        World->DrawViewVolume(ViewVolume, Color, Thickness, Duration);
+        
     }
 }

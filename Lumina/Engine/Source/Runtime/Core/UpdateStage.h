@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstring> // For memset
+#include "Memory/Memory.h"
 #include "Platform/GenericPlatform.h"
 
 namespace Lumina
@@ -15,6 +15,13 @@ namespace Lumina
         Paused,
         Max,
     };
+
+    #define US_FrameStart       EUpdateStage::FrameStart
+    #define US_PrePhysics       EUpdateStage::PrePhysics
+    #define US_DuringPhysics    EUpdateStage::DuringPhysics
+    #define US_PostPhysics      EUpdateStage::PostPhysics
+    #define US_FrameEnd         EUpdateStage::FrameEnd
+    #define US_Paused           EUpdateStage::Paused
 
     enum class EUpdatePriority : uint8
     {
@@ -55,7 +62,7 @@ namespace Lumina
 
         void Reset()
         {
-            memset(Priorities, (uint8) EUpdatePriority::Disabled, sizeof(Priorities));
+            Memory::Memset(Priorities, (uint8) EUpdatePriority::Disabled, sizeof(Priorities));
         }
 
         bool IsStageEnabled(EUpdateStage stage) const
@@ -83,9 +90,9 @@ namespace Lumina
 
         bool AreAllStagesDisabled() const
         {
-            static const uint8 disabledStages[(uint8)EUpdateStage::Max] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-            static_assert(sizeof(disabledStages) == sizeof(Priorities), "disabled stages must be the same size as the priorities list");
-            return memcmp(Priorities, disabledStages, sizeof(Priorities)) == 0;
+            const static uint8 DisabledStages[(uint8)EUpdateStage::Max] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+            static_assert(sizeof(DisabledStages) == sizeof(Priorities), "disabled stages must be the same size as the priorities list");
+            return memcmp(Priorities, DisabledStages, sizeof(Priorities)) == 0;
         }
 
     private:

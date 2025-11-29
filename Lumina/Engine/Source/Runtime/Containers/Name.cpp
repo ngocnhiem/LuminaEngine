@@ -41,6 +41,7 @@ namespace Lumina
     {
         GNameTable = Memory::New<FNameTable>();
         std::cout << "[Lumina] - String ID (FName) System Initialized\n";
+        std::cout.flush();
     }
 
     void FName::Shutdown()

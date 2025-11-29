@@ -1,6 +1,12 @@
 #include "pch.h"
 #include "JoltPhysicsScene.h"
 
+#include <Jolt/Physics/Character/CharacterVirtual.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
+
+#include <algorithm>
+
 #include "JoltPhysics.h"
 #include "Core/Profiler/Profile.h"
 #include "Jolt/Physics/Body/BodyCreationSettings.h"
@@ -8,6 +14,7 @@
 #include "Jolt/Physics/Collision/Shape/SphereShape.h"
 #include "World/Entity/Components/PhysicsComponent.h"
 #include "World/World.h"
+#include "World/Entity/Components/CharacterComponent.h"
 #include "World/Entity/Components/DirtyComponent.h"
 #include "World/Entity/Components/TransformComponent.h"
 
@@ -117,29 +124,117 @@ namespace Lumina::Physics
 
     void FJoltPhysicsScene::PreUpdate()
     {
+        entt::registry& Registry = World->GetEntityRegistry();
+
+        double DeltaTime = GEngine->GetUpdateContext().GetDeltaTime();
+
+        const JPH::BodyLockInterfaceNoLock& LockInterface = JoltSystem->GetBodyLockInterfaceNoLock();
+        JPH::BodyInterface& BodyInterface = JoltSystem->GetBodyInterface();
+        
+        auto BodySyncView = Registry.view<FJoltBodyComponent, STransformComponent, FNeedsTransformUpdate>();
+        BodySyncView.each([&](const FJoltBodyComponent& BodyComponent, const STransformComponent& TransformComponent, const FNeedsTransformUpdate&)
+        {
+            JPH::BodyLockRead Lock(LockInterface, BodyComponent.Body);
+            if (Lock.Succeeded())
+            {
+                const JPH::Body& Body = Lock.GetBody();
+
+                if (Body.IsKinematic())
+                {
+                    JPH::Vec3 TargetPos(TransformComponent.GetLocation().x, TransformComponent.GetLocation().y, TransformComponent.GetLocation().z);
+    
+                    JPH::Quat TargetRot(TransformComponent.GetRotation().x, TransformComponent.GetRotation().y, TransformComponent.GetRotation().z, TransformComponent.GetRotation().w);
+                    
+                    BodyInterface.SetPositionAndRotationWhenChanged(BodyComponent.Body, TargetPos, TargetRot, JPH::EActivation::Activate);
+                }
+            }
+        });
+        
+        
+        auto CharacterView = Registry.view<SCharacterComponent>();
+        CharacterView.each([&](SCharacterComponent& CharacterComponent)
+        {
+            JPH::CharacterVirtual* Character = CharacterComponent.Character;
+            
+            JPH::CharacterVirtual::EGroundState GroundState = Character->GetGroundState();
+            CharacterComponent.bGrounded = (GroundState == JPH::CharacterVirtual::EGroundState::OnGround);
+
+            JPH::Vec3 CurrentVelocity(CharacterComponent.Velocity.x, CharacterComponent.Velocity.y, CharacterComponent.Velocity.z);
+
+            if (!CharacterComponent.bGrounded)
+            {
+                CharacterComponent.Velocity.y += CharacterComponent.Gravity * (float)DeltaTime;
+            }
+            else
+            {
+                JPH::Vec3 GroundVelocity = Character->GetGroundVelocity();
+
+                CharacterComponent.Velocity.y = std::max(CharacterComponent.Velocity.y, 0.0f);
+
+                if (CharacterComponent.bWantsToJump)
+                {
+                    CharacterComponent.Velocity.y = CharacterComponent.JumpSpeed;
+                    CharacterComponent.bWantsToJump = false;
+                }
+
+                CurrentVelocity = JPH::Vec3(CharacterComponent.Velocity.x, CharacterComponent.Velocity.y, CharacterComponent.Velocity.z) + GroundVelocity;
+            }
+
+            Character->SetLinearVelocity(CurrentVelocity);
+
+            JPH::CharacterVirtual::ExtendedUpdateSettings UpdateSettings;
+            UpdateSettings.mStickToFloorStepDown = JPH::Vec3(0.0f, -0.5f, 0.0f);
+            UpdateSettings.mWalkStairsStepUp = JPH::Vec3(0.0f, 0.04f, 0.0f);
+            
+
+            Character->ExtendedUpdate((float)DeltaTime,
+                Character->GetUp() * CharacterComponent.Gravity,
+                UpdateSettings,
+                JoltSystem->GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
+                JoltSystem->GetDefaultLayerFilter(Layers::MOVING),
+                {},
+                {},
+                *FJoltPhysicsContext::GetAllocator());
+            
+        });
     }
 
     void FJoltPhysicsScene::PostUpdate()
     {
         LUMINA_PROFILE_SCOPE();
 
+        const JPH::BodyLockInterfaceNoLock& LockInterface = JoltSystem->GetBodyLockInterfaceNoLock();
         entt::registry& Registry = World->GetEntityRegistry();
+
         auto View = Registry.view<FJoltBodyComponent, STransformComponent>();
-        
-        View.each([&](entt::entity EntityID, FJoltBodyComponent& Body, STransformComponent& TransformComponent)
+        View.each([&](entt::entity EntityID, const FJoltBodyComponent& BodyComponent, STransformComponent& TransformComponent)
         {
-            if (!Body.Body->IsActive())
+            const JPH::Body* Body = LockInterface.TryGetBody(BodyComponent.Body);
+            
+            if (Body == nullptr || !Body->IsActive())
             {
                 return;
             }
             
-            auto Pos = Body.Body->GetPosition();
-            auto Rot = Body.Body->GetRotation();
-
+            auto Pos = Body->GetPosition();
+            auto Rot = Body->GetRotation();
+        
             TransformComponent.SetLocation(glm::vec3(Pos.GetX(), Pos.GetY(), Pos.GetZ()));
             TransformComponent.SetRotation(glm::quat(Rot.GetW(), Rot.GetX(), Rot.GetY(), Rot.GetZ()));
             
-            Registry.emplace_or_replace<FNeedsTransformUpdate>(EntityID);
+            Registry.emplace_or_replace<FNeedsTransformUpdate>(EntityID);   
+        });
+
+        auto CharacterView = Registry.view<SCharacterComponent, STransformComponent>();
+        CharacterView.each([&](entt::entity Entity, const SCharacterComponent& CharacterComponent, STransformComponent& TransformComponent)
+        {
+            auto Pos = CharacterComponent.Character->GetPosition();
+            auto Rot = CharacterComponent.Character->GetRotation();
+        
+            TransformComponent.SetLocation(glm::vec3(Pos.GetX(), Pos.GetY(), Pos.GetZ()));
+            TransformComponent.SetRotation(glm::quat(Rot.GetW(), Rot.GetX(), Rot.GetY(), Rot.GetZ()));
+            
+            Registry.emplace_or_replace<FNeedsTransformUpdate>(Entity);   
         });
     }
 
@@ -155,12 +250,12 @@ namespace Lumina::Physics
 
         CollisionSteps = static_cast<int>(Accumulator / FixedTimeStep);
         CollisionSteps = std::min(CollisionSteps, MaxSteps);
-    
+
+        PreUpdate();
+
         if (CollisionSteps > 0)
         {
-            PreUpdate();
             JoltSystem->Update(FixedTimeStep, CollisionSteps, FJoltPhysicsContext::GetAllocator(), FJoltPhysicsContext::GetThreadPool());
-            PostUpdate();
         
             Accumulator -= CollisionSteps * FixedTimeStep;
         
@@ -170,11 +265,16 @@ namespace Lumina::Physics
                 Accumulator = std::min(Accumulator, FixedTimeStep);
             }
         }
+
+        PostUpdate();
+
     }
 
     void FJoltPhysicsScene::OnWorldSimulate()
     {
         entt::registry& Registry = World->GetEntityRegistry();
+
+        
         auto View = Registry.view<SRigidBodyComponent, STransformComponent>(entt::exclude<FJoltBodyComponent>);
         
         View.each([&] (entt::entity EntityID, SRigidBodyComponent&, STransformComponent&)
@@ -182,8 +282,19 @@ namespace Lumina::Physics
             OnRigidBodyComponentConstructed(Registry, EntityID);
         });
 
+        auto CharacterView = Registry.view<SCharacterComponent>();
+        
+        CharacterView.each([&] (entt::entity EntityID, SCharacterComponent&)
+        {
+            OnCharacterComponentConstructed(Registry, EntityID);
+        });
+
+        
+        
         JoltSystem->OptimizeBroadPhase();
 
+
+        Registry.on_construct<SCharacterComponent>().connect<&FJoltPhysicsScene::OnCharacterComponentConstructed>(this);
         Registry.on_construct<SRigidBodyComponent>().connect<&FJoltPhysicsScene::OnRigidBodyComponentConstructed>(this);
         Registry.on_destroy<SRigidBodyComponent>().connect<&FJoltPhysicsScene::OnRigidBodyComponentDestroyed>(this);
     }
@@ -192,6 +303,9 @@ namespace Lumina::Physics
     {
         entt::registry& Registry = World->GetEntityRegistry();
 
+        Registry.on_construct<SCharacterComponent>().disconnect<&FJoltPhysicsScene::OnCharacterComponentConstructed>(this);
+
+        
         Registry.on_construct<SRigidBodyComponent>().disconnect<&FJoltPhysicsScene::OnRigidBodyComponentConstructed>(this);
         Registry.on_destroy<SRigidBodyComponent>().disconnect<&FJoltPhysicsScene::OnRigidBodyComponentDestroyed>(this);
 
@@ -200,6 +314,36 @@ namespace Lumina::Physics
         {
            OnRigidBodyComponentDestroyed(Registry, EntityID); 
         });
+    }
+
+    void FJoltPhysicsScene::OnCharacterComponentConstructed(entt::registry& Registry, entt::entity Entity)
+    {
+        SCharacterComponent& CharacterComponent = Registry.get<SCharacterComponent>(Entity);
+        STransformComponent& TransformComponent = Registry.get<STransformComponent>(Entity);
+
+        JPH::Ref<JPH::CharacterVirtualSettings> Settings = Memory::New<JPH::CharacterVirtualSettings>();
+        
+        JPH::Ref<JPH::Shape> StandingShape = JPH::RotatedTranslatedShapeSettings(
+            JPH::Vec3(0, CharacterComponent.HalfHeight, 0),
+            JPH::Quat::sIdentity(),
+            Memory::New<JPH::CapsuleShape>(CharacterComponent.HalfHeight, CharacterComponent.Radius * TransformComponent.MaxScale())).Create().Get();
+
+        Settings->mShape = StandingShape;
+        Settings->mMass = CharacterComponent.Mass;
+        Settings->mMaxStrength = CharacterComponent.MaxStrength;
+        Settings->mCharacterPadding = 0.02f;
+        Settings->mPenetrationRecoverySpeed = 1.0f;
+        Settings->mPredictiveContactDistance = 0.1f;
+
+        Settings->mSupportingVolume = JPH::Plane(JPH::Vec3::sAxisY(), 0.0f);
+
+        JPH::CharacterVirtual* Character = Memory::New<JPH::CharacterVirtual>(Settings,
+            JPH::RVec3(TransformComponent.GetLocation().x, TransformComponent.GetLocation().y, TransformComponent.GetLocation().z),
+            JPH::Quat(TransformComponent.GetRotation().x, TransformComponent.GetRotation().y, TransformComponent.GetRotation().z, TransformComponent.GetRotation().w),
+            0,
+            JoltSystem.get());
+
+        CharacterComponent.Character = Character;
     }
 
     void FJoltPhysicsScene::OnRigidBodyComponentConstructed(entt::registry& Registry, entt::entity EntityID)
@@ -253,7 +397,7 @@ namespace Lumina::Physics
         
         JPH::Body* Body = BodyInterface.CreateBody(Settings);
         BodyInterface.AddBody(Body->GetID(), JPH::EActivation::Activate);
-        Registry.emplace<FJoltBodyComponent>(EntityID, Body);
+        Registry.emplace<FJoltBodyComponent>(EntityID, Body->GetID());
     }
 
     void FJoltPhysicsScene::OnRigidBodyComponentDestroyed(entt::registry& Registry, entt::entity EntityID)
@@ -262,8 +406,8 @@ namespace Lumina::Physics
         {
             JPH::BodyInterface& BodyInterface = JoltSystem->GetBodyInterface();
         
-            BodyInterface.RemoveBody(JoltBodyComponent->Body->GetID());
-            BodyInterface.DestroyBody(JoltBodyComponent->Body->GetID());
+            BodyInterface.RemoveBody(JoltBodyComponent->Body);
+            BodyInterface.DestroyBody(JoltBodyComponent->Body);
             Registry.remove<FJoltBodyComponent>(EntityID);
         }
     }

@@ -5,7 +5,7 @@ workspace "Lumina"
 	conformancemode "On"
 
 	language "C++"
-	cppdialect "C++20"
+	cppdialect "C++latest"
 	staticruntime "Off"
 
 	flags  
@@ -21,6 +21,7 @@ workspace "Lumina"
 		"_CRT_SECURE_NO_WARNINGS",
 		"GLM_FORCE_DEPTH_ZERO_TO_ONE",
 		"GLM_FORCE_LEFT_HANDED",
+        "GLM_ENABLE_EXPERIMENTAL",
 		"IMGUI_DEFINE_MATH_OPERATORS",
         "IMGUI_IMPL_VULKAN_USE_VOLK",
         "SOL_DEFAULT_PASS_ON_ERROR",
@@ -34,6 +35,10 @@ workspace "Lumina"
 	
 	filter "language:C++ or language:C"
 		architecture "x86_64"
+
+        
+    filter "architecture:x86_64"
+        defines { "LUMINA_PLATFORM_CPU_X86" }
 
 	buildoptions 
     {
@@ -71,7 +76,7 @@ workspace "Lumina"
         optimize "Debug"
         symbols "On"
         editandcontinue "Off"
-        defines { "LE_DEBUG", "_DEBUG", "JPH_DEBUG", }
+        defines { "LE_DEBUG", "LUMINA_DEBUG", "_DEBUG", "JPH_DEBUG", "SOL_ALL_SAFETIES_ON", }
         flags { "NoRuntimeChecks", "NoIncrementalLink" }
 
 
@@ -81,7 +86,7 @@ workspace "Lumina"
         --isaextensions { "BMI", "POPCNT", "LZCNT", "F16C" }
         optimize "Speed"
         symbols "On" -- Keep symbols for profiling
-        defines { "LE_RELEASE", "NDEBUG", "LUMINA_DEVELOPMENT" }
+        defines { "LE_RELEASE", "LUMINA_DEVELOPMENT", "NDEBUG", "LUMINA_DEVELOPMENT", "SOL_ALL_SAFETIES_ON", }
         flags { "LinkTimeOptimization" }
         
 
@@ -91,7 +96,7 @@ workspace "Lumina"
         --isaextensions { "BMI", "POPCNT", "LZCNT", "F16C" }
         optimize "Full"
         symbols "Off"
-        defines { "LE_SHIP", "NDEBUG", "LUMINA_SHIPPING" }
+        defines { "LE_SHIP", "LUMINA_SHIPPING", "NDEBUG" }
         removedefines { "TRACY_ENABLE" }
         flags { "LinkTimeOptimization" }
         

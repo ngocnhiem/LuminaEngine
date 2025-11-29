@@ -2,6 +2,7 @@
 
 #include "Module/API.h"
 #include "RenderComponent.h"
+#include "Assets/AssetTypes/Material/MaterialInterface.h"
 #include "Core/Object/ObjectHandleTyped.h"
 #include "World/Scene/RenderScene/MeshBatch.h"
 #include "MeshComponent.generated.h"

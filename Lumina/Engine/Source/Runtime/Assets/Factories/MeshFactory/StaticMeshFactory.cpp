@@ -1,7 +1,5 @@
 #include "pch.h"
 #include "StaticMeshFactory.h"
-
-#include "ImCurveEdit.h"
 #include "Assets/AssetRegistry/AssetRegistry.h"
 #include "Assets/AssetTypes/Material/Material.h"
 #include "Assets/AssetTypes/Mesh/StaticMesh/StaticMesh.h"

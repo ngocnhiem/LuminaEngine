@@ -23,6 +23,5 @@ namespace Lumina
 
     private:
 
-        Entity MeshEntity;
     };
 }

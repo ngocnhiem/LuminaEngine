@@ -124,7 +124,6 @@ namespace Lumina
 
     void FConsoleLogEditorTool::DrawLogWindow(const FUpdateContext& UpdateContext, bool bIsFocused)
     {
-        const ImGuiStyle& Style = ImGui::GetStyle();
         const float InputHeight = ImGui::GetFrameHeightWithSpacing() * 1.2f;
         
         // Search bar
@@ -153,7 +152,7 @@ namespace Lumina
             ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         
         // Check for new messages
-        const TFixedVector<FConsoleMessage, 10000>& Messages = Logging::GetConsoleLogs();
+        const Logging::FLogQueue& Messages = Logging::GetConsoleLogQueue();
         SIZE_T NewMessageSize = Messages.size();
         
         if (NewMessageSize > PreviousMessageSize)
@@ -194,7 +193,6 @@ namespace Lumina
         if (ImGui::BeginTable("##LogTable", ColumnCount, TableFlags))
         {
             // Setup columns
-            int ColIndex = 0;
             if (Settings.bShowTimestamps)
             {
                 ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 80.0f * Settings.FontScale);
@@ -554,7 +552,7 @@ namespace Lumina
         FilteredMessages.clear();
         FilteredMessageCount = 0;
 
-        const TFixedVector<FConsoleMessage, 10000>& Messages = Logging::GetConsoleLogs();
+        const Logging::FLogQueue& Messages = Logging::GetConsoleLogQueue();
         
         for (SIZE_T i = 0; i < Messages.size(); ++i)
         {

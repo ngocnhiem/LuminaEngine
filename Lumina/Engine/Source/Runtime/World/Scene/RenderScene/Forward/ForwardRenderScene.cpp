@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "ForwardRenderScene.h"
 #include <algorithm>
+#include <execution>
+
 #include "Assets/AssetTypes/Material/Material.h"
 #include "Core/Windows/Window.h"
 #include "Renderer/RendererUtils.h"
@@ -120,9 +122,9 @@ namespace Lumina
         {
             LUMINA_PROFILE_SECTION("Compile Draw Commands");
             
-            auto Group = World->GetEntityRegistry().group<SStaticMeshComponent, STransformComponent>();
+            auto View = World->GetEntityRegistry().view<SStaticMeshComponent, STransformComponent>();
             
-            const size_t EntityCount = Group.size();
+            const size_t EntityCount = View.size_hint();
             const size_t EstimatedProxies = EntityCount * 2;
 
             InstanceData.clear();
@@ -132,20 +134,7 @@ namespace Lumina
             
             //========================================================================================================================
             {
-                {
-                    LUMINA_PROFILE_SECTION("Sort Meshes");
-
-                    glm::vec3 CameraLocation = SceneGlobalData.CameraData.Location;
-                    Group.sort<STransformComponent>([CameraLocation](const STransformComponent& A, const STransformComponent& B)
-                    {
-                        float LengthA = glm::length2(A.GetLocation() - CameraLocation);
-                        float LengthB = glm::length2(B.GetLocation() - CameraLocation);
-                        
-                        return LengthA > LengthB;
-                    });
-                }
-                
-                Group.each([&](entt::entity entity, const SStaticMeshComponent& MeshComponent, const STransformComponent& TransformComponent)
+                View.each([&](entt::entity entity, const SStaticMeshComponent& MeshComponent, const STransformComponent& TransformComponent)
                 {
                     CStaticMesh* Mesh = MeshComponent.StaticMesh;
                     if (!IsValid(Mesh))
@@ -208,21 +197,15 @@ namespace Lumina
                         {
                             IndirectDrawArguments[BatchedDraws[SortKey]].InstanceCount++;
                         }
-        
-                        glm::uvec4 PackedID;
-                        PackedID.x = (uint32)entity;
-                        PackedID.y = (uint32)BatchedDraws[SortKey]; // Get index of indirect draw batch.
-                        PackedID.z = 0;
-                        if (entity == World->GetSelectedEntity())
-                        {
-                            PackedID.z = true;
-                        }
-                    
+                        
                         InstanceData.emplace_back(FInstanceData
                         {
-                            .Transform = TransformMatrix,
-                            .SphereBounds = SphereBounds,
-                            .PackedID = PackedID,
+                            .Transform      = TransformMatrix,
+                            .SphereBounds   = SphereBounds,
+                            .EntityID       = (uint32)entity,
+                            .BatchedDrawID  = (uint32)BatchedDraws[SortKey],
+                            .bSelected      = entity == World->GetSelectedEntity(),
+                            .Reserved       = 0,
                         });   
                     }
                 });

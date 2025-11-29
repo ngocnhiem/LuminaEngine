@@ -5,21 +5,21 @@
 #include "World/Entity/Components/CameraComponent.h"
 #include "Core/Object/ObjectHandleTyped.h"
 #include "Entity/Registry/EntityRegistry.h"
-#include "Entity/EntityWorld.h"
 #include "Renderer/RenderGraph/RenderGraph.h"
 #include "Memory/SmartPtr.h"
 #include "Physics/PhysicsScene.h"
-#include "World.generated.h"
+#include "Entity/Systems/SystemContext.h"
 #include "Scene/RenderScene/RenderScene.h"
 #include "Subsystems/FCameraManager.h"
+#include "World.generated.h"
 
 
 namespace Lumina
 {
     struct FLineBatcherComponent;
     class CEntitySystem;
-    class Entity;
 }
+
 
 namespace Lumina
 {
@@ -41,18 +41,12 @@ namespace Lumina
         void PreLoad() override;
         void PostLoad() override;
         //~ End CObject Interface
-
-
+        
         /**
-         * Initializes systems and renderer.
+         * Initializes systems and renderer. Must be called before anything is done with the world.
          */
         void InitializeWorld();
         
-        /** Handles setting up this world for editor use,
-         * returns the entity used during world manipulation
-         * */
-        Entity SetupEditorWorld();
-
 
         /**
          * Called on every update stage and runs systems attached to this world.
@@ -68,23 +62,25 @@ namespace Lumina
 
         bool RegisterSystem(CEntitySystem* NewSystem);
 
-        Entity ConstructEntity(const FName& Name, const FTransform& Transform = FTransform());
+        entt::entity ConstructEntity(const FName& Name, const FTransform& Transform = FTransform());
         
-        void CopyEntity(Entity& To, const Entity& From);
-        void ReparentEntity(Entity Child, Entity Parent);
-        void DestroyEntity(Entity Entity);
+        void CopyEntity(entt::entity& To, entt::entity From);
+        void ReparentEntity(entt::entity Child, entt::entity Parent);
+        void DestroyEntity(entt::entity Entity);
 
         //LUM_DEPRECATED("0.0.1", "Access to the registry has been deprecated")
-        FEntityRegistry& GetEntityRegistry() const { return EntityWorld->Registry; }
+        FEntityRegistry& GetEntityRegistry() { return EntityRegistry; }
 
         //LUM_DEPRECATED("0.0.1", "Access to the registry has been deprecated")
-        const FEntityRegistry& GetEntityRegistry_Immutable() const { return EntityWorld->Registry; }
+        const FEntityRegistry& GetEntityRegistry_Immutable() const { return EntityRegistry; }
 
         uint32 GetNumEntities() const;
         void SetActiveCamera(entt::entity InEntity);
         SCameraComponent* GetActiveCamera();
         entt::entity GetActiveCameraEntity() const;
 
+        void OnChangeCameraEvent(const FSwitchActiveCameraEvent& Event);
+        
         double GetWorldDeltaTime() const { return DeltaTime; }
         double GetTimeSinceWorldCreation() const { return TimeSinceCreation; }
 
@@ -103,7 +99,10 @@ namespace Lumina
 
         const TVector<TObjectPtr<CEntitySystem>>& GetSystemsForUpdateStage(EUpdateStage Stage);
 
-        void OnRelationshipComponentDestroyed(entt::registry& Registry, entt::entity EntityHandle);
+        void OnRelationshipComponentDestroyed(entt::registry& Registry, entt::entity Entity);
+        void OnSineWaveMovementComponentCreated(entt::registry& Registry, entt::entity Entity);
+
+        void ProcessAnyNewlyLoadedScripts();
 
         //~ Begin Debug Drawing
         void DrawDebugLine(const glm::vec3& Start, const glm::vec3& End, const glm::vec4& Color, float Thickness = 1.0f, float Duration = 1.0f);
@@ -118,10 +117,10 @@ namespace Lumina
         void SetIsPlayWorld(bool bValue) { bIsPlayWorld = bValue; }
         FORCEINLINE bool IsPlayWorld() const { return bIsPlayWorld; }
 
-        void SetEntityTransform(Entity Entt, const FTransform& NewTransform);
+        void SetEntityTransform(entt::entity Entity, const FTransform& NewTransform);
 
-        void SetSelectedEntity(entt::entity EntityID) { SelectedEntity = EntityID; }
-        FORCEINLINE entt::entity GetSelectedEntity() const { return SelectedEntity; }
+        void SetSelectedEntity(entt::entity EntityID);
+        entt::entity GetSelectedEntity() const;
 
         template<typename TFunc>
         void ForEachUniqueSystem(TFunc&& Func)
@@ -146,28 +145,26 @@ namespace Lumina
     
     private:
         
-        TUniquePtr<FEntityWorld>                        EntityWorld;
+        FEntityRegistry                                 EntityRegistry;
+        entt::entity                                    SingletonEntity;
+
+        FSystemContext                                  SystemContext;
+        FDelegateHandle                                 ScriptUpdatedDelegateHandle;
+        
         TUniquePtr<FCameraManager>                      CameraManager;
         TUniquePtr<IRenderScene>                        RenderScene;
         TUniquePtr<Physics::IPhysicsScene>              PhysicsScene;
         
         TVector<TObjectPtr<CEntitySystem>>              SystemUpdateList[(int32)EUpdateStage::Max];
         
-        entt::entity                                    LineBatcherEntity = entt::null;
-        entt::entity                                    SelectedEntity;
-
         
         int64                                           WorldIndex = -1;
         double                                          DeltaTime = 0.0;
         double                                          TimeSinceCreation = 0.0;
-        
-        uint32                                          bInitialized:1=0;
+
+        uint32                                          bHasNewlyLoadedScripts:1 = true;
         uint32                                          bPaused:1=1;
         uint32                                          bActive:1=1;
         uint32                                          bIsPlayWorld:1=0;
-        uint32                                          bDuplicatePIEWorld:1=0;
-        
-
-        TVector<CEntitySystem*>                         SystemsDuplicatedFromPIE;
     };
 }

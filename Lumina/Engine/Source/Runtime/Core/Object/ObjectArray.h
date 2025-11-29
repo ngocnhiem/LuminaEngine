@@ -1,7 +1,9 @@
 ﻿#pragma once
+
 #include "ObjectBase.h"
 #include "ObjectHandle.h"
 #include "Containers/Array.h"
+#include "Core/Threading/Atomic.h"
 #include "Core/Threading/Thread.h"
 #include "Platform/GenericPlatform.h"
 
@@ -12,20 +14,20 @@ namespace Lumina
 
 namespace Lumina
 {
-    struct FCObjectItem
+    struct FCObjectEntry
     {
-        FCObjectItem() = default;
+        FCObjectEntry() = default;
         
         CObjectBase* Object = nullptr;
-        eastl::atomic<uint32> Generation{0};
-        eastl::atomic<uint32> StrongRefCount{0};
-        eastl::atomic<uint32> WeakRefCount{0};
+        TAtomic<int32> Generation{0};
+        TAtomic<int32> StrongRefCount{0};
+        TAtomic<int32> WeakRefCount{0};
         
         // Non-copyable
-        FCObjectItem(FCObjectItem&&) = delete;
-        FCObjectItem(const FCObjectItem&) = delete;
-        FCObjectItem& operator=(FCObjectItem&&) = delete;
-        FCObjectItem& operator=(const FCObjectItem&) = delete;
+        FCObjectEntry(FCObjectEntry&&) = delete;
+        FCObjectEntry(const FCObjectEntry&) = delete;
+        FCObjectEntry& operator=(FCObjectEntry&&) = delete;
+        FCObjectEntry& operator=(const FCObjectEntry&) = delete;
 
         FORCEINLINE CObjectBase* GetObj() const
         {
@@ -84,7 +86,9 @@ namespace Lumina
         }
     };
 
-
+    /**
+     * Global control block for all CObjects, never reallocates.
+     */
     class FChunkedFixedCObjectArray
     {
     public:
@@ -94,10 +98,7 @@ namespace Lumina
     private:
         
         // Array of chunk pointers.
-        FCObjectItem** Objects = nullptr;
-    
-        // Pre-allocated object storage.
-        FCObjectItem* PreAllocatedObjects = nullptr;
+        FCObjectEntry** Objects = nullptr;
     
         int32 MaxElements = 0;
         int32 NumElements = 0;
@@ -116,30 +117,24 @@ namespace Lumina
         {
             Shutdown();
         }
-    
-        // Initialize with maximum capacity
+
+        
         void Initialize(int32 InMaxElements)
         {
-            assert(Objects == nullptr && "Already initialized!");
-            assert(InMaxElements > 0);
+            LUM_ASSERT(Objects == nullptr && "Already initialized!")
+            LUM_ASSERT(InMaxElements > 0)
     
             MaxElements = InMaxElements;
             MaxChunks = (InMaxElements + NumElementsPerChunk - 1) / NumElementsPerChunk;
             NumChunks = 0;
             NumElements = 0;
     
-            // Allocate array of chunk pointers (never reallocates)
-            Objects = Memory::NewArray<FCObjectItem*>(MaxChunks);
-            
-            // Initialize all chunk pointers to nullptr
-            for (int32 i = 0; i < MaxChunks; ++i)
-            {
-                Objects[i] = nullptr;
-            }
+            Objects = Memory::NewArray<FCObjectEntry*>(MaxChunks);
+            Memory::Memzero(Objects, MaxChunks * sizeof(FCObjectEntry*));  // NOLINT(bugprone-multi-level-implicit-pointer-conversion)
             
             PreAllocateAllChunks();
         }
-    
+        
         void Shutdown()
         {
             if (Objects)
@@ -158,29 +153,27 @@ namespace Lumina
                 Objects = nullptr;
             }
     
-            PreAllocatedObjects = nullptr;
             MaxElements = 0;
             NumElements = 0;
             MaxChunks = 0;
             NumChunks = 0;
         }
     
-        // Pre-allocate all chunks at initialization to avoid any runtime allocation
         void PreAllocateAllChunks()
         {
-            std::lock_guard<std::mutex> Lock(AllocationMutex);
+            FScopeLock Lock(AllocationMutex);
     
             for (int32 ChunkIndex = 0; ChunkIndex < MaxChunks; ++ChunkIndex)
             {
                 if (!Objects[ChunkIndex])
                 {
-                    Objects[ChunkIndex] = new FCObjectItem[NumElementsPerChunk];
+                    Objects[ChunkIndex] = Memory::NewArray<FCObjectEntry>(NumElementsPerChunk);
                     NumChunks = ChunkIndex + 1;
                 }
             }
         }
     
-        const FCObjectItem* GetItem(int32 Index) const
+        const FCObjectEntry* GetItem(int32 Index) const
         {
             if (Index < 0 || Index >= MaxElements)
             {
@@ -198,7 +191,7 @@ namespace Lumina
             return &Objects[ChunkIndex][SubIndex];
         }
     
-        FCObjectItem* GetItem(int32 Index)
+        FCObjectEntry* GetItem(int32 Index)
         {
             if (Index < 0 || Index >= MaxElements)
             {
@@ -242,7 +235,6 @@ namespace Lumina
         FChunkedFixedCObjectArray ChunkedArray;
         
         TVector<int32> FreeIndices;
-        eastl::atomic<uint32> NumAliveObjects{0};
         
         bool bInitialized = false;
         bool bShuttingDown = false;
@@ -254,7 +246,7 @@ namespace Lumina
         // Initialize the object array with maximum capacity
         void AllocateObjectPool(int32 InMaxCObjects)
         {
-            assert(!bInitialized && "Object pool already allocated!");
+            LUM_ASSERT(!bInitialized && "Object pool already allocated!")
     
             ChunkedArray.Initialize(InMaxCObjects);
             
@@ -275,15 +267,14 @@ namespace Lumina
             
             ChunkedArray.Shutdown();
             FreeIndices.clear();
-            NumAliveObjects.store(0, eastl::memory_order_relaxed);
             bInitialized = false;
         }
     
         // Allocate a slot for an object and return a handle
         FObjectHandle AllocateObject(CObjectBase* Object)
         {
-            Assert(bInitialized && "Object pool not initialized!")
-            Assert(Object != nullptr)
+            LUM_ASSERT(bInitialized && "Object pool not initialized!")
+            LUM_ASSERT(Object != nullptr)
             
             int32 Index;
             int32 Generation;
@@ -294,9 +285,9 @@ namespace Lumina
                 Index = FreeIndices.back();
                 FreeIndices.pop_back();
     
-                FCObjectItem* Item = ChunkedArray.GetItem(Index);
-                Assert(Item != nullptr)
-                Assert(Item->GetObj() == nullptr)
+                FCObjectEntry* Item = ChunkedArray.GetItem(Index);
+                LUM_ASSERT(Item != nullptr)
+                LUM_ASSERT(Item->GetObj() == nullptr)
     
                 // Increment generation for reused slot
                 Item->IncrementGeneration();
@@ -311,12 +302,11 @@ namespace Lumina
     
                 if (Index >= ChunkedArray.GetMaxElements())
                 {
-                    assert(false && "Object pool capacity exceeded!");
-                    return FObjectHandle();
+                    LUM_ASSERT(false && "Object pool capacity exceeded!")
                 }
     
-                FCObjectItem* Item = ChunkedArray.GetItem(Index);
-                assert(Item != nullptr);
+                FCObjectEntry* Item = ChunkedArray.GetItem(Index);
+                LUM_ASSERT(Item != nullptr)
     
                 Generation = 1;
                 Item->Generation.store(Generation, eastl::memory_order_release);
@@ -325,7 +315,6 @@ namespace Lumina
                 ChunkedArray.IncrementElementCount();
             }
     
-            NumAliveObjects.fetch_add(1, eastl::memory_order_relaxed);
 
             return FObjectHandle(Index, Generation);
         }
@@ -333,11 +322,11 @@ namespace Lumina
         // Deallocate an object slot
         void DeallocateObject(int32 Index)
         {
-            assert(bInitialized && "Object pool not initialized!");
+            LUM_ASSERT(bInitialized && "Object pool not initialized!");
             
-            FCObjectItem* Item = ChunkedArray.GetItem(Index);
-            assert(Item != nullptr);
-            assert(Item->GetObj() != nullptr);
+            FCObjectEntry* Item = ChunkedArray.GetItem(Index);
+            LUM_ASSERT(Item != nullptr);
+            LUM_ASSERT(Item->GetObj() != nullptr);
     
             Item->SetObj(nullptr);
     
@@ -345,7 +334,6 @@ namespace Lumina
     
             FreeIndices.push_back(Index);
     
-            NumAliveObjects.fetch_sub(1, eastl::memory_order_relaxed);
         }
     
         // Resolve a handle to an object pointer
@@ -356,7 +344,7 @@ namespace Lumina
                 return nullptr;
             }
     
-            const FCObjectItem* Item = ChunkedArray.GetItem(Handle.Index);
+            const FCObjectEntry* Item = ChunkedArray.GetItem(Handle.Index);
             if (!Item)
             {
                 return nullptr;
@@ -386,7 +374,7 @@ namespace Lumina
     
         CObjectBase* GetObjectByIndex(int32 Index) const
         {
-            const FCObjectItem* Item = ChunkedArray.GetItem(Index);
+            const FCObjectEntry* Item = ChunkedArray.GetItem(Index);
             return Item ? Item->GetObj() : nullptr;
         }
 
@@ -399,7 +387,7 @@ namespace Lumina
         // Get handle from object index and current generation
         FObjectHandle GetHandleByIndex(int32 Index) const
         {
-            const FCObjectItem* Item = ChunkedArray.GetItem(Index);
+            const FCObjectEntry* Item = ChunkedArray.GetItem(Index);
             if (!Item || !Item->GetObj())
             {
                 return FObjectHandle();
@@ -413,7 +401,7 @@ namespace Lumina
         {
             if (Object)
             {
-                FCObjectItem* Item = ChunkedArray.GetItem(Object->GetInternalIndex());
+                FCObjectEntry* Item = ChunkedArray.GetItem(Object->GetInternalIndex());
                 if (Item)
                 {
                     Item->AddStrongRef();
@@ -433,7 +421,7 @@ namespace Lumina
             
             if (Object)
             {
-                FCObjectItem* Item = ChunkedArray.GetItem(Object->GetInternalIndex());
+                FCObjectEntry* Item = ChunkedArray.GetItem(Object->GetInternalIndex());
                 if (Item)
                 {
                     uint32 NewCount = Item->ReleaseStrongRef();
@@ -449,7 +437,7 @@ namespace Lumina
     
         void AddStrongRefByIndex(int32 Index)
         {
-            FCObjectItem* Item = ChunkedArray.GetItem(Index);
+            FCObjectEntry* Item = ChunkedArray.GetItem(Index);
             if (Item)
             {
                 Item->AddStrongRef();
@@ -458,7 +446,7 @@ namespace Lumina
     
         bool ReleaseStrongRefByIndex(int32 Index)
         {
-            FCObjectItem* Item = ChunkedArray.GetItem(Index);
+            FCObjectEntry* Item = ChunkedArray.GetItem(Index);
             if (Item)
             {
                 uint32 NewCount = Item->ReleaseStrongRef();
@@ -469,7 +457,7 @@ namespace Lumina
 
         void AddWeakRefByIndex(int32 Index)
         {
-            FCObjectItem* Item = ChunkedArray.GetItem(Index);
+            FCObjectEntry* Item = ChunkedArray.GetItem(Index);
             if (Item)
             {
                 Item->AddWeakRef();
@@ -478,7 +466,7 @@ namespace Lumina
 
         void ReleaseWeakRefByIndex(int32 Index)
         {
-            FCObjectItem* Item = ChunkedArray.GetItem(Index);
+            FCObjectEntry* Item = ChunkedArray.GetItem(Index);
             if (Item)
             {
                 Item->ReleaseWeakRef();
@@ -487,19 +475,19 @@ namespace Lumina
 
         bool IsReferencedByIndex(int32 Index) const
         {
-            const FCObjectItem* Item = ChunkedArray.GetItem(Index);
+            const FCObjectEntry* Item = ChunkedArray.GetItem(Index);
             return Item && Item->IsReferenced();
         }
 
         int32 GetStrongRefCountByIndex(int32 Index) const
         {
-            const FCObjectItem* Item = ChunkedArray.GetItem(Index);
+            const FCObjectEntry* Item = ChunkedArray.GetItem(Index);
             return Item ? Item->GetStrongRefCount() : 0;
         }
     
         int32 GetNumAliveObjects() const
         {
-            return NumAliveObjects.load(eastl::memory_order_relaxed);
+            return ChunkedArray.GetNumElements() - (int32)FreeIndices.size();
         }
     
         int32 GetMaxObjects() const
@@ -515,7 +503,7 @@ namespace Lumina
             
             for (int32 i = 0; i < MaxElements; ++i)
             {
-                const FCObjectItem* Item = ChunkedArray.GetItem(i);
+                const FCObjectEntry* Item = ChunkedArray.GetItem(i);
                 if (Item && Item->GetObj())
                 {
                     std::forward<Func>(Function)(Item->GetObj(), i);

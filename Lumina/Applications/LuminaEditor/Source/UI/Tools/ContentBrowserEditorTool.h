@@ -4,6 +4,7 @@
 #include "Core/Object/ObjectRename.h"
 #include "Core/Object/Package/Package.h"
 #include "Paths/Paths.h"
+#include "Platform/Filesystem/DirectoryWatcher.h"
 #include "Renderer/RHIFwd.h"
 #include "Tools/UI/ImGui/imfilebrowser.h"
 #include "Tools/UI/ImGui/Widgets/TileViewWidget.h"
@@ -104,15 +105,17 @@ namespace Lumina
 
             void DrawTooltip() const override
             {
-                bool bIsAsset = !AssetData.AssetClass.IsNone();
-                
                 ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(50, 200, 50, 255));
                 ImGui::TextUnformatted(Paths::FileName(VirtualPath).c_str());
                 ImGui::PopStyleColor();
 
-                if (bIsAsset)
+                if (IsAsset())
                 {
                     ImGui::Text(LE_ICON_FILE " %s", AssetData.AssetClass.c_str());
+                }
+                else if (IsLuaScript())
+                {
+                    ImGui::Text(LE_ICON_SCRIPT_TEXT " Lua Script");
                 }
                 else
                 {
@@ -123,13 +126,11 @@ namespace Lumina
 
                 ImGui::Text(LE_ICON_FOLDER " %s", VirtualPath.c_str());
 
-                if (bIsAsset)
+                if (!IsDirectory())
                 {
-                    FString FullPath = Path + ".lasset";
-                    
-                    if (std::filesystem::exists(FullPath.c_str()))
+                    if (std::filesystem::exists(Path.c_str()))
                     {
-                        uint64 Size = std::filesystem::file_size(FullPath.c_str());
+                        uint64 Size = std::filesystem::file_size(Path.c_str());
                         double SizeKiB = static_cast<double>(Size) / 1024.0;
                         ImGui::Text(LE_ICON_FILE_CODE " Size: %.2f KiB", SizeKiB);
                     }
@@ -156,7 +157,9 @@ namespace Lumina
             void SetPath(FStringView NewPath) { Path = NewPath; Paths::ConvertToVirtualPath(Path); }
             const FString& GetPath() const { return Path; }
             const FString& GetVirtualPath() const { return VirtualPath; }
-            bool IsDirectory() const { return AssetData.AssetClass.IsNone(); }
+            bool IsAsset() const { return !AssetData.AssetClass.IsNone(); }
+            bool IsDirectory() const { return !IsAsset() && !IsLuaScript(); }
+            bool IsLuaScript() const { return Paths::GetExtension(Path) == "lua"; }
             const FAssetData& GetAssetData() const { return AssetData; }
             CPackage* GetPackage() const { return Package; }
             
@@ -197,12 +200,22 @@ namespace Lumina
         
     private:
 
+        void OnProjectLoaded();
+
         void TryImport(const FString& Path);
         
         ObjectRename::EObjectRenameResult HandleRenameEvent(const FString& OldPath, const FString& NewPath);
         
         void DrawDirectoryBrowser(const FUpdateContext& Contxt, bool bIsFocused, ImVec2 Size);
         void DrawContentBrowser(const FUpdateContext& Contxt, bool bIsFocused, ImVec2 Size);
+
+        void DrawLuaScriptContextMenu(const FContentBrowserTileViewItem* ContentItem);
+        void DrawAssetContextMenu(FContentBrowserTileViewItem* ContentItem);
+        
+        void DrawScriptsDirectoryContextMenu();
+        void DrawContentDirectoryContextMenu();
+
+        FDirectoryWatcher           Watcher;
 
         TVector<FPendingDestroy>    PendingDestroy;
         TVector<FPendingRename>     PendingRenames;

@@ -1,8 +1,6 @@
 ﻿#pragma once
 #include "EntitySystem.h"
-#include "glm/glm.hpp"
 #include "EditorEntityMovementSystem.generated.h"
-
 
 namespace Lumina
 {
@@ -10,14 +8,11 @@ namespace Lumina
     class LUMINA_API CEditorEntityMovementSystem : public CEntitySystem
     {
         GENERATED_BODY()
-        ENTITY_SYSTEM(CEditorEntityMovementSystem, RequiresUpdate(EUpdateStage::Paused))
+        ENTITY_SYSTEM(RequiresUpdate(EUpdateStage::Paused))
     public:
         
-        void Shutdown(FSystemContext& SystemContext) override;
 
         void Update(FSystemContext& SystemContext) override;
-
-    private:
-
+        
     };
 }

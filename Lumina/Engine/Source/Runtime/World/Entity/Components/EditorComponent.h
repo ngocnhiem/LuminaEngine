@@ -4,10 +4,7 @@
 
 namespace Lumina
 {
-    struct LUMINA_API SEditorComponent
-    {
-        bool bEnabled = true;
-    };
-
-    struct LUMINA_API SHiddenComponent { };
+    struct LUMINA_API FSelectedInEditorComponent { };
+    struct LUMINA_API FHideInSceneOutliner { };
+    struct LUMINA_API FEditorComponent { };
 }

@@ -32,3 +32,6 @@ if (!StaticRawValue)
 // Invalid Index
 constexpr int64 INDEX_NONE = -1;
 
+
+#define LE_CALL_ONCE(Func, ...) \
+    static int32 LE_CallOnce_##Func = (Func(__VA_ARGS__), 1)

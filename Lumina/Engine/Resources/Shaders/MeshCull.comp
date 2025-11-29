@@ -130,7 +130,7 @@ void main()
 
         if(bVisible)
         {
-            uint BatchID = uInstanceData.Instances[gID].PackedID.y;
+            uint BatchID = uInstanceData.Instances[gID].BatchedDrawID;
             uint InstanceCount = atomicAdd(uIndirectDrawData.Args[BatchID].InstanceCount, 1);
             uint InstanceIndex = uIndirectDrawData.Args[BatchID].FirstInstance + InstanceCount;
             uMappingData.Mapping[InstanceIndex] = gID;

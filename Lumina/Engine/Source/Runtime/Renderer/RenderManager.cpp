@@ -19,7 +19,7 @@ namespace Lumina
         #if defined(LE_DEBUG)
         GRenderContext->Initialize(FRenderContextDesc{true});
         #else
-        GRenderContext->Initialize(FRenderContextDesc{false});
+        GRenderContext->Initialize(FRenderContextDesc{true});
         #endif
         
         #if WITH_DEVELOPMENT_TOOLS

@@ -1,6 +1,7 @@
 #pragma once
 
 
+#include "Component.h"
 #include "MeshComponent.h"
 #include "Assets/AssetTypes/Mesh/StaticMesh/StaticMesh.h"
 #include "Core/Object/ObjectHandleTyped.h"

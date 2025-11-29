@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "imgui.h"
-#include "ImGuizmo.h"
 #include "imgui_internal.h"
 #include "ToolFlags.h"
 #include "Containers/Array.h"
@@ -10,9 +9,8 @@
 #include "Core/UpdateContext.h"
 #include "Core/Math/Hash/Hash.h"
 #include "Events/EventProcessor.h"
-#include "Memory/RefCounted.h"
 #include "Tools/UI/ImGui/ImGuiDesignIcons.h"
-#include "World/Entity/Entity.h"
+#include "World/World.h"
 
 namespace Lumina
 {
@@ -103,6 +101,12 @@ namespace Lumina
 
         // Get the unique typename for this tool to be used for docking
         virtual char const* GetUniqueTypeName() const = 0;
+
+        /** Sets and initialized a world for the editor tool */
+        virtual void SetWorld(CWorld* InWorld);
+
+        /** Called to set up the world for the tool */
+        virtual void SetupWorldForTool();
         
         /** Called just before updating the world at each stage */
         virtual void WorldUpdate(const FUpdateContext& UpdateContext) { }
@@ -160,9 +164,6 @@ namespace Lumina
         FORCEINLINE ImGuiID GetPrevDockspaceID() const   { return PrevDockspaceID; }
         
         FORCEINLINE TFixedVector<FToolWindow*, 4>& GetToolWindows() { return ToolWindows; }
-        
-        /** Changes the movability of the editor camera */
-        void SetEditorCameraEnabled(bool bNewEnable);
 
         /**
          * 
@@ -214,7 +215,7 @@ namespace Lumina
         TFixedVector<FToolWindow*, 4>   ToolWindows;
         
         TObjectPtr<CWorld>              World;
-        Entity                          EditorEntity;
+        entt::entity                    EditorEntity;
         ImTextureID                     SceneViewportTexture = 0;
 
         EEditorToolFlags                ToolFlags = EEditorToolFlags::Tool_WantsToolbar;

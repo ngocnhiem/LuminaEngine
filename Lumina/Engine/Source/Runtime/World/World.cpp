@@ -9,9 +9,14 @@
 #include "Core/Serialization/MemoryArchiver.h"
 #include "Core/Serialization/ObjectArchiver.h"
 #include "EASTL/sort.h"
+#include "Entity/EntityUtils.h"
 #include "Entity/Components/DirtyComponent.h"
 #include "Entity/Components/EditorComponent.h"
+#include "Entity/Components/InterpolatingMovementComponent.h"
 #include "Entity/Components/LineBatcherComponent.h"
+#include "Entity/Components/LuaComponent.h"
+#include "Entity/Components/NameComponent.h"
+#include "Entity/Components/SingletonEntityComponent.h"
 #include "Entity/Components/VelocityComponent.h"
 #include "glm/gtx/matrix_decompose.hpp"
 #include "Physics/Physics.h"
@@ -24,155 +29,151 @@
 namespace Lumina
 {
     CWorld::CWorld()
+        : SingletonEntity(entt::null)
+        , SystemContext(this)
     {
-        SelectedEntity = entt::null;
     }
 
     void CWorld::Serialize(FArchive& Ar)
     {
         CObject::Serialize(Ar);
+        using namespace entt::literals;
         
         if (Ar.IsWriting())
         {
-            GetEntityRegistry().compact<>();
-            auto View = GetEntityRegistry().view<entt::entity>(entt::exclude<SEditorComponent>);
+            EntityRegistry.compact<>();
+            auto View = EntityRegistry.view<entt::entity>(entt::exclude<FEditorComponent, FSingletonEntityTag>);
 
-            TVector<entt::entity> Parents;
-            Parents.reserve(View.size_hint());
-            
-            for (entt::entity entity : View)
+            int64 PreSerializePos = Ar.Tell();
+    
+            int32 NumEntitiesSerialized = 0;
+            Ar << NumEntitiesSerialized;
+
+            View.each([&](entt::entity Entity)
             {
-                // We only want to serialize top-level entities here, parents will serialize their children.
-                if (GetEntityRegistry().all_of<SRelationshipComponent>(entity))
+                int64 PreEntityPos = Ar.Tell();
+        
+                int64 EntitySaveSize = 0;
+                Ar << EntitySaveSize;
+
+                bool bSuccess = ECS::Utils::SerializeEntity(Ar, EntityRegistry, Entity);
+                if (!bSuccess)
                 {
-                    auto& RelationshipComponent = GetEntityRegistry().get<SRelationshipComponent>(entity);
-                    if (RelationshipComponent.Parent.IsValid())
-                    {
-                        continue;
-                    }
+                    // Rewind to before this entity's data and continue with next entity
+                    Ar.Seek(PreEntityPos);
+                    return;
                 }
-                
-                Parents.emplace_back(entity);
-            }
 
-            uint32 NumParents = (uint32)Parents.size();
-            Ar << NumParents;
+                NumEntitiesSerialized++;
 
-            for (entt::entity Parent : Parents)
-            {
-                int64 EntityStart = Ar.Tell();
+                int64 PostEntityPos = Ar.Tell();
 
-                int64 EntitySize = 0;
-                Ar << EntitySize;
+                // Calculate actual size written (excluding the size field itself)
+                EntitySaveSize = PostEntityPos - PreEntityPos - sizeof(int64);
+        
+                // Go back and write the correct size
+                Ar.Seek(PreEntityPos);
+                Ar << EntitySaveSize;
+        
+                // Return to end position to continue with next entity
+                Ar.Seek(PostEntityPos);
+            });
+    
+            int64 PostSerializePos = Ar.Tell();
 
-                Entity TopLevelEntity(Parent, this);
-                int64 StartOfEntityData = Ar.Tell();
-                TopLevelEntity.Serialize(Ar);
-                int64 EndOfEntityData = Ar.Tell();
+            // Go back and write the actual number of successfully serialized entities
+            Ar.Seek(PreSerializePos);
+            Ar << NumEntitiesSerialized;
 
-                EntitySize = EndOfEntityData - StartOfEntityData;
-
-                Ar.Seek(EntityStart);
-                Ar << EntitySize;
-                Ar.Seek(EndOfEntityData);
-            }
+            // Return to end of all serialized data
+            Ar.Seek(PostSerializePos);
         }
         else if (Ar.IsReading())
         {
-            uint32 NumParents = 0;
-            Ar << NumParents;
-            
-            for (uint32 i = 0; i < NumParents; ++i)
+            int32 NumEntitiesSerialized = 0;
+            Ar << NumEntitiesSerialized;
+
+            for (int32 i = 0; i < NumEntitiesSerialized; ++i)
             {
-                int64 EntitySize = 0;
-                Ar << EntitySize;
+                int64 EntitySaveSize = 0;
+                Ar << EntitySaveSize;
+        
+                int64 PreEntityPos = Ar.Tell();
 
-                int64 EntityStart = Ar.Tell();
+                entt::entity NewEntity = entt::null;
+                bool bSuccess = ECS::Utils::SerializeEntity(Ar, EntityRegistry, NewEntity);
                 
-                Entity NewEntity(GetEntityRegistry().create(), this);
-                NewEntity.Serialize(Ar);
+                if (!bSuccess || NewEntity == entt::null)
+                {
+                    // Skip to the next entity using the saved size
+                    LOG_ERROR("Failed to serialize entity: {}", (int)NewEntity);
+                    Ar.Seek(PreEntityPos + EntitySaveSize);
+                    continue;
+                }
 
-                int64 EntityEnd = EntityStart + EntitySize;
-                Ar.Seek(EntityEnd);
+                EntityRegistry.emplace_or_replace<FNeedsTransformUpdate>(NewEntity);
+        
+                // Verify we read the expected amount of data
+                int64 PostEntityPos = Ar.Tell();
+                int64 ActualBytesRead = PostEntityPos - PreEntityPos;
+        
+                if (ActualBytesRead != EntitySaveSize)
+                {
+                    // Data mismatch, seek to correct position to stay aligned
+                    LOG_ERROR("Entity Serialization Mismatch For {}: Expected: {} - Read: {}", (int)NewEntity, EntitySaveSize, ActualBytesRead);
+                    Ar.Seek(PreEntityPos + EntitySaveSize);
+                }
             }
         }
     }
 
     void CWorld::PreLoad()
     {
-        InitializeWorld();
+        //...
     }
 
     void CWorld::PostLoad()
     {
         //...
     }
+    
 
     void CWorld::InitializeWorld()
     {
-        if (bInitialized)
-        {
-            return;
-        }
-        
         GEngine->GetEngineSubsystem<FWorldManager>()->AddWorld(this);
 
+        SingletonEntity = EntityRegistry.create();
+        EntityRegistry.emplace<FSingletonEntityTag>(SingletonEntity);
+        EntityRegistry.emplace<FHideInSceneOutliner>(SingletonEntity);
+        EntityRegistry.emplace<FLuaScriptsContainerComponent>(SingletonEntity);
+
+        ScriptUpdatedDelegateHandle = Scripting::FScriptingContext::Get().OnScriptLoaded.AddLambda([this]()
+        {
+            bHasNewlyLoadedScripts = true;
+        });
+        
+        
         PhysicsScene    = Physics::GetPhysicsContext()->CreatePhysicsScene(this);
-        EntityWorld     = MakeUniquePtr<FEntityWorld>();
         CameraManager   = MakeUniquePtr<FCameraManager>(this);
         RenderScene     = MakeUniquePtr<FForwardRenderScene>(this);
         
         RenderScene->Init();
-
-        if (!bDuplicatePIEWorld)
-        {
-            TVector<TObjectPtr<CEntitySystem>> Systems;
-            CEntitySystemRegistry::Get().GetRegisteredSystems(Systems);
         
-            for (CEntitySystem* System : Systems)
+        TVector<TObjectPtr<CEntitySystem>> Systems;
+        CEntitySystemRegistry::Get().GetRegisteredSystems(Systems);
+        for (CEntitySystem* System : Systems)
+        {
+            if (System->GetRequiredUpdatePriorities())
             {
-                if (System->GetRequiredUpdatePriorities())
-                {
-                    CEntitySystem* DuplicateSystem = NewObject<CEntitySystem>(System->GetClass());
-                    RegisterSystem(DuplicateSystem);
-                }
+                RegisterSystem(System);
             }
         }
-        else
-        {
-            for (CEntitySystem* System : SystemsDuplicatedFromPIE)
-            {
-                if (System->GetRequiredUpdatePriorities())
-                {
-                    CEntitySystem* DuplicateSystem = NewObject<CEntitySystem>(System->GetClass());
-                    DuplicateSystem->CopyProperties(System);
-                    RegisterSystem(DuplicateSystem);
-                }
-            }
 
-            SystemsDuplicatedFromPIE.clear();
-        }
-
-        
-        bInitialized = true;
-
-        GetEntityRegistry().on_destroy<SRelationshipComponent>().connect<&ThisClass::OnRelationshipComponentDestroyed>(this);
+        EntityRegistry.on_construct<SSineWaveMovementComponent>().connect<&ThisClass::OnSineWaveMovementComponentCreated>(this);
+        EntityRegistry.on_destroy<FRelationshipComponent>().connect<&ThisClass::OnRelationshipComponentDestroyed>(this);
+        SystemContext.EventSink<FSwitchActiveCameraEvent>().connect<&ThisClass::OnChangeCameraEvent>(this);
     }
     
-    Entity CWorld::SetupEditorWorld()
-    {
-        Entity EditorEntity = ConstructEntity("Editor Entity");
-        EditorEntity.Emplace<SCameraComponent>();
-        EditorEntity.Emplace<SEditorComponent>();
-        EditorEntity.Emplace<SVelocityComponent>().Speed = 50.0f;
-        EditorEntity.Emplace<SHiddenComponent>();
-        EditorEntity.GetComponent<STransformComponent>().SetLocation(glm::vec3(0.0f, 0.0f, 1.5f));
-
-        SetActiveCamera(EditorEntity);
-        
-        return EditorEntity;
-    }
-
     void CWorld::Update(const FUpdateContext& Context)
     {
         LUMINA_PROFILE_SCOPE();
@@ -185,18 +186,22 @@ namespace Lumina
             TimeSinceCreation += DeltaTime;
         }
         
-        FSystemContext SystemContext(this);
-
         if (Stage == EUpdateStage::DuringPhysics)
         {
             PhysicsScene->Update(Context.GetDeltaTime());
         }
+
+        SystemContext.DeltaTime = DeltaTime;
+        SystemContext.Time = TimeSinceCreation;
+        SystemContext.UpdateStage = Stage;
         
         auto& SystemVector = SystemUpdateList[(uint32)Stage];
         for(CEntitySystem* System : SystemVector)
         {
             System->Update(SystemContext);
         }
+
+        ProcessAnyNewlyLoadedScripts();
     }
 
     void CWorld::Paused(const FUpdateContext& Context)
@@ -206,54 +211,32 @@ namespace Lumina
         DeltaTime = Context.GetDeltaTime();
         TimeSinceCreation += DeltaTime;
         
-        FSystemContext SystemContext(this);
-        
+        SystemContext.DeltaTime = DeltaTime;
+        SystemContext.Time = TimeSinceCreation;
+        SystemContext.UpdateStage = EUpdateStage::Paused;
+
         auto& SystemVector = SystemUpdateList[(uint32)EUpdateStage::Paused];
         for(CEntitySystem* System : SystemVector)
         {
             System->Update(SystemContext);
         }
+
+        ProcessAnyNewlyLoadedScripts();
     }
 
     void CWorld::Render(FRenderGraph& RenderGraph)
     {
         LUMINA_PROFILE_SCOPE();
 
-        FViewVolume ViewVolume;
+        SCameraComponent* CameraComponent = GetActiveCamera();
+        FViewVolume ViewVolume = CameraComponent ? CameraComponent->GetViewVolume() : FViewVolume();
         
-        if (SCameraComponent* CameraComponent = GetActiveCamera())
-        {
-            STransformComponent& CameraTransform = EntityWorld->Get<STransformComponent>(CameraManager->GetActiveCameraEntity());
-
-            glm::vec3 UpdatedForward = CameraTransform.WorldTransform.Rotation * glm::vec3(0.0f, 0.0f, -1.0f);
-            glm::vec3 UpdatedUp      = CameraTransform.WorldTransform.Rotation * glm::vec3(0.0f, 1.0f,  0.0f);
-        
-            CameraComponent->SetView(CameraTransform.WorldTransform.Location, UpdatedForward, UpdatedUp);
-            ViewVolume = CameraComponent->GetViewVolume();
-        }
-
         RenderScene->RenderScene(RenderGraph, ViewVolume);
     }
 
     void CWorld::ShutdownWorld()
     {
-        FSystemContext SystemContext(this);
-
-        if (bIsPlayWorld)
-        {
-            EndPlay();
-        }
-        
-        ForEachUniqueSystem([&](CEntitySystem* System)
-        {
-            System->Shutdown(SystemContext);
-        });
-
         RenderScene->Shutdown();
-        
-        RenderScene.reset();
-        EntityWorld.reset();
-        CameraManager.reset();
         
         FCoreDelegates::PostWorldUnload.Broadcast();
 
@@ -264,7 +247,7 @@ namespace Lumina
     {
         Assert(NewSystem != nullptr)
 
-        NewSystem->PostConstructForWorld(this);
+        NewSystem->RegisterEventListeners(SystemContext);
         
         bool StagesModified[(uint8)EUpdateStage::Max] = {};
 
@@ -297,34 +280,40 @@ namespace Lumina
         return true;
     }
 
-    Entity CWorld::ConstructEntity(const FName& Name, const FTransform& Transform)
+    entt::entity CWorld::ConstructEntity(const FName& Name, const FTransform& Transform)
     {
         entt::entity NewEntity = GetEntityRegistry().create();
 
         FString StringName(Name.c_str());
         StringName += "_" + eastl::to_string((int)NewEntity);
         
-        GetEntityRegistry().emplace<SNameComponent>(NewEntity).Name = StringName;
-        GetEntityRegistry().emplace<STransformComponent>(NewEntity).Transform = Transform;
-        GetEntityRegistry().emplace_or_replace<FNeedsTransformUpdate>(NewEntity);
+        EntityRegistry.emplace<SNameComponent>(NewEntity).Name = StringName;
+        EntityRegistry.emplace<STransformComponent>(NewEntity).Transform = Transform;
+        EntityRegistry.emplace_or_replace<FNeedsTransformUpdate>(NewEntity);
         
-        return Entity(NewEntity, this);
+        return NewEntity;
     }
     
-    void CWorld::CopyEntity(Entity& To, const Entity& From)
+    void CWorld::CopyEntity(entt::entity& To, entt::entity From)
     {
-        entt::entity NewEntity = GetEntityRegistry().create();
-        To = Entity(NewEntity, this);
+        LUM_ASSERT(To != From)
         
-        for (auto [id, storage]: GetEntityRegistry().storage())
+        To = EntityRegistry.create();
+        
+        for (auto [ID, Storage]: EntityRegistry.storage())
         {
-            if(storage.contains(From.GetHandle()))
+            if (Storage.type() == entt::type_id<FRelationshipComponent>() || Storage.type() == entt::type_id<FSelectedInEditorComponent>())
             {
-                storage.push(To.GetHandle(), storage.value(From.GetHandle()));
+                continue;
+            }
+            
+            if(Storage.contains(From))
+            {
+                Storage.push(To, Storage.value(From));
             }
         }
 
-        FString OldName = From.GetConstComponent<SNameComponent>().Name.ToString();
+        FString OldName = EntityRegistry.get<SNameComponent>(From).Name.ToString();
 
         FString BaseName = OldName;
         size_t Pos = OldName.find_last_of('_');
@@ -333,24 +322,31 @@ namespace Lumina
             BaseName = OldName.substr(0, Pos);
         }
 
-        FString NewName = BaseName + "_" +  eastl::to_string((uint64)NewEntity);
-        To.GetComponent<SNameComponent>().Name = NewName;
+        FString NewName = BaseName + "_" +  eastl::to_string((uint64)To);
+        EntityRegistry.get<SNameComponent>(To).Name = NewName;
     }
 
-    void CWorld::ReparentEntity(Entity Child, Entity Parent)
+    void CWorld::ReparentEntity(entt::entity Child, entt::entity Parent)
     {
-        if (Child.GetHandle() == Parent.GetHandle())
+        if (Child == Parent)
         {
             LOG_ERROR("Cannot parent an entity to itself!");
             return;
         }
-    
-        glm::mat4 ChildWorldMatrix = Child.GetWorldTransform().GetMatrix();
+
+        if (Child == entt::null || Parent == entt::null)
+        {
+            LOG_ERROR("Cannot parent an entity from/to a null!");
+            return;
+        }
+
+        
+        glm::mat4 ChildWorldMatrix = EntityRegistry.get<STransformComponent>(Child).WorldTransform.GetMatrix();
     
         glm::mat4 ParentWorldMatrix = glm::mat4(1.0f);
-        if (Parent.IsValid())
+        if (Parent != entt::null)
         {
-            ParentWorldMatrix = Parent.GetWorldTransform().GetMatrix();
+            ParentWorldMatrix = EntityRegistry.get<STransformComponent>(Parent).WorldTransform.GetMatrix();
         }
     
         glm::mat4 NewLocalMatrix = glm::inverse(ParentWorldMatrix) * ChildWorldMatrix;
@@ -361,18 +357,18 @@ namespace Lumina
     
         glm::decompose(NewLocalMatrix, Scale, Rotation, Translation, Skew, Perspective);
     
-        SRelationshipComponent& ParentRelationshipComponent = Parent.GetOrAddComponent<SRelationshipComponent>();
-        SRelationshipComponent& ChildRelationshipComponent = Child.GetOrAddComponent<SRelationshipComponent>();
+        FRelationshipComponent& ParentRelationshipComponent = EntityRegistry.get_or_emplace<FRelationshipComponent>(Parent);
+        FRelationshipComponent& ChildRelationshipComponent = EntityRegistry.get_or_emplace<FRelationshipComponent>(Child);
     
-        if (ParentRelationshipComponent.NumChildren >= SRelationshipComponent::MaxChildren)
+        if (ParentRelationshipComponent.NumChildren >= FRelationshipComponent::MaxChildren)
         {
             LOG_ERROR("Parent has reached its max children");
             return;
         }
     
-        if (ChildRelationshipComponent.Parent.IsValid())
+        if (ChildRelationshipComponent.Parent != entt::null)
         {
-            if (SRelationshipComponent* ToRemove = ChildRelationshipComponent.Parent.TryGetComponent<SRelationshipComponent>())
+            if (FRelationshipComponent* ToRemove = EntityRegistry.try_get<FRelationshipComponent>(ChildRelationshipComponent.Parent))
             {
                 for (SIZE_T i = 0; i < ToRemove->NumChildren; ++i)
                 {
@@ -402,33 +398,35 @@ namespace Lumina
         SetEntityTransform(Child, NewTransform);
     }
 
-    void CWorld::DestroyEntity(Entity Entity)
+    void CWorld::DestroyEntity(entt::entity Entity)
     {
-        Assert(Entity.IsValid())
-        GetEntityRegistry().destroy(Entity);
+        EntityRegistry.destroy(Entity);
     }
 
     uint32 CWorld::GetNumEntities() const
     {
-        return EntityWorld->Registry.view<entt::entity>().size<>();
+        return (uint32)EntityRegistry.view<entt::entity>().size();
     }
 
     void CWorld::SetActiveCamera(entt::entity InEntity)
     {
-        if (GetEntityRegistry().all_of<SCameraComponent>(InEntity))
+        if (!EntityRegistry.valid(InEntity))
+        {
+            return;
+        }
+
+        if (EntityRegistry.all_of<SCameraComponent>(InEntity))
         {
             CameraManager->SetActiveCamera(InEntity);
+            return;
         }
-        else if (SRelationshipComponent* RelationshipComponent = GetEntityRegistry().try_get<SRelationshipComponent>(InEntity))
+
+        if (FRelationshipComponent* Relationship = EntityRegistry.try_get<FRelationshipComponent>(InEntity))
         {
-            for (uint8 i = 0; i < RelationshipComponent->NumChildren; ++i)
+            for (uint32 i = 0; i < Relationship->NumChildren; ++i)
             {
-                entt::entity Child = RelationshipComponent->Children[i].GetHandle();
-                if (GetEntityRegistry().try_get<SCameraComponent>(Child))
-                {
-                    CameraManager->SetActiveCamera(Child);
-                    break;
-                }
+                entt::entity Child = Relationship->Children[i];
+                SetActiveCamera(Child);
             }
         }
     }
@@ -443,27 +441,18 @@ namespace Lumina
         return CameraManager->GetActiveCameraEntity();
     }
 
+    void CWorld::OnChangeCameraEvent(const FSwitchActiveCameraEvent& Event)
+    {
+        SetActiveCamera(Event.NewActiveEntity);
+    }
+
     void CWorld::BeginPlay()
     {
         PhysicsScene->OnWorldSimulate();
-
-        FSystemContext SystemContext(this);
-
-        ForEachUniqueSystem([&](CEntitySystem* System)
-        {
-           System->WorldBeginPlay(SystemContext); 
-        });
     }
 
     void CWorld::EndPlay()
     {
-        FSystemContext SystemContext(this);
-
-        ForEachUniqueSystem([&](CEntitySystem* System)
-        {
-           System->WorldEndPlay(SystemContext); 
-        });
-        
         PhysicsScene->OnWorldStopSimulate();
     }
 
@@ -476,27 +465,21 @@ namespace Lumina
         }
 
         TVector<uint8> Data;
-        {
-            FMemoryWriter Writer(Data);
-            FObjectProxyArchiver Ar(Writer, true);
-
-            OwningWorld->Serialize(Ar);
-        }
+        FMemoryWriter Writer(Data);
+        FObjectProxyArchiver WriterProxy(Writer, true);
+        OwningWorld->Serialize(WriterProxy);
         
         FMemoryReader Reader(Data);
-        FObjectProxyArchiver Ar(Reader, true);
+        FObjectProxyArchiver ReaderProxy(Reader, true);
         
-        CWorld* PIEWorld = NewObject<CWorld>();
+        CWorld* PIEWorld = NewObject<CWorld>(nullptr, NAME_None, OF_Transient);
         PIEWorld->SetIsPlayWorld(true);
-        PIEWorld->bDuplicatePIEWorld = true;
+        
+        PIEWorld->InitializeWorld();
 
-        OwningWorld->ForEachUniqueSystem([&](CEntitySystem* System)
-        {
-            PIEWorld->SystemsDuplicatedFromPIE.push_back(System);
-        });
-
+        
         PIEWorld->PreLoad();
-        PIEWorld->Serialize(Ar);
+        PIEWorld->Serialize(ReaderProxy);
         PIEWorld->PostLoad();
         
         return PIEWorld;
@@ -507,17 +490,17 @@ namespace Lumina
         return SystemUpdateList[uint32(Stage)];
     }
 
-    void CWorld::OnRelationshipComponentDestroyed(entt::registry& Registry, entt::entity EntityHandle)
+    void CWorld::OnRelationshipComponentDestroyed(entt::registry& Registry, entt::entity Entity)
     {
-        SRelationshipComponent& ThisRelationship = Registry.get<SRelationshipComponent>(EntityHandle);
+        FRelationshipComponent& ThisRelationship = Registry.get<FRelationshipComponent>(Entity);
 
-        if (ThisRelationship.Parent.IsValid())
+        if (ThisRelationship.Parent != entt::null)
         {
-            SRelationshipComponent& ParentRelationship = Registry.get<SRelationshipComponent>(ThisRelationship.Parent.GetHandle());
+            FRelationshipComponent& ParentRelationship = Registry.get<FRelationshipComponent>(ThisRelationship.Parent);
             
             for (SIZE_T i = 0; i < ParentRelationship.NumChildren; ++i)
             {
-                if (ParentRelationship.Children[i] == EntityHandle)
+                if (ParentRelationship.Children[i] == Entity)
                 {
                     for (SIZE_T j = i; j < ParentRelationship.NumChildren - 1; ++j)
                     {
@@ -533,8 +516,55 @@ namespace Lumina
         for (size_t i = 0; i < ThisRelationship.NumChildren; ++i)
         {
             entt::entity ChildEntity = ThisRelationship.Children[i];
-            SRelationshipComponent& ChildRelationship = Registry.get<SRelationshipComponent>(ChildEntity);
-            ChildRelationship.Parent = Entity();
+            FRelationshipComponent& ChildRelationship = Registry.get<FRelationshipComponent>(ChildEntity);
+            ChildRelationship.Parent = entt::null;
+        }
+    }
+
+    void CWorld::OnSineWaveMovementComponentCreated(entt::registry& Registry, entt::entity Entity)
+    {
+        SSineWaveMovementComponent& MovementComponent = Registry.get<SSineWaveMovementComponent>(Entity);
+        MovementComponent.InitialPosition = Registry.get<STransformComponent>(Entity).GetLocation();
+    }
+
+    void CWorld::ProcessAnyNewlyLoadedScripts()
+    {
+        if (bHasNewlyLoadedScripts)
+        {
+            auto View = EntityRegistry.view<FLuaScriptsContainerComponent>();
+            View.each([&](FLuaScriptsContainerComponent& LuaContainerComponent)
+            {
+                for (uint32 i = 0; i < (uint32)EUpdateStage::Max; ++i)
+                {
+                    LuaContainerComponent.Scripts[i].clear();
+                }
+    
+                Scripting::FScriptingContext::Get().ForEachScript([&](const Scripting::FLuaScriptEntry& Script)
+                {
+                    if (sol::optional<sol::table> StagesTable = Script.Table["Stages"])
+                    {
+                        if (!StagesTable.has_value())
+                        {
+                            return;
+                        }
+                        
+                        for (const auto& [Key, Stage] : StagesTable.value())
+                        {
+                            if (Stage.is<EUpdateStage>())
+                            {
+                                EUpdateStage UpdateStage = Stage.as<EUpdateStage>();
+                                LuaContainerComponent.Scripts[(uint32)UpdateStage].push_back(Script);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        LuaContainerComponent.Scripts[(uint32)EUpdateStage::FrameStart].push_back(Script);
+                    }
+                });
+            });
+            
+            bHasNewlyLoadedScripts = false;
         }
     }
 
@@ -580,20 +610,37 @@ namespace Lumina
         Batcher.DrawViewVolume(ViewVolume, Color, Thickness, Duration);
     }
 
-    void CWorld::SetEntityTransform(Entity Entt, const FTransform& NewTransform)
+    void CWorld::SetEntityTransform(entt::entity Entity, const FTransform& NewTransform)
     {
-        Entt.EmplaceOrReplace<STransformComponent>(NewTransform);
-        Entt.EmplaceOrReplace<FNeedsTransformUpdate>();
+        EntityRegistry.emplace_or_replace<STransformComponent>(Entity, NewTransform);
+        EntityRegistry.emplace_or_replace<FNeedsTransformUpdate>(Entity);
+    }
+
+    void CWorld::SetSelectedEntity(entt::entity EntityID)
+    {
+        EntityRegistry.clear<FSelectedInEditorComponent>();
+        
+        if (EntityRegistry.valid(EntityID))
+        {
+            EntityRegistry.emplace<FSelectedInEditorComponent>(EntityID);
+        }
+    }
+
+    entt::entity CWorld::GetSelectedEntity() const
+    {
+        auto View = EntityRegistry.view<FSelectedInEditorComponent>();
+        LUM_ASSERT(View.size() <= 1)
+
+        for (entt::entity Entity : View)
+        {
+            return Entity;
+        }
+
+        return entt::null;
     }
 
     FLineBatcherComponent& CWorld::GetOrCreateLineBatcher()
     {
-        if (LineBatcherEntity == entt::null)
-        {
-            LineBatcherEntity = EntityWorld->CreateEmpty();
-            return EntityWorld->Emplace<FLineBatcherComponent>(LineBatcherEntity);
-        }
-        
-        return EntityWorld->Get<FLineBatcherComponent>(LineBatcherEntity);
+        return EntityRegistry.get_or_emplace<FLineBatcherComponent>(SingletonEntity);
     }
 }

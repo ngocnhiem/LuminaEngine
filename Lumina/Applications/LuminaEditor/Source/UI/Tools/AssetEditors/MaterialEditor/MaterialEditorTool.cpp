@@ -37,19 +37,6 @@ namespace Lumina
     void FMaterialEditorTool::OnInitialize()
     {
         FAssetEditorTool::OnInitialize();
-
-        Entity DirectionalLightEntity = World->ConstructEntity("Directional Light");
-        DirectionalLightEntity.Emplace<SDirectionalLightComponent>();
-        DirectionalLightEntity.Emplace<SEnvironmentComponent>().bSSAOEnabled = false;
-
-        MeshEntity = World->ConstructEntity("MeshEntity");
-        
-        MeshEntity.GetComponent<STransformComponent>().SetLocation(glm::vec3(0.0f, 0.0f,  0.0f));
-        
-        SStaticMeshComponent& StaticMeshComponent = MeshEntity.Emplace<SStaticMeshComponent>();
-        StaticMeshComponent.StaticMesh = CThumbnailManager::Get().SphereMesh;
-        StaticMeshComponent.MaterialOverrides.resize(CThumbnailManager::Get().SphereMesh->Materials.size());
-        StaticMeshComponent.MaterialOverrides[0] = CastAsserted<CMaterialInterface>(Asset.Get());
         
         CreateToolWindow(MaterialGraphName, [this](const FUpdateContext& Cxt, bool bFocused)
         {
@@ -108,6 +95,23 @@ namespace Lumina
             NodeGraph->Shutdown();
             NodeGraph = nullptr;
         }
+    }
+
+    void FMaterialEditorTool::SetupWorldForTool()
+    {
+        FAssetEditorTool::SetupWorldForTool();
+
+        DirectionalLightEntity = World->ConstructEntity("Directional Light");
+        World->GetEntityRegistry().emplace<SDirectionalLightComponent>(DirectionalLightEntity);
+        World->GetEntityRegistry().emplace<SEnvironmentComponent>(DirectionalLightEntity);
+
+        MeshEntity = World->ConstructEntity("MeshEntity");
+        World->GetEntityRegistry().get<STransformComponent>(MeshEntity).SetLocation(glm::vec3(0.0f, 0.0f,  0.0f));
+        
+        SStaticMeshComponent& StaticMeshComponent = World->GetEntityRegistry().emplace<SStaticMeshComponent>(MeshEntity);
+        StaticMeshComponent.StaticMesh = CThumbnailManager::Get().SphereMesh;
+        StaticMeshComponent.MaterialOverrides.resize(CThumbnailManager::Get().SphereMesh->Materials.size());
+        StaticMeshComponent.MaterialOverrides[0] = CastAsserted<CMaterialInterface>(Asset.Get());
     }
 
     bool FMaterialEditorTool::DrawViewport(const FUpdateContext& UpdateContext, ImTextureRef ViewportTexture)

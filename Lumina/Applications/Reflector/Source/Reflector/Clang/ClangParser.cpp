@@ -28,13 +28,11 @@ namespace Lumina::Reflection
         "/Lumina/Engine/ThirdParty/SPIRV-Reflect",
         "/Lumina/Engine/ThirdParty/json/include",
         "/Lumina/Engine/ThirdParty/entt/single_include",
-        "/Lumina/Engine/ThirdParty/ImGuizmo",
         "/Lumina/Engine/ThirdParty/EA/EASTL/include",
         "/Lumina/Engine/ThirdParty/EA/EABase/include/Common",
         "/Lumina/Engine/ThirdParty/rpmalloc",
         "/Lumina/Engine/ThirdParty/xxhash",
         "/Lumina/Engine/ThirdParty/tracy/public",
-        "/External/Physx/physx/include",
     };
 
     eastl::string ToLower(const eastl::string& Str)

@@ -133,13 +133,8 @@ namespace Lumina
                 int64 AfterTagPosition = Ar.Tell();
             
                 PropertyTag.Offset = AfterTagPosition;
-            
-                void* ValuePtr = Current->GetValuePtr<void>(Data);
-            
-                if (dynamic_cast<FArrayProperty*>(Current))
-                {
-                    ValuePtr = Data;
-                }
+                
+                void* ValuePtr = Current->IsA(EPropertyTypeFlags::Vector) ? Data : Current->GetValuePtr<void>(Data);
                 
                 Current->Serialize(Ar, ValuePtr);
 
@@ -198,13 +193,7 @@ namespace Lumina
         
                 if (FoundProperty)
                 {
-                    void* ValuePtr = FoundProperty->GetValuePtr<void>(Data);
-
-                    // TODO, temp garbage.
-                    if (dynamic_cast<FArrayProperty*>(FoundProperty))
-                    {
-                        ValuePtr = Data;
-                    }
+                    void* ValuePtr = FoundProperty->IsA(EPropertyTypeFlags::Vector) ? Data : FoundProperty->GetValuePtr<void>(Data);
             
                     FoundProperty->Serialize(Ar, ValuePtr);
                 }

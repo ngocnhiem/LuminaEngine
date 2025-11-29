@@ -138,8 +138,7 @@ namespace Lumina::Paths
             return false;
         }
 
-        if (FString::comparei(Directory.data(), Directory.data() + ParentDirectory.length(),
-                              ParentDirectory.data(), ParentDirectory.data() + ParentDirectory.length()) != 0)
+        if (FString::comparei(Directory.data(), Directory.data() + ParentDirectory.length(), ParentDirectory.data(), ParentDirectory.data() + ParentDirectory.length()) != 0)
         {
             return false;
         }
@@ -309,11 +308,84 @@ namespace Lumina::Paths
         return CachedDirectories[EngineShadersDirectoryName];
     }
 
+    FString Parent(FStringView Path, bool bRemoveTrailingSlash)
+    {
+        auto data = Path.data();
+        auto len = Path.size();
+
+        size_t i = len;
+        while (i > 0)
+        {
+            char c = data[i - 1];
+            if (c == '/' || c == '\\')
+            {
+                break;
+            }
+            --i;
+        }
+
+        if (i == 0)
+        {
+            return FString();
+        }
+
+        if (bRemoveTrailingSlash && i > 1)
+        {
+            size_t j = i - 1;
+            while (j > 0)
+            {
+                char c = data[j - 1];
+                if (c != '/' && c != '\\')
+                {
+                    break;
+                }
+                --j;
+            }
+            i = j;
+        }
+
+        return FString(data, i);
+    }
+
     FString GetEngineInstallDirectory()
     {
         return Parent(GetEngineDirectory());
     }
-    
+
+    void NormalizePath(FString& Path)
+    {
+        StringUtils::ReplaceAllOccurrencesInPlace(Path, "\\", "/");
+    }
+
+    bool PathsEqual(FStringView A, FStringView B)
+    {
+        size_t lenA = A.size();
+        size_t lenB = B.size();
+        if (lenA != lenB)
+        {
+            return false;
+        }
+
+        for (size_t i = 0; i < lenA; ++i)
+        {
+            char a = A[i];
+            char b = B[i];
+
+            if ((a == '/' || a == '\\') && (b == '/' || b == '\\'))
+            {
+                continue;
+            }
+
+
+            if (std::tolower(static_cast<unsigned char>(a)) != std::tolower(static_cast<unsigned char>(b)))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     void AddPackageExtension(FString& FileName)
     {
         FileName += ".lasset";

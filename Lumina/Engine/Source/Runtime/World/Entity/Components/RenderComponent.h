@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include "World/Entity/Entity.h"
 #include "RenderComponent.generated.h"
 
 

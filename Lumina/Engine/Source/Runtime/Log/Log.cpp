@@ -11,7 +11,7 @@ namespace Lumina::Logging
 {
 	
 	LUMINA_API std::shared_ptr<spdlog::logger> Logger;
-	LUMINA_API TFixedVector<FConsoleMessage, 10000> Logs;
+	LUMINA_API FLogQueue Logs(300);
 	
 	bool IsInitialized()
 	{
@@ -20,7 +20,6 @@ namespace Lumina::Logging
 
 	void Init()
 	{
-		Logs.reserve(10000);
 		spdlog::set_pattern("%^[%T] %n: %v%$");
 		Logger = spdlog::stdout_color_mt("Lumina");
 		Logger->sinks().push_back(std::make_shared<ConsoleSink>(Logs));
@@ -42,13 +41,14 @@ namespace Lumina::Logging
 		Logger = nullptr;
 	}
 
+	const FLogQueue& GetConsoleLogQueue()
+	{
+		return Logs;
+	}
+
 	std::shared_ptr<spdlog::logger> GetLogger()
 	{
 		return Logger;
 	}
-
-	const TFixedVector<FConsoleMessage, 10000>& GetConsoleLogs()
-	{
-		return Logs;
-	}
+	
 }

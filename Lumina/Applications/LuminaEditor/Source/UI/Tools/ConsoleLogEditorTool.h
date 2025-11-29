@@ -170,7 +170,7 @@ namespace Lumina
             bool bShowIcons = true;
             bool bWordWrap = true;
             float FontScale = 1.0f;
-            int32 MaxMessageCount = 10000;
+            int32 MaxMessageCount = 100;
         } Settings;
 
         FConsoleFilter Filter;

@@ -125,7 +125,7 @@ vec3 GetModelLocation(uint Index)
 
 uint GetEntityID(uint Index)
 {
-    return ModelData.Instances[DrawIDToInstanceID(Index)].PackedID.x;
+    return ModelData.Instances[DrawIDToInstanceID(Index)].EntityID;
 }
 
 vec3 WorldToView(vec3 WorldPos)

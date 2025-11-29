@@ -1,10 +1,10 @@
 #pragma once
+#include "Core/Delegates/Delegate.h"
 #include "Core/Object/Class.h"
 #include "Core/Reflection/Type/LuminaTypes.h"
-#include <entt/entt.hpp>
 #include "Core/Reflection/Type/Properties/StructProperty.h"
-
-#define SOL_ALL_SAFETIES_ON 1
+#include "Memory/SmartPtr.h"
+#include "Scripting/ScriptTypes.h"
 #include "sol/sol.hpp"
 #include "World/Entity/Components/Component.h"
 
@@ -14,25 +14,32 @@ namespace Lumina
     class CStruct;
 }
 
+DECLARE_MULTICAST_DELEGATE(FScriptReloadedDelegate);
+
 namespace Lumina::Scripting
 {
 
     struct FLuaConverter
     {
-        using ToFunctionType = sol::object(const sol::state_view&, void*);
+        using ToFunctionType = sol::reference(const sol::state_view&, void*);
         using FromFunctionType = void*(const sol::object&);
         
-        sol::object (*To) (const sol::state_view&, void*);
+        sol::reference (*To) (const sol::state_view&, void*);
         void* (*From) (const sol::object&);
+
+        void (*ConnectLuaHandler)(entt::dispatcher&, const sol::function&);
     };
+    
 
     void Initialize();
     void Shutdown();
+
+    using FScriptEntryHandle = TUniquePtr<FLuaScriptEntry>;
+    using FScriptHashMap = THashMap<FName, TVector<FScriptEntryHandle>>;
     
     class FScriptingContext
     {
     public:
-        
 
         LUMINA_API static FScriptingContext& Get();
 
@@ -41,6 +48,14 @@ namespace Lumina::Scripting
         void Initialize();
         void Shutdown();
 
+        LUMINA_API void OnScriptReloaded(FStringView ScriptPath);
+        LUMINA_API void OnScriptCreated(FStringView ScriptPath);
+        LUMINA_API void OnScriptRenamed(FStringView NewPath, FStringView OldPath);
+        LUMINA_API void OnScriptDeleted(FStringView ScriptPath);
+        LUMINA_API void LoadScriptsInDirectoryRecursively(FStringView Directory);
+        LUMINA_API const TVector<FScriptEntryHandle>& GetScriptsUnderDirectory(FName Directory);
+        
+        
         void RegisterCoreTypes();
         void SetupInput();
         sol::object ConvertToSolObjectFromName(FName Name, const sol::state_view& View, void* Data);
@@ -48,6 +63,9 @@ namespace Lumina::Scripting
         
         void* ConvertFromSolObjectToVoidPtrByName(FName Name, const sol::object& Object);
 
+
+        template<typename TFunc>
+        void ForEachScript(TFunc&& Func);
         
         template<typename T>
         void RegisterEntityComponentStruct();
@@ -62,16 +80,40 @@ namespace Lumina::Scripting
 
         template<typename T>
         void BindStructFProperty(sol::usertype<T>& UserType, FStructProperty* Property);
-    
+
+
+        FScriptReloadedDelegate OnScriptLoaded;
+
+
     private:
 
+        TUniquePtr<FLuaScriptEntry> LoadScript(FStringView ScriptPath, bool bFailSilently = false);
+    
+    private:
+        
+        FMutex Mutex;
+        
         sol::state State;
 
         THashMap<FName, FLuaConverter> LuaConverters;
+
+        FScriptHashMap RegisteredScripts;
         
     };
-    
-    
+
+
+    template <typename TFunc>
+    void FScriptingContext::ForEachScript(TFunc&& Func)
+    {
+        for (auto& [_, ScriptVector] : RegisteredScripts)
+        {
+            for (FScriptEntryHandle& LuaScriptEntry : ScriptVector)
+            {
+                Func(*LuaScriptEntry.get());
+            }
+        }
+    }
+
     template <typename T>
     void FScriptingContext::RegisterEntityComponentStruct()
     {
@@ -194,11 +236,15 @@ namespace Lumina::Scripting
         
         LuaConverters.emplace(Name, FLuaConverter{+[](const sol::state_view& L, void* Data)
         {
-            return sol::make_object(L, static_cast<T*>(Data));
+            return sol::reference(L, sol::make_reference_userdata(L, static_cast<T*>(Data)));
         },
         +[](const sol::object& Obj)
         {
             return (void*)&Obj.as<T>();
+        },
+        +[](entt::dispatcher& Dispatcher, const sol::function& Fn)
+        {
+            //Dispatcher.sink<T>() ///....
         }});
         
         return true;

@@ -17,6 +17,8 @@ namespace Lumina
         const char* GetTitlebarIcon() const override { return LE_ICON_EARTH; }
         void Update(const FUpdateContext& UpdateContext) override;
 
+        void SetupWorldForTool() override;
+
         void DrawToolMenu(const FUpdateContext& UpdateContext) override;
         void InitializeDockingLayout(ImGuiID InDockspaceID, const ImVec2& InDockspaceSize) const override;
         

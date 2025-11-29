@@ -19,10 +19,8 @@ namespace Lumina
         , FOV(fov)
         , AspectRatio(aspect)
     {
-        RightVector         = glm::normalize(glm::cross(UpAxis, ForwardAxis));
-        UpVector            = glm::normalize(glm::cross(RightAxis, ForwardVector));
-
         SetPerspective(fov, aspect);
+        SetView(glm::vec3(0.0), BackwardAxis, UpAxis);
     }
 
     FViewVolume& FViewVolume::SetNear(float InNear)

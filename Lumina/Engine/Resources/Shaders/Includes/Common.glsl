@@ -81,7 +81,11 @@ struct FInstanceData
 {
     mat4    ModelMatrix;
     vec4    SphereBounds;
-    uvec4   PackedID;
+    
+    uint    EntityID;
+    uint    BatchedDrawID;
+    uint    Selected;
+    uint    Reserved;
 };
 
 struct FLightShadow

@@ -113,7 +113,7 @@ namespace Lumina::Physics
 
     struct LUMINA_API FJoltBodyComponent
     {
-        JPH::Body* Body = nullptr;
+        JPH::BodyID Body;
     };
     
     class FJoltPhysicsScene : public IPhysicsScene
@@ -130,6 +130,7 @@ namespace Lumina::Physics
         void OnWorldSimulate() override;
         void OnWorldStopSimulate() override;
 
+    	void OnCharacterComponentConstructed(entt::registry& Registry, entt::entity Entity);
     	void OnRigidBodyComponentConstructed(entt::registry& Registry, entt::entity EntityID);
     	void OnRigidBodyComponentDestroyed(entt::registry& Registry, entt::entity EntityID);
     	void OnColliderComponentAdded(entt::registry& Registry, entt::entity EntityID);

@@ -1,10 +1,14 @@
 ﻿#pragma once
+
+#define USE_IMGUI_API
 #include "EditorTool.h"
 #include "Core/Delegates/Delegate.h"
-#include "Core/Object/Class.h"
 #include "Tools/UI/ImGui/ImGuiFonts.h"
+#include <imgui.h>
+#include "Tools/UI/ImGui/ImGuizmo.h"
 #include "Tools/UI/ImGui/Widgets/TreeListView.h"
 #include "UI/Properties/PropertyTable.h"
+#include "World/Entity/Components/NameComponent.h"
 #include "World/Entity/Systems/EntitySystem.h"
 
 namespace Lumina
@@ -25,9 +29,10 @@ namespace Lumina
         {
         public:
 
-            FEntityListViewItem(FTreeListViewItem* InParent, Entity InEntity)
+            FEntityListViewItem(FTreeListViewItem* InParent, FEntityRegistry& InRegistry, entt::entity InEntity)
                 : FTreeListViewItem(InParent)
                 , Entity(InEntity)
+                , Registry(InRegistry)
             {}
             
             ~FEntityListViewItem() override { }
@@ -36,7 +41,7 @@ namespace Lumina
             
             const char* GetTooltipText() const override { return GetName().c_str(); }
             bool HasContextMenu() override { return true; }
-            uint64 GetHash() const override { return (uint64)Entity.GetHandle(); }
+            uint64 GetHash() const override { return (uint64)Entity; }
             void SetDragDropPayloadData() const override
             {
                 uintptr_t IntPtr = (uintptr_t)this;
@@ -45,14 +50,15 @@ namespace Lumina
             
             FName GetName() const override
             {
-                return Entity.GetConstComponent<SNameComponent>().Name;
+                return Registry.get<SNameComponent>(Entity).Name;
             }
 
-            Entity GetEntity() const { return Entity; }
+            entt::entity GetEntity() const { return Entity; }
             
         private:
 
-            Entity Entity;
+            entt::entity Entity;
+            FEntityRegistry& Registry;
         };
 
         
@@ -117,9 +123,9 @@ namespace Lumina
         void DrawViewportOverlayElements(const FUpdateContext& UpdateContext, ImTextureRef ViewportTexture, ImVec2 ViewportSize) override;
         void DrawViewportToolbar(const FUpdateContext& UpdateContext) override;
 
-        void PushAddTagModal(const Entity& Entity);
-        void PushAddComponentModal(const Entity& Entity);
-        void PushRenameEntityModal(Entity Ent);
+        void PushAddTagModal(entt::entity Entity);
+        void PushAddComponentModal(entt::entity Entity);
+        void PushRenameEntityModal(entt::entity Entity);
 
         bool IsAssetEditorTool() const override;
         FOnGamePreview& GetOnPreviewStartRequestedDelegate() { return OnGamePreviewStartRequested; }
@@ -128,13 +134,13 @@ namespace Lumina
         void NotifyPlayInEditorStart();
         void NotifyPlayInEditorStop();
 
-        void SetWorld(CWorld* InWorld);
+        void SetWorld(CWorld* InWorld) override;
         
     protected:
 
         void DrawCreateEntityMenu();
         void DrawFilterOptions();
-        void SetSelectedEntity(const Entity& NewEntity);
+        void SetSelectedEntity(entt::entity Entity);
         void RebuildSceneOutliner(FTreeListView* View);
         void HandleEntityEditorDragDrop(FTreeListViewItem* DropItem);
 
@@ -158,7 +164,7 @@ namespace Lumina
         void CreateEntityWithComponent(const CStruct* Component);
         void CreateEntity();
 
-        void CopyEntity(Entity& To, const Entity& From);
+        void CopyEntity(entt::entity& To, entt::entity From);
 
         void CycleGuizmoOp();
 
@@ -173,8 +179,8 @@ namespace Lumina
         ImGuizmo::MODE                          GuizmoMode;
 
         CEntitySystem*                          SelectedSystem;
-        Entity                                  SelectedEntity;
-        Entity                                  CopiedEntity;
+        entt::entity                            SelectedEntity;
+        entt::entity                            CopiedEntity;
         
         FTreeListView                           OutlinerListView;
         FTreeListViewContext                    OutlinerContext;
@@ -183,7 +189,7 @@ namespace Lumina
         FTreeListViewContext                    SystemsContext;
 
         TQueue<FComponentDestroyRequest>        ComponentDestroyRequests;
-        TQueue<Entity>                          EntityDestroyRequests;
+        TQueue<entt::entity>                    EntityDestroyRequests;
         TVector<TUniquePtr<FPropertyTable>>     PropertyTables;
 
         bool                                    bGamePreviewRunning = false;

@@ -1,0 +1,171 @@
+
+---@meta
+
+---@class Input
+---@field GetMouseX fun(): number Get the current mouse X position
+---@field GetMouseY fun(): number Get the current mouse Y position
+---@field GetMouseDeltaX fun(): number Get the mouse X movement since last frame
+---@field GetMouseDeltaY fun(): number Get the mouse Y movement since last frame
+---@field EnableCursor fun(): void Make the cursor visible and movable
+---@field DisableCursor fun(): void Lock and hide the cursor
+---@field HideCursor fun(): void Hide the cursor without locking it
+---@field IsKeyDown fun(Key: Input.Key): boolean Returns true if the key is currently down
+---@field IsKeyUp fun(Key: Input.Key): boolean Returns true if the key is currently up
+---@field IsKeyRepeated fun(Key: Input.Key): boolean Returns true if the key is repeating
+
+---@class Input.Key
+---@field Space integer
+---@field Apostrophe integer
+---@field Comma integer
+---@field Minus integer
+---@field Period integer
+---@field Slash integer
+---@field D0 integer
+---@field D1 integer
+---@field D2 integer
+---@field D3 integer
+---@field D4 integer
+---@field D5 integer
+---@field D6 integer
+---@field D7 integer
+---@field D8 integer
+---@field D9 integer
+---@field Semicolon integer
+---@field Equal integer
+---@field A integer
+---@field B integer
+---@field C integer
+---@field D integer
+---@field E integer
+---@field F integer
+---@field G integer
+---@field H integer
+---@field I integer
+---@field J integer
+---@field K integer
+---@field L integer
+---@field M integer
+---@field N integer
+---@field O integer
+---@field P integer
+---@field Q integer
+---@field R integer
+---@field S integer
+---@field T integer
+---@field U integer
+---@field V integer
+---@field W integer
+---@field X integer
+---@field Y integer
+---@field Z integer
+---@field LeftBracket integer
+---@field Backslash integer
+---@field RightBracket integer
+---@field GraveAccent integer
+---@field World1 integer
+---@field World2 integer
+---@field Escape integer
+---@field Enter integer
+---@field Tab integer
+---@field Backspace integer
+---@field Insert integer
+---@field Delete integer
+---@field Right integer
+---@field Left integer
+---@field Down integer
+---@field Up integer
+---@field PageUp integer
+---@field PageDown integer
+---@field Home integer
+---@field End integer
+---@field CapsLock integer
+---@field ScrollLock integer
+---@field NumLock integer
+---@field PrintScreen integer
+---@field Pause integer
+---@field F1 integer
+---@field F2 integer
+---@field F3 integer
+---@field F4 integer
+---@field F5 integer
+---@field F6 integer
+---@field F7 integer
+---@field F8 integer
+---@field F9 integer
+---@field F10 integer
+---@field F11 integer
+---@field F12 integer
+---@field F13 integer
+---@field F14 integer
+---@field F15 integer
+---@field F16 integer
+---@field F17 integer
+---@field F18 integer
+---@field F19 integer
+---@field F20 integer
+---@field F21 integer
+---@field F22 integer
+---@field F23 integer
+---@field F24 integer
+---@field F25 integer
+---@field KP0 integer
+---@field KP1 integer
+---@field KP2 integer
+---@field KP3 integer
+---@field KP4 integer
+---@field KP5 integer
+---@field KP6 integer
+---@field KP7 integer
+---@field KP8 integer
+---@field KP9 integer
+---@field KPDecimal integer
+---@field KPDivide integer
+---@field KPMultiply integer
+---@field KPSubtract integer
+---@field KPAdd integer
+---@field KPEnter integer
+---@field KPEqual integer
+---@field LeftShift integer
+---@field LeftControl integer
+---@field LeftAlt integer
+---@field LeftSuper integer
+---@field RightShift integer
+---@field RightControl integer
+---@field RightAlt integer
+---@field RightSuper integer
+---@field Menu integer
+
+---@type Input
+Input = {}
+
+
+
+---@meta
+
+---@class UpdateStage
+---@field FrameStart integer
+---@field PrePhysics integer
+---@field DuringPhysics integer
+---@field PostPhysics integer
+---@field FrameEnd integer
+---@field Paused integer
+UpdateStage = {}
+
+---@meta
+
+---@class ViewResult
+---A table representing an entity and its components
+---@field Entity integer The entity ID
+---Each component is accessible by its type name as a field
+
+---@class SystemContext
+---@field GetDeltaTime fun(self: SystemContext): number Get delta time in seconds
+---@field GetUpdateStage fun(self: SystemContext): integer Get current update stage
+---@field View fun(self: SystemContext, ...: string|table): table<integer, ViewResult> Query entities with components. Returns a table indexed by entity ID.
+---@type SystemContext
+ScriptContext = {}
+
+
+---@class EntitySystemBase
+---@field Stages integer[]
+---@field OnUpdate fun(self: EntitySystemBase)

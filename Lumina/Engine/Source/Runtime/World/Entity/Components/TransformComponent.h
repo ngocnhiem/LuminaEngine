@@ -138,6 +138,10 @@ namespace Lumina
             "Transform", &STransformComponent::Transform,
         
             "GetRotationAsEuler", &STransformComponent::GetRotationAsEuler,
+            "GetLocation", &STransformComponent::GetLocation,
+            "GetRotation", &STransformComponent::GetRotation,
+            "GetScale",    &STransformComponent::GetScale,
+            
             "Translate",   &STransformComponent::Translate,
             "SetLocation", &STransformComponent::SetLocation,
             "SetRotation", &STransformComponent::SetRotation,

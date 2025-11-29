@@ -224,28 +224,29 @@ namespace Lumina
             TrackedBuffer = MakeRefCount<FTrackedCommandBuffer>(Device, Buffer, CommandPool, this);
             TrackedBuffer->RecordingID = RecodingID;
 
-#if LE_DEBUG
-            const char* QueueName = "\0";
-            // ReSharper disable once CppIncompleteSwitchStatement
-            switch (Type)
+            if (RenderContext->GetRenderContextDescription().bValidation)
             {
-            case ECommandQueue::Graphics:
-                QueueName = "Graphics";
-                break;
-            case ECommandQueue::Compute:
-                QueueName = "Compute";
-                break;
-            case ECommandQueue::Transfer:
-                QueueName = "Transfer";
-                break;
-            default:
-                break;
-            }
+                const char* QueueName = "\0";
+                // ReSharper disable once CppIncompleteSwitchStatement
+                switch (Type)
+                {
+                case ECommandQueue::Graphics:
+                    QueueName = "Graphics";
+                    break;
+                case ECommandQueue::Compute:
+                    QueueName = "Compute";
+                    break;
+                case ECommandQueue::Transfer:
+                    QueueName = "Transfer";
+                    break;
+                default:
+                    break;
+                }
             
-            FInlineString String;
-            String.sprintf("CommandBuffer: %s", QueueName);
-            RenderContext->SetVulkanObjectName(String.data(), VK_OBJECT_TYPE_COMMAND_BUFFER, (uintptr_t)Buffer);
-#endif
+                FInlineString String;
+                String.sprintf("CommandBuffer: %s", QueueName);
+                RenderContext->SetVulkanObjectName(String.data(), VK_OBJECT_TYPE_COMMAND_BUFFER, (uintptr_t)Buffer);
+            }
         }
 
         return TrackedBuffer;
@@ -324,15 +325,15 @@ namespace Lumina
             TimelineSubmitInfo.pWaitSemaphoreValues = WaitSemaphoreValues.data();
         }
         
-        VkSubmitInfo SubmitInfo = {};
-        SubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        SubmitInfo.pNext = &TimelineSubmitInfo;
-        SubmitInfo.pCommandBuffers = CommandBuffers.data();
-        SubmitInfo.commandBufferCount = NumCommandLists;
-        SubmitInfo.pWaitSemaphores = WaitSemaphores.data();
-        SubmitInfo.waitSemaphoreCount = (uint32)WaitSemaphores.size();
-        SubmitInfo.pWaitDstStageMask = WaitStageFlags.data();
-        SubmitInfo.pSignalSemaphores = SignalSemaphores.data();
+        VkSubmitInfo SubmitInfo         = {};
+        SubmitInfo.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        SubmitInfo.pNext                = &TimelineSubmitInfo;
+        SubmitInfo.pCommandBuffers      = CommandBuffers.data();
+        SubmitInfo.commandBufferCount   = NumCommandLists;
+        SubmitInfo.pWaitSemaphores      = WaitSemaphores.data();
+        SubmitInfo.waitSemaphoreCount   = (uint32)WaitSemaphores.size();
+        SubmitInfo.pWaitDstStageMask    = WaitStageFlags.data();
+        SubmitInfo.pSignalSemaphores    = SignalSemaphores.data();
         SubmitInfo.signalSemaphoreCount = (uint32)SignalSemaphores.size();
         
         VK_CHECK(vkQueueSubmit(Queue, 1, &SubmitInfo, nullptr));
@@ -1291,10 +1292,10 @@ namespace Lumina
         return Layout;
     }
 
-    void FVulkanRenderContext::SetVulkanObjectName(FString Name, VkObjectType ObjectType, uint64 Handle)
+    void FVulkanRenderContext::SetVulkanObjectName(FName Name, VkObjectType ObjectType, uint64 Handle)
     {
         #if !defined(LUMINA_SHIPPING)
-        if (DebugUtils.DebugUtilsObjectNameEXT && !Name.empty())
+        if (DebugUtils.DebugUtilsObjectNameEXT && Name != NAME_None)
         {
             VkDebugUtilsObjectNameInfoEXT NameInfo = {};
             NameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;

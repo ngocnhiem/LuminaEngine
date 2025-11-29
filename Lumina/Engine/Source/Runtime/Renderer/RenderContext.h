@@ -40,6 +40,8 @@ namespace Lumina
         
         //-------------------------------------------------------------------------------------
 
+        virtual const FRenderContextDesc& GetRenderContextDescription() const = 0;
+
 
         virtual bool FrameStart(const FUpdateContext& UpdateContext, uint8 InCurrentFrameIndex) = 0;
         virtual bool FrameEnd(const FUpdateContext& UpdateContext, FRenderGraph& RenderGraph) = 0;

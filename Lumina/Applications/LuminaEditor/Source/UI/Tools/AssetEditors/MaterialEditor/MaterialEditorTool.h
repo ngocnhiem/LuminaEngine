@@ -30,6 +30,7 @@ namespace Lumina
         const char* GetTitlebarIcon() const override { return LE_ICON_FORMAT_LIST_BULLETED_TYPE; }
         void OnInitialize() override;
         void OnDeinitialize(const FUpdateContext& UpdateContext) override;
+        void SetupWorldForTool() override;
 
         bool DrawViewport(const FUpdateContext& UpdateContext, ImTextureRef ViewportTexture) override;
         bool ShouldGenerateThumbnailOnLoad() const override { return true; }
@@ -44,11 +45,12 @@ namespace Lumina
         void InitializeDockingLayout(ImGuiID InDockspaceID, const ImVec2& InDockspaceSize) const override;
 
     private:
+        entt::entity            MeshEntity;
+        entt::entity            DirectionalLightEntity;
         
         FString                 Tree;
         SIZE_T                  ReplacementStart = 0;
         SIZE_T                  ReplacementEnd = 0;
-        Entity                  MeshEntity;
         CEdGraphNode*           SelectedNode = nullptr;
         FCompilationResultInfo  CompilationResult;
         

@@ -103,6 +103,8 @@ namespace Lumina
 
         virtual void Serialize(FArchive& Ar, void* Value) { }
         virtual void SerializeItem(IStructuredArchive::FSlot Slot, void* Value, void const* Defaults = nullptr) { }
+
+        LUMINA_API bool IsA(EPropertyTypeFlags Flag) const { return TypeFlags == Flag; }
         
         FString GetTypeAsString() const;
         FName GetTypeAsFName() const;

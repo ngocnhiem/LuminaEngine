@@ -1,49 +1,69 @@
 ﻿#pragma once
 #include "TaskSystem/TaskSystem.h"
-#include "World/World.h"
-#include "World/Entity/EntityWorld.h"
 #include "World/Entity/Components/TransformComponent.h"
 
-namespace Lumina
-{
-    class CWorld;
-    class FEntityWorld;
-}
 
 namespace Lumina
 {
-    /** Encapsulates the data a world system can execute, this may seem redundant, but it's more-so to control
-     * what systems can access. */
-    struct FSystemContext
+    struct FSystemContext : INonCopyable
     {
         friend class CWorld;
         
         FSystemContext(CWorld* InWorld);
         ~FSystemContext();
-
+        
         static void RegisterWithLua(sol::state& Lua);
 
-        LUMINA_API double GetDeltaTime() const { return World->GetWorldDeltaTime(); }
-        LUMINA_API double Time() const { return World->GetTimeSinceWorldCreation(); }
+        LUMINA_API FORCEINLINE double GetDeltaTime() const { return DeltaTime; }
+        LUMINA_API FORCEINLINE double GetTime() const { return Time; }
+        LUMINA_API FORCEINLINE EUpdateStage GetUpdateStage() const { return UpdateStage; }
+
+
+        template<typename T>
+        auto EventSink(entt::id_type ID = entt::type_hash<T>())
+        {
+            return Dispatcher.sink<T>(ID);
+        }
         
+        template<typename T, typename ... TArgs>
+        void EnqueueEvent(const entt::id_type& IDType = entt::type_hash<T>::value(), TArgs&&... Args)
+        {
+            Dispatcher.enqueue_hint<T, TArgs...>(IDType, Forward<TArgs>(Args)...);
+        }
+
+        template<typename T, typename ... TArgs>
+        void DispatchEvent(const entt::id_type& IDType = entt::type_hash<T>::value(), TArgs&&... Args)
+        {
+            Dispatcher.trigger<T, TArgs...>(IDType, Forward<TArgs>(Args)...);
+        }
         
         template<typename... Ts, typename... TArgs>
         auto CreateView(TArgs&&... Args) -> decltype(std::declval<entt::registry>().view<Ts...>(std::forward<TArgs>(Args)...))
         {
-            return EntityWorld->CreateView<Ts...>(std::forward<TArgs>(Args)...);
+            return Registry.view<Ts...>(std::forward<TArgs>(Args)...);
         }
 
-        template<typename... Ts, typename Func, typename... TArgs>
-        void CreateParallelView(uint32 Grain, Func&& Function, TArgs&&... Args)
+        template<typename... Ts, typename TFunc, typename... TArgs>
+        void ForEach(TFunc&& Function, TArgs&&... Args)
         {
-            auto View = EntityWorld->CreateView<Ts...>(std::forward<TArgs>(Args)...);
+            auto View = Registry.view<Ts...>(std::forward<TArgs>(Args)...);
+            View.each(Forward<TFunc>(Function));
+        }
+
+        template<typename... Ts, typename TFunc, typename... TArgs>
+        void ParallelForEach(TFunc&& Function, TArgs&&... Args)
+        {
+            auto View = Registry.view<Ts...>(std::forward<TArgs>(Args)...);
+            auto Entities = View.handle();
     
-            std::vector<entt::entity> Entities(View.begin(), View.end());
-    
-            Task::ParallelFor(Entities.size(), Grain, [&, View](uint32 Index)
+            Task::ParallelFor(Entities.size(), Entities.size(), [&, View](uint32 Index)
             {
-                entt::entity Entity = Entities[Index];
-                std::apply(Function, View.get(Entity));
+                entt::entity EntityID = (*Entities)[Index];
+                
+                if (View.contains(EntityID))
+                {
+                    std::apply(Function, View.get(EntityID));
+                }
             });
         }
 
@@ -51,92 +71,79 @@ namespace Lumina
         template<typename... Ts, typename ... TArgs>
         auto CreateGroup(TArgs&&... Args)
         {
-            return EntityWorld->CreateGroup<Ts...>(std::forward<TArgs>(Args)...);
+            return Registry.group<Ts...>(std::forward<TArgs>(Args)...);
         }
 
         template<typename... Ts>
-        decltype(auto) Get(entt::entity entity)
+        decltype(auto) Get(entt::entity entity) const
         {
-            return EntityWorld->Get<Ts...>(entity);
+            return Registry.get<Ts...>(entity);
+        }
+
+        template<typename... Ts>
+        decltype(auto) TryGet(entt::entity entity) const
+        {
+            return Registry.try_get<Ts...>(entity);
         }
         
         template<typename... Ts>
         void Clear() const
         {
-            EntityWorld->Clear<Ts...>();
+            Registry.clear<Ts...>();
         }
 
-        template<bool bAnyOf, typename... Ts>
-        bool Has(entt::entity entity) const
+        template<typename... Ts>
+        bool HasAnyOf(entt::entity EntityID) const
         {
-            return EntityWorld->Has<bAnyOf, Ts...>(entity);
+            return Registry.any_of<Ts...>(EntityID);
+        }
+
+        template<typename ... Ts>
+        bool HasAllOf(entt::entity EntityID) const
+        {
+            return Registry.any_of<Ts...>(EntityID);
         }
 
         template<typename T, typename ... TArgs>
         T& Emplace(entt::entity entity, TArgs&& ... Args)
         {
-            return EntityWorld->Emplace<T>(entity, std::forward<TArgs>(Args)...);
+            return Registry.emplace<T>(entity, std::forward<TArgs>(Args)...);
         }
 
         template<typename T, typename ... TArgs>
         T& EmplaceOrReplace(entt::entity entity, TArgs&& ... Args)
         {
-            return EntityWorld->EmplaceOrReplace<T>(entity, std::forward<TArgs>(Args)...);
+            return Registry.emplace_or_replace<T>(entity, std::forward<TArgs>(Args)...);
         }
 
-        LUMINA_API entt::entity Create(const FName& Name, const FTransform& Transform = FTransform()) const
-        {
-            return EntityWorld->Create(Name, Transform);
-        }
+        LUMINA_API STransformComponent& GetEntityTransform(uint32 Entity);
+        LUMINA_API void MarkEntityTransformDirty(uint32 Entity);
+
+        LUMINA_API entt::entity Create(const FName& Name, const FTransform& Transform = FTransform()) const;
 
         LUMINA_API entt::entity Create() const
         {
-            return EntityWorld->Create();
+            return Registry.create();
         }
 
-        LUMINA_API const CWorld* GetWorld() const
-        {
-            return World;
-        }
-
-        LUMINA_API void SetActiveCamera(entt::entity NewCameraEntity);
-
-
+        
+        
     private:
 
+        void LuaSetActiveCamera(uint32 Entity);
+        sol::table LuaEmplace(uint32 Entity, sol::table Type);
         sol::table MakeLuaView(sol::variadic_args Types);
-
-    public:
-
-        LUMINA_API void SetActiveCamera(entt::entity New) const;
-
-        LUMINA_API void DrawDebugLine(const glm::vec3& Start, const glm::vec3& End, const glm::vec4& Color, float Thickness = 1.0f, float Duration = 1.0f) const;
-        LUMINA_API void DrawDebugBox(const glm::vec3& Center, const glm::vec3& Extents, const glm::quat& Rotation, const glm::vec4& Color, float Thickness = 1.0f, float Duration = 1.0f) const;
-        LUMINA_API void DrawDebugSphere(const glm::vec3& Center, float Radius, const glm::vec4& Color, uint8 Segments = 16, float Thickness = 1.0f, float Duration = 1.0f) const;
-        LUMINA_API void DrawDebugCone(const glm::vec3& Apex, const glm::vec3& Direction, float AngleRadians, float Length, const glm::vec4& Color, uint8 Segments = 16, uint8 Stacks = 4, float Thickness = 1.0f, float Duration = 1.0f) const;
-        LUMINA_API void DrawFrustum(const glm::mat4& Matrix, float zNear, float zFar, const glm::vec4& Color, float Thickness = 1.0f, float Duration = 1.0f) const;
-        LUMINA_API void DrawArrow(const glm::vec3& Start, const glm::vec3& Direction, float Length, const glm::vec4& Color, float Thickness = 1.0f, float Duration = 1.0f, float HeadSize = 0.2f) const;
-        LUMINA_API void DrawViewVolume(const FViewVolume& ViewVolume, const glm::vec4& Color, float Thickness = 1.0f, float Duration = 1.0f) const;
+        void BindLuaEvent(sol::table Table, sol::function Function);
         
     private:
-        
-        CWorld* World = nullptr;
-        FEntityWorld* EntityWorld = nullptr;
+
+        EUpdateStage        UpdateStage = EUpdateStage::FrameStart;
+        double              DeltaTime = 0.0;
+        double              Time = 0.0;
+
+        FEntityRegistry&    Registry;
+        entt::dispatcher    Dispatcher {};
     };
-
-    struct FLuaEntityView
-    {
-        entt::registry* Registry;
-        entt::runtime_view View;
-        bool bTransformOnlyView = false;
-
-
-        void Bake();
-        
-        FLuaEntityView(entt::registry* R, entt::runtime_view&& V)
-            : Registry(R)
-            , View(Move(V))
-        {}
-    };
+    
     
 }

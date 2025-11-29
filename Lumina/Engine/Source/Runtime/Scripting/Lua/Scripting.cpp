@@ -3,12 +3,13 @@
 #include "Events/KeyCodes.h"
 #include "Input/InputProcessor.h"
 #include "Memory/SmartPtr.h"
+#include "Paths/Paths.h"
 #include "World/Entity/Components/TagComponent.h"
 #include "World/Entity/Systems/SystemContext.h"
 
 namespace Lumina::Scripting
 {
-    TUniquePtr<FScriptingContext> GScriptingContext;
+    static TUniquePtr<FScriptingContext> GScriptingContext;
     
     void Initialize()
     {
@@ -44,7 +45,147 @@ namespace Lumina::Scripting
 
     void FScriptingContext::Shutdown()
     {
+        RegisteredScripts.clear();
+    }
+
+    void FScriptingContext::OnScriptReloaded(FStringView ScriptPath)
+    {
+        FScopeLock Lock(Mutex);
+
+        TUniquePtr<FLuaScriptEntry>* FoundEntryPtr = nullptr;
+        for (auto& [Name, PathVector] : RegisteredScripts)
+        {
+            for (size_t i = 0; i < PathVector.size(); ++i)
+            {
+                TUniquePtr<FLuaScriptEntry>& Path = PathVector[i];
+                if (Paths::PathsEqual(ScriptPath, Path->Path))
+                {
+                    FoundEntryPtr = &Path;
+                    break;
+                }
+            }
         
+            if (FoundEntryPtr)
+            {
+                break;
+            }
+        }
+
+        if (FoundEntryPtr)
+        {
+            if (TUniquePtr<FLuaScriptEntry> NewScript = LoadScript(ScriptPath))
+            {
+                *FoundEntryPtr = Move(NewScript);
+                LOG_INFO("Script reloaded: {}", ScriptPath);
+            }
+            else
+            {
+                LOG_ERROR("Failed to reload script: {}", ScriptPath);
+            }
+
+            return;
+        }
+
+        FString ParentPath = Paths::Parent(ScriptPath);
+        Paths::NormalizePath(ParentPath);
+
+        if (TUniquePtr<FLuaScriptEntry> NewScript = LoadScript(ScriptPath))
+        {
+            RegisteredScripts[ParentPath].push_back(Move(NewScript));
+        }
+    }
+
+    void FScriptingContext::OnScriptCreated(FStringView ScriptPath)
+    {
+        FScopeLock Lock(Mutex);
+
+        FString ScriptDirectory = Paths::Parent(ScriptPath);
+        Paths::NormalizePath(ScriptDirectory);
+
+        bool bAlreadyExists = false;
+        for (auto& [Name, PathVector] : RegisteredScripts)
+        {
+            for (size_t i = 0; i < PathVector.size(); ++i)
+            {
+                TUniquePtr<FLuaScriptEntry>& Path = PathVector[i];
+                if (Paths::PathsEqual(ScriptPath, Path->Path))
+                {
+                    bAlreadyExists = true;
+                    break;
+                }
+            }
+        }
+
+        if (bAlreadyExists)
+        {
+            LOG_ERROR("Newly scripted script already exists! {}", ScriptPath);
+            return;
+        }
+
+        if (TUniquePtr<FLuaScriptEntry> NewScript = LoadScript(ScriptPath))
+        {
+            RegisteredScripts[FName(ScriptDirectory)].emplace_back(Move(NewScript));
+        }
+    }
+
+    void FScriptingContext::OnScriptRenamed(FStringView NewPath, FStringView OldPath)
+    {
+        FScopeLock Lock(Mutex);
+        
+
+    }
+
+    void FScriptingContext::OnScriptDeleted(FStringView ScriptPath)
+    {
+        FScopeLock Lock(Mutex);
+
+        for (auto& [Name, PathVector] : RegisteredScripts)
+        {
+            for (size_t i = 0; i < PathVector.size(); ++i)
+            {
+                TUniquePtr<FLuaScriptEntry>& Path = PathVector[i];
+                if (Paths::PathsEqual(ScriptPath, Path->Path))
+                {
+                    PathVector.erase(PathVector.begin() + i);
+                    
+                    LOG_INFO("Script {} Deleted", ScriptPath);
+
+                    break;
+                }
+            }
+        }
+    }
+
+    
+    void FScriptingContext::LoadScriptsInDirectoryRecursively(FStringView Directory)
+    {
+        FScopeLock Lock(Mutex);
+        
+        RegisteredScripts.clear();
+        for (auto& Itr : std::filesystem::recursive_directory_iterator(Directory.data()))
+        {
+            if (Itr.is_directory())
+            {
+                continue;
+            }
+
+            if (Itr.path().extension() == ".lua")
+            {
+                FString ScriptPath = Itr.path().generic_string().c_str();
+                FString ScriptDirectory = Itr.path().parent_path().generic_string().c_str();
+                Paths::NormalizePath(ScriptDirectory);
+
+                if (TUniquePtr<FLuaScriptEntry> NewScript = LoadScript(ScriptPath))
+                {
+                    RegisteredScripts[FName(ScriptDirectory)].emplace_back(Move(NewScript));
+                }
+            }
+        }
+    }
+    
+    const TVector<FScriptEntryHandle>& FScriptingContext::GetScriptsUnderDirectory(FName Directory)
+    {
+        return RegisteredScripts[Directory];
     }
 
     void FScriptingContext::RegisterCoreTypes()
@@ -121,7 +262,10 @@ namespace Lumina::Scripting
             sol::meta_function::subtraction, [](const glm::quat& a, const glm::quat& b){ return a - b; },
             sol::meta_function::multiplication, sol::overload(
                 [](const glm::quat& a, float s){ return a * s; },
-                [](const glm::quat& a, const glm::quat& b){ return a * b; }
+                [](const glm::quat& a, const glm::quat& b){ return a * b; },
+                [](const glm::quat& a, const glm::vec4 b) { return a * b; },
+                [](const glm::quat& a, const glm::vec3 b) { return a * b; }
+
             )
         );
 
@@ -150,25 +294,123 @@ namespace Lumina::Scripting
         );
 
         RegisterLuaConverterByName<STagComponent>("STagComponent");
+
+        State.new_enum("UpdateStage",
+            "FrameStart",       EUpdateStage::FrameStart,
+            "PrePhysics",       EUpdateStage::PrePhysics,
+            "DuringPhysics",    EUpdateStage::DuringPhysics,
+            "PostPhysics",      EUpdateStage::PostPhysics,
+            "FrameEnd",         EUpdateStage::FrameEnd,
+            "Paused",           EUpdateStage::Paused);
         
         FSystemContext::RegisterWithLua(State);
     }
 
     void FScriptingContext::SetupInput()
     {
+
+        State.set_function("print", [&](const sol::variadic_args& args)
+        {
+            FString Output;
+            
+            for (size_t i = 0; i < args.size(); ++i)
+            {
+                sol::object Obj = args[i];
+                
+                // Convert each argument to string
+                if (Obj.is<const char*>())
+                {
+                    Output += Obj.as<const char*>();
+                }
+                else if (Obj.is<double>())
+                {
+                    Output += eastl::to_string(Obj.as<double>());
+                }
+                else if (Obj.is<int>())
+                {
+                    Output += eastl::to_string(Obj.as<int>());
+                }
+                else if (Obj.is<bool>())
+                {
+                    Output += Obj.as<bool>() ? "true" : "false";
+                }
+                else
+                {
+                    sol::optional<FString> Str = State["tostring"](Obj);
+                    Output += Str.has_value() ? Str->c_str() : "[unknown type]";
+                }
+                
+                if (i < args.size() - 1)
+                {
+                    Output += "\t";
+                }
+            }
+            
+            LOG_INFO("[Lua] {}", Output);
+        });
+
+
+        sol::table GLMTable = State.create_named_table("glm");
+        
+        // Vector operations
+        GLMTable.set_function("Normalize", [](glm::vec3 Vec) { return glm::normalize(Vec); });
+        GLMTable.set_function("Length", [](glm::vec3 Vec) { return glm::length(Vec); });
+        GLMTable.set_function("Dot", [](glm::vec3 A, glm::vec3 B) { return glm::dot(A, B); });
+        GLMTable.set_function("Cross", [](glm::vec3 A, glm::vec3 B) { return glm::cross(A, B); });
+        GLMTable.set_function("Distance", [](glm::vec3 A, glm::vec3 B) { return glm::distance(A, B); });
+        GLMTable.set_function("Mix", [](glm::vec3 A, glm::vec3 B, float t) { return glm::mix(A, B, t); });
+        GLMTable.set_function("ClampVec3", [](glm::vec3 V, float Min, float Max) { return glm::clamp(V, Min, Max); });
+        GLMTable.set_function("LerpVec3", [](glm::vec3 A, glm::vec3 B, float t) { return glm::mix(A, B, t); });
+        
+        // Quaternion operations
+        GLMTable.set_function("QuatLookAt", [](glm::vec3 Forward, glm::vec3 Up) { return glm::quatLookAt(Forward, Up); });
+        GLMTable.set_function("QuatRotate", [](glm::quat Q, float AngleRad, glm::vec3 Axis) { return glm::rotate(Q, AngleRad, Axis); });
+        GLMTable.set_function("QuatFromEuler", [](glm::vec3 Euler) { return glm::quat(Euler); });
+        GLMTable.set_function("QuatToEuler", [](glm::quat Q) { return glm::eulerAngles(Q); });
+        GLMTable.set_function("QuatMul", [](glm::quat A, glm::quat B) { return A * B; });
+        GLMTable.set_function("QuatInverse", [](glm::quat Q) { return glm::inverse(Q); });
+        
+        // Matrix operations
+        GLMTable.set_function("LookAt", [](glm::vec3 Eye, glm::vec3 Center, glm::vec3 Up) { return glm::lookAt(Eye, Center, Up); });
+        GLMTable.set_function("Perspective", [](float FOV, float Aspect, float Near, float Far) { return glm::perspective(FOV, Aspect, Near, Far); });
+        GLMTable.set_function("Translate", [](glm::mat4 M, glm::vec3 V) { return glm::translate(M, V); });
+        GLMTable.set_function("Rotate", [](glm::mat4 M, float AngleRad, glm::vec3 Axis) { return glm::rotate(M, AngleRad, Axis); });
+        GLMTable.set_function("Scale", [](glm::mat4 M, glm::vec3 S) { return glm::scale(M, S); });
+        
+        // Math utilities
+        GLMTable.set_function("Radians", [](float Deg) { return glm::radians(Deg); });
+        GLMTable.set_function("Degrees", [](float Rad) { return glm::degrees(Rad); });
+        GLMTable.set_function("ClampFloat", [](float Value, float Min, float Max) { return glm::clamp(Value, Min, Max); });
+        GLMTable.set_function("MixFloat", [](float A, float B, float t) { return glm::mix(A, B, t); });
+        GLMTable.set_function("Lerp", [](float A, float B, float t) { return glm::mix(A, B, t); });
+        GLMTable.set_function("Min", [](float A, float B) { return glm::min(A, B); });
+        GLMTable.set_function("Max", [](float A, float B) { return glm::max(A, B); });
+        GLMTable.set_function("Sign", [](float Value) { return (Value > 0.0f) ? 1.0f : (Value < 0.0f ? -1.0f : 0.0f); });
+
+        // Quaternion constructors
+        GLMTable.set_function("QuatAngleAxis", [](float AngleRad, glm::vec3 Axis) { return glm::angleAxis(AngleRad, Axis); });
+        GLMTable.set_function("QuatAxis", [](glm::quat Q) { return glm::axis(Q); });
+        GLMTable.set_function("QuatAngle", [](glm::quat Q) { return glm::angle(Q); });
+
+        // Quaternion interpolation
+        GLMTable.set_function("QuatSlerp", [](glm::quat A, glm::quat B, float t) { return glm::slerp(A, B, t); });
+
+
+        
+        
         sol::table InputTable = State.create_named_table("Input");
-        InputTable.set_function("GetMouseX", [] () { return FInputProcessor::Get().GetMouseX(); }),
-        InputTable.set_function("GetMouseY", [] () { return FInputProcessor::Get().GetMouseY(); }),
-        InputTable.set_function("GetMouseDeltaX", [] () { return FInputProcessor::Get().GetMouseDeltaX(); }),
-        InputTable.set_function("GetMouseDeltaY", [] () { return FInputProcessor::Get().GetMouseDeltaY(); }),
+        InputTable.set_function("GetMouseX",        [] () { return FInputProcessor::Get().GetMouseX(); }),
+        InputTable.set_function("GetMouseY",        [] () { return FInputProcessor::Get().GetMouseY(); }),
+        InputTable.set_function("GetMouseDeltaX",   [] () { return FInputProcessor::Get().GetMouseDeltaX(); }),
+        InputTable.set_function("GetMouseDeltaY",   [] () { return FInputProcessor::Get().GetMouseDeltaY(); }),
         
-        InputTable.set_function("EnableCursor", [] () { FInputProcessor::Get().SetCursorMode(GLFW_CURSOR_NORMAL); }),
-        InputTable.set_function("DisableCursor", [] () { FInputProcessor::Get().SetCursorMode(GLFW_CURSOR_DISABLED); }),
-        InputTable.set_function("HideCursor", [] () { FInputProcessor::Get().SetCursorMode(GLFW_CURSOR_HIDDEN); }),
+        InputTable.set_function("EnableCursor",     [] () { FInputProcessor::Get().SetCursorMode(GLFW_CURSOR_NORMAL); }),
+        InputTable.set_function("DisableCursor",    [] () { FInputProcessor::Get().SetCursorMode(GLFW_CURSOR_DISABLED); }),
+        InputTable.set_function("HideCursor",       [] () { FInputProcessor::Get().SetCursorMode(GLFW_CURSOR_HIDDEN); }),
         
-        InputTable.set_function("IsKeyDown", [] (uint32 Key) { return FInputProcessor::Get().IsKeyDown((EKeyCode)Key); }),
-        InputTable.set_function("IsKeyUp", [] (uint32 Key) { return FInputProcessor::Get().IsKeyUp((EKeyCode)Key); }),
-        InputTable.set_function("IsKeyRepeated", [] (uint32 Key) { return FInputProcessor::Get().IsKeyRepeated((EKeyCode)Key); }),
+        InputTable.set_function("IsKeyDown",        [] (EKeyCode Key) { return FInputProcessor::Get().IsKeyDown(Key); }),
+        InputTable.set_function("IsKeyUp",          [] (EKeyCode Key) { return FInputProcessor::Get().IsKeyUp(Key); }),
+        InputTable.set_function("IsKeyRepeated",    [] (EKeyCode Key) { return FInputProcessor::Get().IsKeyRepeated(Key); }),
         
         InputTable.new_enum("Key",
             "Space",        EKeyCode::Space,
@@ -302,7 +544,7 @@ namespace Lumina::Scripting
             "Menu",         EKeyCode::Menu
         );
     }
-
+    
     sol::object FScriptingContext::ConvertToSolObjectFromName(FName Name, const sol::state_view& View, void* Data)
     {
         LUMINA_PROFILE_SCOPE();
@@ -340,5 +582,41 @@ namespace Lumina::Scripting
         }
 
         return it->second.From(Object);
+    }
+
+    TUniquePtr<FLuaScriptEntry> FScriptingContext::LoadScript(FStringView ScriptPath, bool bFailSilently)
+    {
+        sol::environment Environment(State, sol::create, State.globals());
+    
+        sol::protected_function_result Result = State.safe_script_file(ScriptPath.data(), Environment);
+        if (!Result.valid())
+        {
+            sol::error Error = Result;
+            if (!bFailSilently)
+            {
+                LOG_ERROR("[Sol] - Error loading script! {}", Error.what());
+            }
+            return nullptr;
+        }
+    
+        sol::object ReturnedObject = Result;
+        if (!ReturnedObject.is<sol::table>())
+        {
+            if (!bFailSilently)
+            {
+                LOG_ERROR("[Sol] Script {} did not return a table", ScriptPath);
+            }
+            return nullptr;
+        }
+
+        OnScriptLoaded.Broadcast();
+
+        TUniquePtr<FLuaScriptEntry> Entry = MakeUniquePtr<FLuaScriptEntry>();
+        Entry->Path = ScriptPath;
+        Entry->Environment = Environment;
+        Entry->Table = ReturnedObject.as<sol::table>();
+        Entry->Type = ELuaScriptType::System;
+        
+        return Entry;
     }
 }

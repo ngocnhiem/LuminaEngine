@@ -15,17 +15,14 @@
 #include "Core/Windows/Window.h"
 #include "EASTL/sort.h"
 #include "Paths/Paths.h"
+#include "Platform/Filesystem/FileHelper.h"
 #include "Platform/Process/PlatformProcess.h"
 #include "Project/Project.h"
-#include "Renderer/RenderManager.h"
 #include "TaskSystem/TaskSystem.h"
 #include "thumbnails/thumbnailmanager.h"
 #include "Tools/Dialogs/Dialogs.h"
 #include "Tools/Import/ImportHelpers.h"
-#include "Tools/UI/ImGui/ImGuiMemoryEditor.h"
-#include "Tools/UI/ImGui/ImGuiRenderer.h"
 #include "Tools/UI/ImGui/ImGuiX.h"
-#include "UI/EditorUI.h"
 
 namespace Lumina
 {
@@ -82,6 +79,14 @@ namespace Lumina
     {
         using namespace Import::Textures;
 
+        (void)GEngine->GetEngineSubsystem<FAssetRegistry>()->GetOnAssetRegistryUpdated().AddMember(this, &FContentBrowserEditorTool::RefreshContentBrowser);
+        (void)GEditorEngine->GetProject().OnProjectLoaded.AddMember(this, &FContentBrowserEditorTool::OnProjectLoaded);
+
+        if (GEditorEngine->GetProject().HasLoadedProject())
+        {
+            SelectedPath = GEditorEngine->GetProject().GetProjectContentDirectory();
+        }
+
         for (TObjectIterator<CFactory> It; It; ++It)
         {
             CFactory* Factory = *It;
@@ -107,10 +112,6 @@ namespace Lumina
 
             DrawContentBrowser(Contxt, bIsFocused, ImVec2(Right, 0));
         });
-        
-        SelectedPath = GEditorEngine->GetProject().GetProjectContentDirectory().c_str();
-
-        (void)GEngine->GetEngineSubsystem<FAssetRegistry>()->GetOnAssetRegistryUpdated().AddMember(this, &FContentBrowserEditorTool::RefreshContentBrowser);
         
         ContentBrowserTileViewContext.DragDropFunction = [this] (FTileViewItem* DropItem)
         {
@@ -140,38 +141,31 @@ namespace Lumina
         {
             FContentBrowserTileViewItem* ContentItem = static_cast<FContentBrowserTileViewItem*>(Item);
             
-            ImTextureRef ImTexture = ImGuiX::ToImTextureRef(Paths::GetEngineResourceDirectory() + "/Textures/Folder.png");
-        
             ImVec4 TintColor = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+            ImTextureRef ImTexture = ImGuiX::ToImTextureRef(Paths::GetEngineResourceDirectory() + "/Textures/File.png");
             
             if (!ContentItem->IsDirectory())
             {
-                if (ContentItem->GetAssetData().IsRedirector())
+                if (ContentItem->IsAsset())
                 {
-                    ImTexture = ImGuiX::ToImTextureRef(Paths::GetEngineResourceDirectory() + "/Textures/Redirect.png");
-                    TintColor = ImVec4(0.7f, 0.7f, 1.0f, 1.0f);
-                }
-                else
-                {
-                    if (CPackage* Package =ContentItem->GetPackage())
+                    if (ContentItem->GetAssetData().IsRedirector())
+                    {
+                        ImTexture = ImGuiX::ToImTextureRef(Paths::GetEngineResourceDirectory() + "/Textures/Redirect.png");
+                        TintColor = ImVec4(0.7f, 0.7f, 1.0f, 1.0f);
+                    }
+                    else if (CPackage* Package = ContentItem->GetPackage())
                     {
                         if (Package->GetPackageThumbnail()->LoadedImage)
                         {
-                            ImTexture = GEngine->GetEngineSubsystem<FRenderManager>()->GetImGuiRenderer()->GetOrCreateImTexture(Package->GetPackageThumbnail()->LoadedImage);
+                            ImTexture = ImGuiX::ToImTextureRef(Package->GetPackageThumbnail()->LoadedImage);
                         }
-                        else
-                        {
-                            ImTexture = ImGuiX::ToImTextureRef(Paths::GetEngineResourceDirectory() + "/Textures/SkeletalMeshIcon.png");
-                        }
-                    }
-                    else
-                    {
-                        ImTexture = ImGuiX::ToImTextureRef(Paths::GetEngineResourceDirectory() + "/Textures/SkeletalMeshIcon.png");
                     }
                 }
             }
             else
             {
+                ImTexture = ImGuiX::ToImTextureRef(Paths::GetEngineResourceDirectory() + "/Textures/Folder.png");
                 TintColor = ImVec4(1.0f, 0.9f, 0.6f, 1.0f);
             }
             
@@ -225,12 +219,16 @@ namespace Lumina
                 SelectedPath = ContentItem->GetPath();
                 RefreshContentBrowser();
             }
-            else
+            else if (ContentItem->IsAsset())
             {
                 FString QualifiedName = ContentItem->GetAssetData().FullPath.ToString();
 
                 CObject* Asset = LoadObject<CObject>(nullptr, QualifiedName);
                 ToolContext->OpenAssetEditor(Asset);
+            }
+            else if (ContentItem->IsLuaScript())
+            {
+                ToolContext->OpenScriptEditor(ContentItem->GetPath());
             }
         };
         
@@ -241,195 +239,19 @@ namespace Lumina
             for (FTileViewItem* Item : Items)
             {
                 FContentBrowserTileViewItem* ContentItem = static_cast<FContentBrowserTileViewItem*>(Item);
-                
-                if (!bMultipleItems)
-                {
-                    if (!ContentItem->IsDirectory() && !ContentItem->GetAssetData().IsRedirector())
-                    {
-                        if (ImGui::MenuItem(LE_ICON_FOLDER_OPEN " Open", "Double-Click"))
-                        {
-                            FString QualifiedName = ContentItem->GetAssetData().FullPath.ToString();
-                            CObject* Asset = LoadObject<CObject>(nullptr, QualifiedName);
-                            ToolContext->OpenAssetEditor(Asset);
-                        }
-                        ImGui::Separator();
-                    }
-                    
-                    if (ContentItem->GetAssetData().IsRedirector())
-                    {
-                        ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 200, 100, 255));
-                        if (ImGui::MenuItem(LE_ICON_TOOLBOX " Fix Redirector"))
-                        {
-                            // Fixup redirector logic
-                        }
-                        ImGui::PopStyleColor();
-                        ImGui::Separator();
-                    }
-                }
-                
-                if (!bMultipleItems)
-                {
-                    if (ImGui::MenuItem(LE_ICON_ARCHIVE_EDIT " Rename", "F2"))
-                    {
-                        auto RenameState = MakeSharedPtr<FRenameModalState>();
-                
-                        ToolContext->PushModal("Rename Asset", ImVec2(400.0f, 180.0f), [this, ContentItem, RenameState](const FUpdateContext&) -> bool
-                        {
-                            RenameState->Initialize(ContentItem->GetFileName());
-        
-                            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Enter new name:");
-                            ImGui::Spacing();
-                            
-                            ImGui::SetKeyboardFocusHere();
-                            ImGui::SetNextItemWidth(-1);
-                            
-                            bool bSubmitted = ImGui::InputText("##RenameInput", RenameState->Buffer, sizeof(RenameState->Buffer), 
-                                ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue);
-        
-                            ImGui::Spacing();
-                            
-                            // Validation feedback
-                            if (!ContentItem->IsDirectory() && strlen(RenameState->Buffer) > 0)
-                            {
-                                FString TestAssetName = ContentItem->GetAssetData().PackageName.ToString() + "." + RenameState->Buffer;
-                                if (CObject* TestObject = FindObject<CObject>(nullptr, TestAssetName))
-                                {
-                                    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 100, 100, 255));
-                                    ImGui::TextWrapped(LE_ICON_ALERT_OCTAGON " Asset already exists: %s", *TestObject->GetQualifiedName());
-                                    ImGui::PopStyleColor();
-                                    
-                                    ImGui::Spacing();
-                                    if (ImGui::Button("Cancel", ImVec2(-1, 0)))
-                                    {
-                                        return true;
-                                    }
-                                    return false;
-                                }
-                            }
-                            
-                            if (bSubmitted && strlen(RenameState->Buffer) > 0)
-                            {
-                                FString NewPath = Paths::Parent(ContentItem->GetPath()) + "/" + RenameState->Buffer;
 
-                                PendingRenames.emplace_back(FPendingRename{ContentItem->GetPath(), NewPath});
-                                RenameState->Reset();
-                                return true;
-                            }
-        
-                            // Action buttons
-                            ImGui::Spacing();
-                            ImGui::Separator();
-                            ImGui::Spacing();
-                            
-                            float buttonWidth = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
-                            
-                            bool bCanRename = strlen(RenameState->Buffer) > 0;
-                            if (!bCanRename)
-                            {
-                                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
-                                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-                            }
-                            
-                            if (ImGui::Button("Rename", ImVec2(buttonWidth, 0)))
-                            {
-                                if (bCanRename)
-                                {
-                                    FString NewPath = Paths::Parent(ContentItem->GetPath()) + "/" + RenameState->Buffer;
-                                    PendingRenames.emplace_back(FPendingRename{ContentItem->GetPath(), NewPath});
-                                    RenameState->Reset();
-                                    return true;
-                                }
-                            }
-                            
-                            if (!bCanRename)
-                            {
-                                ImGui::PopItemFlag();
-                                ImGui::PopStyleVar();
-                            }
-                            
-                            ImGui::SameLine();
-                            if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0)))
-                            {
-                                return true;
-                            }
+                if (bMultipleItems)
+                {
+                    continue;
+                }
 
-                            return false;
-                        });
-                    }
-                    
-                    ImGui::Separator();
-                }
-                
-                if (ImGui::MenuItem(LE_ICON_FOLDER " Show in Explorer", nullptr, false, !bMultipleItems))
+                if (ContentItem->IsAsset())
                 {
-                    FString PackagePath = ContentItem->GetPath();
-                    PackagePath = Paths::Parent(PackagePath);
-                    Platform::LaunchURL(StringUtils::ToWideString(PackagePath).c_str());
+                    DrawAssetContextMenu(ContentItem);
                 }
-                
-                if (ImGui::MenuItem(LE_ICON_CONTENT_COPY " Copy Path", nullptr, false, !bMultipleItems))
+                else if (ContentItem->IsLuaScript())
                 {
-                    ImGui::SetClipboardText(ContentItem->GetPath().c_str());
-                    ImGuiX::Notifications::NotifyInfo("Path copied to clipboard");
-                }
-                
-                ImGui::Separator();
-                
-                ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 100, 100, 255));
-                bool bDeleteClicked = ImGui::MenuItem(LE_ICON_ALERT_OCTAGON " Delete", "Del");
-                ImGui::PopStyleColor();
-                
-                if (bDeleteClicked)
-                {
-                    FString ConfirmMessage = bMultipleItems ?
-                        std::format("Are you sure you want to delete {0} items?", Items.size()).c_str() :
-                        std::format("Are you sure you want to delete \"{0}\"?\n\nThis action cannot be undone.", ContentItem->GetFileName().c_str()).c_str();
-                    
-                    if (Dialogs::Confirmation("Confirm Deletion", ConfirmMessage.c_str()))
-                    {
-                        try
-                        {
-                            FString PackagePath = ContentItem->GetPath();
-                            bool bWasSuccessful = false;
-        
-                            if (std::filesystem::is_directory(PackagePath.c_str()))
-                            {
-                                if (std::filesystem::is_empty(PackagePath.c_str()))
-                                {
-                                    std::filesystem::remove(PackagePath.c_str());
-                                    bWasSuccessful = true;
-                                    RefreshContentBrowser();   
-                                }
-                            }
-                            else
-                            {
-                                FString ObjectName = ContentItem->GetFileName();
-                                FString QualifiedName = ContentItem->GetVirtualPath() + "." + ObjectName;
-        
-                                if (CObject* AliveObject = FindObject<CObject>(nullptr, QualifiedName))
-                                {
-                                    ToolContext->OnDestroyAsset(AliveObject);
-                                    bWasSuccessful = true;
-                                }
-
-                                PendingDestroy.emplace_back(FPendingDestroy{PackagePath});
-                            }
-        
-                            if (bWasSuccessful)
-                            {
-                                ImGuiX::Notifications::NotifySuccess("Deleted \"%s\"", ContentItem->GetFileName().c_str());
-                            }
-                            else
-                            {
-                                ImGuiX::Notifications::NotifyError("Failed to delete \"%s\"", ContentItem->GetFileName().c_str());
-                            }
-                        }
-                        catch (const std::filesystem::filesystem_error& e)
-                        {
-                            LOG_ERROR("Failed to delete file: {0}", e.what());
-                            ImGuiX::Notifications::NotifyError("Deletion failed: %s", e.what());
-                        }
-                    }
+                    DrawLuaScriptContextMenu(ContentItem);
                 }
             }
         };
@@ -456,29 +278,40 @@ namespace Lumina
                     ContentBrowserTileView.AddItemToTree<FContentBrowserTileViewItem>(nullptr, Directory, nullptr);
                 }
 
-                FString FullPath = Paths::ConvertToVirtualPath(SelectedPath);
-                TVector<FAssetData*> Assets = GEngine->GetEngineSubsystem<FAssetRegistry>()->GetAssetsForPath(FullPath);
-                
-                eastl::sort(Assets.begin(), Assets.end(), [](const FAssetData* A, const FAssetData* B)
+                if (Paths::IsUnderDirectory(GEditorEngine->GetProject().GetProjectScriptsDirectory(), SelectedPath))
                 {
-                    return A->AssetName.ToString() > B->AssetName.ToString();
-                });
-
-                Task::ParallelFor(Assets.size(), 1, [&](uint32 Index)
-                {
-                    FAssetData* Asset = Assets[Index];
-                    FString PackageFullPath = Paths::ResolveVirtualPath(Asset->PackageName.ToString());
-                    CThumbnailManager::Get().TryLoadThumbnailsForPackage(PackageFullPath);
-                });
-                
-                for (FAssetData* Asset : Assets)
-                {
-                    FName ShortClassName = Paths::GetExtension(Asset->AssetClass.ToString());
-                    if (FilterState.count(ShortClassName) && FilterState.at(ShortClassName))
+                    const TVector<Scripting::FScriptEntryHandle>& Scripts = Scripting::FScriptingContext::Get().GetScriptsUnderDirectory(SelectedPath);
+                    for (const Scripting::FScriptEntryHandle& Script : Scripts)
                     {
-                        FullPath = Paths::ResolveVirtualPath(Asset->FullPath.ToString());
-                        ContentBrowserTileView.AddItemToTree<FContentBrowserTileViewItem>(nullptr, std::move(FullPath), Asset);
+                        ContentBrowserTileView.AddItemToTree<FContentBrowserTileViewItem>(nullptr, Script->Path, nullptr);
                     }
+                }
+                else
+                {
+                    FString FullPath = Paths::ConvertToVirtualPath(SelectedPath);
+                    TVector<FAssetData*> Assets = GEngine->GetEngineSubsystem<FAssetRegistry>()->GetAssetsForPath(FullPath);
+                
+                    eastl::sort(Assets.begin(), Assets.end(), [](const FAssetData* A, const FAssetData* B)
+                    {
+                        return A->AssetName.ToString() > B->AssetName.ToString();
+                    });
+
+                    Task::ParallelFor(Assets.size(), Assets.size(), [&](uint32 Index)
+                    {
+                        FAssetData* Asset = Assets[Index];
+                        FString PackageFullPath = Paths::ResolveVirtualPath(Asset->PackageName.ToString());
+                        CThumbnailManager::Get().TryLoadThumbnailsForPackage(PackageFullPath);
+                    });
+                
+                    for (FAssetData* Asset : Assets)
+                    {
+                        FName ShortClassName = Paths::GetExtension(Asset->AssetClass.ToString());
+                        if (FilterState.count(ShortClassName) && FilterState.at(ShortClassName))
+                        {
+                            FullPath = Paths::ResolveVirtualPath(Asset->FullPath.ToString());
+                            ContentBrowserTileView.AddItemToTree<FContentBrowserTileViewItem>(nullptr, Move(FullPath), Asset);
+                        }
+                    }   
                 }
             }
         };
@@ -642,7 +475,7 @@ namespace Lumina
             }
             else
             {
-                //... Moving all assets in a folder :(
+                //...TODO Moving all assets in a folder :(
             }
         }
 
@@ -654,6 +487,44 @@ namespace Lumina
             PendingRenames.emplace_back(FPendingRename{OldPath, NewPath});
         }
     }
+
+    void FContentBrowserEditorTool::OnProjectLoaded()
+    {
+        SelectedPath = GEditorEngine->GetProject().GetProjectGameDirectory();
+        
+        Watcher.Stop();
+        Watcher.Watch(GEditorEngine->GetProject().GetProjectScriptsDirectory(), [&](const FFileEvent& Event)
+        {
+            switch (Event.Action)
+            {
+            case EFileAction::Added:
+                {
+                    Scripting::FScriptingContext::Get().OnScriptCreated(Event.Path);
+                    RefreshContentBrowser();
+                }
+                break;
+            case EFileAction::Modified:
+                {
+                    Scripting::FScriptingContext::Get().OnScriptReloaded(Event.Path);
+                    RefreshContentBrowser();
+                }
+                break;
+            case EFileAction::Removed:
+                {
+                    Scripting::FScriptingContext::Get().OnScriptDeleted(Event.Path);
+                    RefreshContentBrowser();
+                }
+                break;
+            case EFileAction::Renamed:
+                {
+                    Scripting::FScriptingContext::Get().OnScriptRenamed(Event.Path, Event.OldPath);
+                    RefreshContentBrowser();
+                }
+                break;
+            }
+        });
+    }
+    
 
     void FContentBrowserEditorTool::TryImport(const FString& Path)
     {
@@ -722,7 +593,6 @@ namespace Lumina
 
     void FContentBrowserEditorTool::DrawContentBrowser(const FUpdateContext& Context, bool bIsFocused, ImVec2 Size)
     {
-        FString Path = Paths::GetEngineResourceDirectory();
         constexpr float Padding = 10.0f;
 
         ImVec2 AdjustedSize = ImVec2(Size.x - 2 * Padding, Size.y - 2 * Padding);
@@ -740,185 +610,63 @@ namespace Lumina
         
         if (ImGui::BeginPopup("ContentContextMenu"))
         {
+            const char* FolderIcon = LE_ICON_FOLDER;
+            FString MenuItemName = FString(FolderIcon) + " " + "New Folder";
+            if (ImGui::MenuItem(MenuItemName.c_str()))
             {
-                const char* FolderIcon = LE_ICON_FOLDER;
-                FString MenuItemName = FString(FolderIcon) + " " + "New Folder";
-                if (ImGui::MenuItem(MenuItemName.c_str()))
-                {
-                    FString PathString = FString(SelectedPath + "/NewFolder");
-                    PathString = Paths::MakeUniquePath(PathString);
-                    std::filesystem::create_directory(PathString.c_str());
-                    RefreshContentBrowser();
-                }
-            }
-            
-            {
-                const char* ImportIcon = LE_ICON_FILE_IMPORT;
-                FString MenuItemName = FString(ImportIcon) + " " + "Import Asset";
-                if (ImGui::MenuItem(MenuItemName.c_str()))
-                {
-                    FString SelectedFile;
-                    const char* Filter = "Supported Assets (*.png;*.jpg;*.fbx;*.gltf;*.glb)\0*.png;*.jpg;*.fbx;*.gltf;*.glb\0All Files (*.*)\0*.*\0";
-                    if (Platform::OpenFileDialogue(SelectedFile, "Import Asset", Filter))
-                    {
-                        TVector<CAssetDefinition*> Definitions;
-                        CAssetDefinitionRegistry::Get()->GetAssetDefinitions(Definitions);
-                        for (CAssetDefinition* Definition : Definitions)
-                        {
-                            if (!Definition->CanImport())
-                            {
-                                continue;
-                            }
-
-                            FString Ext = Paths::GetExtension(SelectedFile);
-                            if (!Definition->IsExtensionSupported(Ext))
-                            {
-                                continue;
-                            }
-                        
-                            CFactory* Factory = Definition->GetFactory();
-                        
-                            FString NoExtFileName = Paths::FileName(SelectedFile, true);
-                            FString PathString = Paths::Combine(SelectedPath.c_str(), NoExtFileName.c_str());
-                        
-                            Paths::AddPackageExtension(PathString);
-                            PathString = CPackage::MakeUniquePackagePath(PathString);
-                            PathString = Paths::RemoveExtension(PathString);
-                        
-                            if (Factory->HasImportDialogue())
-                            {
-                                ToolContext->PushModal("Import", {700, 800}, [this, Factory, SelectedFile, PathString](const FUpdateContext& DrawContext)
-                                {
-                                    bool bShouldClose = CFactory::ShowImportDialogue(Factory, SelectedFile, PathString);
-                                    if (bShouldClose)
-                                    {
-                                        ImGuiX::Notifications::NotifySuccess("Successfully Imported: \"%s\"", PathString.c_str());
-                                    }
-                            
-                                    return bShouldClose;
-                                });
-                            }
-                            else
-                            {
-                                Task::AsyncTask(1, 1, [this, Factory, SelectedFile, PathString] (uint32 Start, uint32 End, uint32 ThreadNum_)
-                                {
-                                    Factory->TryImport(SelectedFile, PathString);
-                                    ImGuiX::Notifications::NotifySuccess("Successfully Imported: \"%s\"", PathString.c_str());
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-            
-            
-            const char* FileIcon = LE_ICON_PLUS;
-            const char* File = "New Asset";
-
-            ImGui::Separator();
-            
-            FString MenuItemName = FString(FileIcon) + " " + File;
-
-            if (ImGui::BeginMenu(MenuItemName.c_str()))
-            {
-                TVector<CAssetDefinition*> Definitions;
-                CAssetDefinitionRegistry::Get()->GetAssetDefinitions(Definitions);
-                for (CAssetDefinition* Definition : Definitions)
-                {
-                    if (Definition->CanImport())
-                    {
-                        continue;
-                    }
-                    
-                    FString DisplayName = Definition->GetAssetDisplayName();
-                    if (ImGui::MenuItem(DisplayName.c_str()))
-                    {
-                        CFactory* Factory = Definition->GetFactory();
-                        FString PathString = Paths::Combine(SelectedPath.c_str(), Factory->GetDefaultAssetCreationName(PathString).c_str());
-                        Paths::AddPackageExtension(PathString);
-                        PathString = CPackage::MakeUniquePackagePath(PathString);
-                        PathString = Paths::RemoveExtension(PathString);
-
-                        if (Factory->HasCreationDialogue())
-                        {
-                            ToolContext->PushModal("Create New", {500, 500}, [this, Factory, PathString](const FUpdateContext& DrawContext)
-                            {
-                                bool bShouldClose = CFactory::ShowCreationDialogue(Factory, PathString);
-                                if (bShouldClose)
-                                {
-                                    ImGuiX::Notifications::NotifySuccess("Successfully Created: \"%s\"", PathString.c_str());
-                                }
-                        
-                                return bShouldClose;
-                            });
-                        }
-                        else
-                        {
-                            CObject* Object = Factory->TryCreateNew(PathString);
-                            if (Object)
-                            {
-                                ImGuiX::Notifications::NotifySuccess("Successfully Created: \"%s\"", PathString.c_str());
-                            }
-                            else
-                            {
-                                ImGuiX::Notifications::NotifyError("Failed to create new: \"%s\"", PathString.c_str());
-
-                            }
-                        }
-                    }
-                }
-                
-                ImGui::EndMenu();
+                FString PathString = FString(SelectedPath + "/NewFolder");
+                PathString = Paths::MakeUniquePath(PathString);
+                std::filesystem::create_directory(PathString.c_str());
+                RefreshContentBrowser();
             }
 
+            if (Paths::IsUnderDirectory(GEditorEngine->GetProject().GetProjectScriptsDirectory(), SelectedPath))
+            {
+                DrawScriptsDirectoryContextMenu();
+            }
+            else
+            {
+                DrawContentDirectoryContextMenu();
+            }
+            
             ImGui::EndPopup();
         }
         
 
         ImGui::BeginHorizontal("Breadcrumbs");
 
-        std::filesystem::path SelectedFSPath = SelectedPath.c_str();
-        std::filesystem::path current;
-        bool bStarted = false;
-
-        for (auto it = SelectedFSPath.begin(); it != SelectedFSPath.end(); ++it)
+        auto gameDirPos = SelectedPath.find("Game");
+        if (gameDirPos != std::string::npos)
         {
-            if (!bStarted)
-            {
-                if (it->string() == "Content")
-                {
-                    bStarted = true;
-                    current /= *it;
-                }
-                else
-                {
-                    continue;
-                }
-            }
-            else
-            {
-                current /= *it;
-            }
-
-            ImGui::PushID((int)std::distance(SelectedFSPath.begin(), it));
-            {
-                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 2));
-                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2, 0));
-                if (ImGui::Button(it->string().c_str()))
-                {
-                    SelectedPath = current.generic_string().c_str();
-                    ContentBrowserTileView.MarkTreeDirty();
-                }
-                ImGui::PopStyleVar(2);
-            }
-            ImGui::PopID();
-
-            auto next = it;
-            ++next;
+            FString BasePathStr = SelectedPath.substr(0, gameDirPos);
+            std::filesystem::path BasePath(BasePathStr.c_str());
+            std::filesystem::path RelativePath = std::filesystem::path(SelectedPath.c_str()).lexically_relative(BasePath);
     
-            if (next != SelectedFSPath.end())
+            std::filesystem::path BuildingPath = BasePath;
+    
+            for (auto it = RelativePath.begin(); it != RelativePath.end(); ++it)
             {
-                ImGui::TextUnformatted(LE_ICON_ARROW_RIGHT);
+                BuildingPath /= *it;
+        
+                ImGui::PushID((int)std::distance(RelativePath.begin(), it));
+                {
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 2));
+                    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2, 0));
+            
+                    if (ImGui::Button(it->string().c_str()))
+                    {
+                        SelectedPath = BuildingPath.generic_string().c_str();
+                        ContentBrowserTileView.MarkTreeDirty();
+                    }
+            
+                    ImGui::PopStyleVar(2);
+                }
+                ImGui::PopID();
+        
+                if (std::next(it) != RelativePath.end())
+                {
+                    ImGui::TextUnformatted(LE_ICON_ARROW_RIGHT);
+                }
             }
         }
 
@@ -950,5 +698,352 @@ namespace Lumina
         
         ImGui::EndChild();
     
+    }
+
+    void FContentBrowserEditorTool::DrawLuaScriptContextMenu(const FContentBrowserTileViewItem* ContentItem)
+    {
+
+        if (ImGui::MenuItem(LE_ICON_OPEN_IN_APP " Open"))
+        {
+            Platform::LaunchURL(StringUtils::ToWideString(ContentItem->GetPath()).c_str());
+        }
+        
+        if (ImGui::MenuItem(LE_ICON_ARCHIVE_EDIT " Rename", "F2"))
+        {
+            
+        }
+        
+
+        ImGui::Separator();
+        
+        if (ImGui::MenuItem(LE_ICON_FOLDER " Show in Explorer", nullptr, false))
+        {
+            FString ParentPath = ContentItem->GetPath();
+            ParentPath = Paths::Parent(ParentPath);
+            Platform::LaunchURL(StringUtils::ToWideString(ParentPath).c_str());
+        }
+        
+        if (ImGui::MenuItem(LE_ICON_CONTENT_COPY " Copy Path", nullptr, false))
+        {
+            ImGui::SetClipboardText(ContentItem->GetPath().c_str());
+            ImGuiX::Notifications::NotifyInfo("Path copied to clipboard");
+        }
+        
+        ImGui::Separator();
+
+        ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 100, 100, 255));
+        bool bDeleteClicked = ImGui::MenuItem(LE_ICON_ALERT_OCTAGON " Delete", "Del");
+        ImGui::PopStyleColor();
+
+        if (bDeleteClicked)
+        {
+            FString ConfirmMessage = std::format("Are you sure you want to delete \"{0}\"?\n\nThis action cannot be undone.", ContentItem->GetFileName().c_str()).c_str();
+            
+            if (Dialogs::Confirmation("Confirm Deletion", ConfirmMessage.c_str()))
+            {
+                if (std::filesystem::is_directory(ContentItem->GetPath().c_str()))
+                {
+                    if (std::filesystem::is_empty(ContentItem->GetPath().c_str()))
+                    {
+                        try
+                        {
+                            std::filesystem::remove(ContentItem->GetPath().c_str());
+                            RefreshContentBrowser();
+                        }
+                        catch (const std::filesystem::filesystem_error& e)
+                        {
+                            LOG_ERROR("Failed to delete file: {0}", e.what());
+                            ImGuiX::Notifications::NotifyError("Deletion failed: %s", e.what());
+                        }
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        std::filesystem::remove(ContentItem->GetPath().c_str());
+                        RefreshContentBrowser();
+                    }
+                    catch (const std::filesystem::filesystem_error& e)
+                    {
+                        LOG_ERROR("Failed to delete file: {0}", e.what());
+                        ImGuiX::Notifications::NotifyError("Deletion failed: %s", e.what());
+                    }   
+                }
+            }
+        }
+    }
+
+    void FContentBrowserEditorTool::DrawAssetContextMenu(FContentBrowserTileViewItem* ContentItem)
+    {
+        if (ImGui::MenuItem(LE_ICON_ARCHIVE_EDIT " Rename", "F2"))
+        {
+            auto RenameState = MakeSharedPtr<FRenameModalState>();
+        
+            ToolContext->PushModal("Rename Asset", ImVec2(400.0f, 180.0f), [this, ContentItem, RenameState](const FUpdateContext&) -> bool
+            {
+                RenameState->Initialize(ContentItem->GetFileName());
+        
+                ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Enter new name:");
+                ImGui::Spacing();
+                
+                ImGui::SetKeyboardFocusHere();
+                ImGui::SetNextItemWidth(-1);
+                
+                bool bSubmitted = ImGui::InputText("##RenameInput", RenameState->Buffer, sizeof(RenameState->Buffer), 
+                    ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue);
+        
+                ImGui::Spacing();
+                
+                // Validation feedback
+                if (!ContentItem->IsDirectory() && strlen(RenameState->Buffer) > 0)
+                {
+                    FString TestAssetName = ContentItem->GetAssetData().PackageName.ToString() + "." + RenameState->Buffer;
+                    if (CObject* TestObject = FindObject<CObject>(nullptr, TestAssetName))
+                    {
+                        ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 100, 100, 255));
+                        ImGui::TextWrapped(LE_ICON_ALERT_OCTAGON " Asset already exists: %s", *TestObject->GetQualifiedName());
+                        ImGui::PopStyleColor();
+                        
+                        ImGui::Spacing();
+                        if (ImGui::Button("Cancel", ImVec2(-1, 0)))
+                        {
+                            return true;
+                        }
+                        return false;
+                    }
+                }
+                
+                if (bSubmitted && strlen(RenameState->Buffer) > 0)
+                {
+                    FString NewPath = Paths::Parent(ContentItem->GetPath()) + "/" + RenameState->Buffer;
+
+                    PendingRenames.emplace_back(FPendingRename{ContentItem->GetPath(), NewPath});
+                    RenameState->Reset();
+                    return true;
+                }
+        
+                // Action buttons
+                ImGui::Spacing();
+                ImGui::Separator();
+                ImGui::Spacing();
+                
+                float buttonWidth = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+                
+                bool bCanRename = strlen(RenameState->Buffer) > 0;
+                if (!bCanRename)
+                {
+                    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
+                    ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                }
+                
+                if (ImGui::Button("Rename", ImVec2(buttonWidth, 0)))
+                {
+                    if (bCanRename)
+                    {
+                        FString NewPath = Paths::Parent(ContentItem->GetPath()) + "/" + RenameState->Buffer;
+                        PendingRenames.emplace_back(FPendingRename{ContentItem->GetPath(), NewPath});
+                        RenameState->Reset();
+                        return true;
+                    }
+                }
+                
+                if (!bCanRename)
+                {
+                    ImGui::PopItemFlag();
+                    ImGui::PopStyleVar();
+                }
+                
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0)))
+                {
+                    return true;
+                }
+
+                return false;
+            });
+        }
+                    
+        ImGui::Separator();
+        
+        if (ImGui::MenuItem(LE_ICON_FOLDER " Show in Explorer", nullptr, false))
+        {
+            FString PackagePath = ContentItem->GetPath();
+            PackagePath = Paths::Parent(PackagePath);
+            Platform::LaunchURL(StringUtils::ToWideString(PackagePath).c_str());
+        }
+        
+        if (ImGui::MenuItem(LE_ICON_CONTENT_COPY " Copy Path", nullptr, false))
+        {
+            ImGui::SetClipboardText(ContentItem->GetPath().c_str());
+            ImGuiX::Notifications::NotifyInfo("Path copied to clipboard");
+        }
+        
+        ImGui::Separator();
+        
+        ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 100, 100, 255));
+        bool bDeleteClicked = ImGui::MenuItem(LE_ICON_ALERT_OCTAGON " Delete", "Del");
+        ImGui::PopStyleColor();
+        
+        if (bDeleteClicked)
+        {
+            FString ConfirmMessage = std::format("Are you sure you want to delete \"{0}\"?\n\nThis action cannot be undone.", ContentItem->GetFileName().c_str()).c_str();
+            
+            if (Dialogs::Confirmation("Confirm Deletion", ConfirmMessage.c_str()))
+            {
+                try
+                {
+                    FString PackagePath = ContentItem->GetPath();
+                    bool bWasSuccessful = false;
+        
+                    if (std::filesystem::is_directory(PackagePath.c_str()))
+                    {
+                        if (std::filesystem::is_empty(PackagePath.c_str()))
+                        {
+                            std::filesystem::remove(PackagePath.c_str());
+                            bWasSuccessful = true;
+                            RefreshContentBrowser();   
+                        }
+                    }
+                    else
+                    {
+                        FString ObjectName = ContentItem->GetFileName();
+                        FString QualifiedName = ContentItem->GetVirtualPath() + "." + ObjectName;
+        
+                        if (CObject* AliveObject = FindObject<CObject>(nullptr, QualifiedName))
+                        {
+                            ToolContext->OnDestroyAsset(AliveObject);
+                            bWasSuccessful = true;
+                        }
+
+                        PendingDestroy.emplace_back(FPendingDestroy{PackagePath});
+                    }
+        
+                    if (bWasSuccessful)
+                    {
+                        ImGuiX::Notifications::NotifySuccess("Deleted \"%s\"", ContentItem->GetFileName().c_str());
+                    }
+                    else
+                    {
+                        ImGuiX::Notifications::NotifyError("Failed to delete \"%s\"", ContentItem->GetFileName().c_str());
+                    }
+                }
+                catch (const std::filesystem::filesystem_error& e)
+                {
+                    LOG_ERROR("Failed to delete file: {0}", e.what());
+                    ImGuiX::Notifications::NotifyError("Deletion failed: %s", e.what());
+                }
+            }
+        }
+
+        if (ContentItem->IsAsset() && !ContentItem->GetAssetData().IsRedirector())
+        {
+            if (ImGui::MenuItem(LE_ICON_FOLDER_OPEN " Open", "Double-Click"))
+            {
+                FString QualifiedName = ContentItem->GetAssetData().FullPath.ToString();
+                CObject* Asset = LoadObject<CObject>(nullptr, QualifiedName);
+                ToolContext->OpenAssetEditor(Asset);
+            }
+            ImGui::Separator();
+        }
+        else if (ContentItem->GetAssetData().IsRedirector())
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 200, 100, 255));
+            if (ImGui::MenuItem(LE_ICON_TOOLBOX " Fix Redirector"))
+            {
+                // Fixup redirector logic
+            }
+            ImGui::PopStyleColor();
+            ImGui::Separator();
+        }
+    }
+
+
+    void FContentBrowserEditorTool::DrawScriptsDirectoryContextMenu()
+    {
+        if (ImGui::MenuItem(LE_ICON_OPEN_IN_NEW " New Script"))
+        {
+            FString NewScriptPath = SelectedPath + "/" + "NewScript.lua";
+            NewScriptPath = Paths::MakeUniquePath(NewScriptPath);
+            
+            FileHelper::CreateNewFile(NewScriptPath);
+
+            Platform::LaunchURL(StringUtils::ToWideString(NewScriptPath.data()).c_str());
+
+        }
+    }
+
+    void FContentBrowserEditorTool::DrawContentDirectoryContextMenu()
+    {
+        const char* ImportIcon = LE_ICON_FILE_IMPORT;
+        FString MenuItemName = FString(ImportIcon) + " " + "Import Asset";
+        if (ImGui::MenuItem(MenuItemName.c_str()))
+        {
+            FString SelectedFile;
+            const char* Filter = "Supported Assets (*.png;*.jpg;*.fbx;*.gltf;*.glb)\0*.png;*.jpg;*.fbx;*.gltf;*.glb\0All Files (*.*)\0*.*\0";
+            if (Platform::OpenFileDialogue(SelectedFile, "Import Asset", Filter))
+            {
+                TryImport(SelectedFile);
+            }
+        }
+
+        const char* FileIcon = LE_ICON_PLUS;
+        const char* File = "New Asset";
+        
+        ImGui::Separator();
+        
+        FString FileName = FString(FileIcon) + " " + File;
+        
+        if (ImGui::BeginMenu(FileName.c_str()))
+        {
+            TVector<CAssetDefinition*> Definitions;
+            CAssetDefinitionRegistry::Get()->GetAssetDefinitions(Definitions);
+            for (CAssetDefinition* Definition : Definitions)
+            {
+                if (Definition->CanImport())
+                {
+                    continue;
+                }
+                
+                FString DisplayName = Definition->GetAssetDisplayName();
+                if (ImGui::MenuItem(DisplayName.c_str()))
+                {
+                    CFactory* Factory = Definition->GetFactory();
+                    FString PathString = Paths::Combine(SelectedPath.c_str(), Factory->GetDefaultAssetCreationName(PathString).c_str());
+                    Paths::AddPackageExtension(PathString);
+                    PathString = CPackage::MakeUniquePackagePath(PathString);
+                    PathString = Paths::RemoveExtension(PathString);
+        
+                    if (Factory->HasCreationDialogue())
+                    {
+                        ToolContext->PushModal("Create New", {500, 500}, [this, Factory, PathString](const FUpdateContext& DrawContext)
+                        {
+                            bool bShouldClose = CFactory::ShowCreationDialogue(Factory, PathString);
+                            if (bShouldClose)
+                            {
+                                ImGuiX::Notifications::NotifySuccess("Successfully Created: \"%s\"", PathString.c_str());
+                            }
+                    
+                            return bShouldClose;
+                        });
+                    }
+                    else
+                    {
+                        CObject* Object = Factory->TryCreateNew(PathString);
+                        if (Object)
+                        {
+                            ImGuiX::Notifications::NotifySuccess("Successfully Created: \"%s\"", PathString.c_str());
+                        }
+                        else
+                        {
+                            ImGuiX::Notifications::NotifyError("Failed to create new: \"%s\"", PathString.c_str());
+        
+                        }
+                    }
+                }
+            }
+            
+            ImGui::EndMenu();
+        }
     }
 }

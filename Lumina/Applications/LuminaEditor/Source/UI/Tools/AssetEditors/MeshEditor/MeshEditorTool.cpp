@@ -26,14 +26,6 @@ namespace Lumina
 
 void FMeshEditorTool::OnInitialize()
 {
-    Entity DirectionalLightEntity = World->ConstructEntity("Directional Light");
-    DirectionalLightEntity.Emplace<SDirectionalLightComponent>();
-    DirectionalLightEntity.Emplace<SEnvironmentComponent>();
-    
-    MeshEntity = World->ConstructEntity("MeshEntity");
-    MeshEntity.Emplace<SStaticMeshComponent>().StaticMesh = Cast<CStaticMesh>(Asset.Get());
-    MeshEntity.GetComponent<STransformComponent>().SetLocation(glm::vec3(0.0f, 0.0f, -2.5f));
-        
     CreateToolWindow(MeshPropertiesName, [this](const FUpdateContext& Cxt, bool bFocused)
     {
         CStaticMesh* StaticMesh = Cast<CStaticMesh>(Asset.Get());
@@ -181,6 +173,20 @@ void FMeshEditorTool::OnInitialize()
     });
 }
 
+    void FMeshEditorTool::SetupWorldForTool()
+    {
+        FEditorTool::SetupWorldForTool();
+        
+        DirectionalLightEntity = World->ConstructEntity("Directional Light");
+        World->GetEntityRegistry().emplace<SDirectionalLightComponent>(DirectionalLightEntity);
+        World->GetEntityRegistry().emplace<SDirectionalLightComponent>(DirectionalLightEntity);
+        World->GetEntityRegistry().emplace<SEnvironmentComponent>(DirectionalLightEntity);
+        
+        MeshEntity = World->ConstructEntity("MeshEntity");
+        World->GetEntityRegistry().emplace<SStaticMeshComponent>(MeshEntity).StaticMesh = Cast<CStaticMesh>(Asset.Get());
+        World->GetEntityRegistry().get<STransformComponent>(MeshEntity).SetLocation(glm::vec3(0.0f, 0.0f, -2.5f));
+    }
+
     void FMeshEditorTool::OnDeinitialize(const FUpdateContext& UpdateContext)
     {
     }
@@ -192,14 +198,6 @@ void FMeshEditorTool::OnInitialize()
     void FMeshEditorTool::DrawToolMenu(const FUpdateContext& UpdateContext)
     {
         FAssetEditorTool::DrawToolMenu(UpdateContext);
-
-        if (ImGui::BeginMenu(LE_ICON_CAMERA_CONTROL" Camera Control"))
-        {
-            float Speed = EditorEntity.GetComponent<SVelocityComponent>().Speed;
-            ImGui::SliderFloat("Camera Speed", &Speed, 1.0f, 200.0f);
-            EditorEntity.GetComponent<SVelocityComponent>().Speed = Speed;
-            ImGui::EndMenu();
-        }
         
         // Gizmo Control Dropdown
         if (ImGui::BeginMenu(LE_ICON_MOVE_RESIZE " Gizmo Control"))

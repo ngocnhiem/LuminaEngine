@@ -73,5 +73,4 @@ namespace Lumina
         float               FOV = 90.0f;
         float               AspectRatio = 16.0f/9.0f;
     };
-
 }

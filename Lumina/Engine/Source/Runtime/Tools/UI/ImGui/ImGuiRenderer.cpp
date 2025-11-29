@@ -3,7 +3,6 @@
 
 #include "ImGuiDesignIcons.h"
 #include "ImGuiFonts.h"
-#include "ImGuizmo.h"
 #include "Core/Engine/Engine.h"
 #include "imgui/misc/freetype/imgui_freetype.h"
 #include "Renderer/RHIIncl.h"
@@ -13,7 +12,10 @@
 #include "Tools/UI/Fonts/FontData_MaterialDesign.h"
 #include "Tools/UI/Fonts/FontDecompressor.h"
 #include "Tools/UI/Notification/ImGuiNotifications.h"
+
+#include <imgui.h>
 #include <implot.h>
+#include "ImGuizmo.h"
 
 namespace Lumina
 {

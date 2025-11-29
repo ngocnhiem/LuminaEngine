@@ -1,6 +1,5 @@
 ﻿#include "pch.h"
 #include "EditorEntityMovementSystem.h"
-#include "World/Entity/Entity.h"
 #include "Input/InputProcessor.h"
 #include "World/Entity/Components/CameraComponent.h"
 #include "World/Entity/Components/EditorComponent.h"
@@ -9,29 +8,19 @@
 
 namespace Lumina
 {
-    void CEditorEntityMovementSystem::Shutdown(FSystemContext& SystemContext)
-    {
-        
-    }
 
     void CEditorEntityMovementSystem::Update(FSystemContext& SystemContext)
     {
         LUMINA_PROFILE_SCOPE();
         
         double DeltaTime = SystemContext.GetDeltaTime();
-        auto View = SystemContext.CreateView<STransformComponent, SEditorComponent, SCameraComponent, SVelocityComponent>();
+        auto View = SystemContext.CreateView<STransformComponent, FEditorComponent, SCameraComponent, SVelocityComponent>();
         
         for (entt::entity EditorEntity : View)
         {
             STransformComponent& Transform      = View.get<STransformComponent>(EditorEntity);
-            SEditorComponent& Editor            = View.get<SEditorComponent>(EditorEntity);
             SVelocityComponent& Velocity        = View.get<SVelocityComponent>(EditorEntity);
-    
-            if (!Editor.bEnabled)
-            {
-                continue;
-            }
-
+            
             SystemContext.EmplaceOrReplace<FNeedsTransformUpdate>(EditorEntity);
             
             glm::vec3 Forward   = Transform.Transform.Rotation * FViewVolume::ForwardAxis * -1.0f;
@@ -76,17 +65,13 @@ namespace Lumina
                 Acceleration = glm::normalize(Acceleration) * Speed;
             }
             
-            // Integrate acceleration to velocity
             Velocity.Velocity += Acceleration * (float)DeltaTime;
             
-            // Apply simple linear drag
             constexpr float Drag = 10.0f;
             Velocity.Velocity -= Velocity.Velocity * Drag * (float)DeltaTime;
             
-            // Apply velocity to position
             Transform.Transform.Location += Velocity.Velocity * (float)DeltaTime;
             
-            // Mouse look
             if (FInputProcessor::Get().IsMouseButtonDown(EMouseCode::ButtonRight))
             {
                 FInputProcessor::Get().SetCursorMode(GLFW_CURSOR_DISABLED);

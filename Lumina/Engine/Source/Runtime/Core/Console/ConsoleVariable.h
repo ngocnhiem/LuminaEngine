@@ -139,7 +139,7 @@ namespace Lumina
         }
 
 
-        T& GetValue() const
+        T GetValue() const
         {
             return eastl::get<T>(Storage);
         }

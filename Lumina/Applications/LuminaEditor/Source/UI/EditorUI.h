@@ -51,11 +51,12 @@ namespace Lumina
 
         void PushModal(const FString& Title, ImVec2 Size, TFunction<bool(const FUpdateContext&)> DrawFunction) override;
 
+        void OpenScriptEditor(FStringView ScriptPath) override;
         void OpenAssetEditor(CObject* InAsset) override;
         void OnDestroyAsset(CObject* InAsset) override;
         
         template<typename T, typename... Args>
-        requires std::is_base_of_v<FEditorTool, T> && std::constructible_from<T, Args...>
+        requires eastl::is_base_of_v<FEditorTool, T> && eastl::is_constructible_v<T, Args...>
         T* CreateTool(Args&&... args);
         
         void VerifyDirtyPackages();
@@ -121,7 +122,7 @@ namespace Lumina
     };
 
     template <typename T, typename ... Args>
-    requires std::is_base_of_v<FEditorTool, T> && std::constructible_from<T, Args...>
+    requires eastl::is_base_of_v<FEditorTool, T> && eastl::is_constructible_v<T, Args...>
     T* FEditorUI::CreateTool(Args&&... args)
     {
         T* NewTool = Memory::New<T>(std::forward<Args>(args)...);

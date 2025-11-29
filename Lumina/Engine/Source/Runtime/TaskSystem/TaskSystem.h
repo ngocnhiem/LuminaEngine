@@ -117,6 +117,74 @@ namespace Lumina
             ScheduleTask(&Task);
             WaitForTask(&Task, Priority);
         }
+
+        template<typename TIterator, typename TFunc>
+        void ParallelForEach(TIterator Begin, TIterator End, TFunc&& Func, ETaskPriority Priority = ETaskPriority::Medium)
+        {
+            struct ParallelTask : ITaskSet
+            {
+                ParallelTask(TFunc&& InFunc, TIterator InBegin, TIterator InEnd)
+                    : ITaskSet(static_cast<uint32>(InEnd - InBegin))
+                    , Func(std::forward<TFunc>(InFunc))
+                    , Begin(InBegin)
+                {
+                }
+        
+                void ExecuteRange(TaskSetPartition range_, uint32_t ThreadNum) override
+                {
+                    if constexpr (eastl::is_invocable_v<TFunc, TIterator, TIterator, uint32>)
+                    {
+                        Func(Begin + range_.start, Begin + range_.end, ThreadNum);
+                        return;
+                    }
+                    else if constexpr (eastl::is_invocable_v<TFunc, TIterator, TIterator>)
+                    {
+                        Func(Begin + range_.start, Begin + range_.end);
+                        return;
+                    }
+                    
+                    for (uint32 i = range_.start; i < range_.end; ++i)
+                    {
+                        TIterator It = Begin + i;
+                        
+                        if constexpr (eastl::is_invocable_v<TFunc, decltype(*It)&, uint32>)
+                        {
+                            Func(*It, ThreadNum);
+                        }
+                        else if constexpr (eastl::is_invocable_v<TFunc, decltype(*It)&>)
+                        {
+                            Func(*It);
+                        }
+                        else if constexpr (eastl::is_invocable_v<TFunc, TIterator, uint32>)
+                        {
+                            Func(It, ThreadNum);
+                        }
+                        else if constexpr (eastl::is_invocable_v<TFunc, TIterator>)
+                        {
+                            Func(It);
+                        }
+                    }
+                }
+        
+                TFunc Func;
+                TIterator Begin;
+            };
+        
+            uint32 Num = static_cast<uint32>(End - Begin);
+            
+            LUMINA_PROFILE_SECTION("Tasks::ParallelForEach");
+            ParallelTask Task = ParallelTask(std::forward<TFunc>(Func), Begin, End);
+            
+            if (Num <= 1)
+            {
+                Task.ExecuteRange(TaskSetPartition{0, Num}, Threading::GetThreadID());
+                return;
+            }
+            
+            Task.m_Priority = (enki::TaskPriority)Priority;
+            ScheduleTask(&Task);
+            WaitForTask(&Task, Priority);
+        }
         
         LUMINA_API void ScheduleTask(ITaskSet* pTask)
         {
@@ -172,6 +240,14 @@ namespace Lumina
         void ParallelFor(TIndex Num, uint32 MinRange, TFunc&& Func, ETaskPriority Priority = ETaskPriority::Medium)
         {
             GTaskSystem->ParallelFor(static_cast<uint32>(Num), MinRange, std::forward<TFunc>(Func), Priority);
+        }
+
+        template<typename TIterator, typename TFunc>
+        requires(eastl::is_same_v<typename eastl::iterator_traits<TIterator>::iterator_category, eastl::random_access_iterator_tag> ||
+            std::is_same_v<typename std::iterator_traits<TIterator>::iterator_category, std::random_access_iterator_tag>)
+        void ParallelForEach(TIterator Begin, TIterator End, TFunc&& Func, ETaskPriority Priority = ETaskPriority::Medium)
+        {
+            GTaskSystem->ParallelForEach(Begin, End, std::forward<TFunc>(Func), Priority);
         }
     }
 }

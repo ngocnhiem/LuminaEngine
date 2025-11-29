@@ -8,7 +8,6 @@
 #include "Memory/Memory.h"
 #include "Project/Project.h"
 #include "Renderer/RenderContext.h"
-#include "World/Entity/Systems/EditorEntityMovementSystem.h"
 #include "Tools/ConsoleLogEditorTool.h"
 #include "Tools/ContentBrowserEditorTool.h"
 #include "Tools/EditorTool.h"
@@ -26,7 +25,6 @@
 #include "Assets/AssetTypes/Material/Material.h"
 #include "Assets/AssetTypes/Material/MaterialInstance.h"
 #include "Assets/AssetTypes/Mesh/StaticMesh/StaticMesh.h"
-#include "Assets/AssetTypes/Script/ScriptAsset.h"
 #include "Assets/AssetTypes/Textures/Texture.h"
 #include "Core/Object/Cast.h"
 #include "Core/Object/ObjectIterator.h"
@@ -35,6 +33,7 @@
 #include "Core/Reflection/PropertyCustomization/PropertyCustomization.h"
 #include "Core/Windows/Window.h"
 #include "EASTL/sort.h"
+#include "Input/InputProcessor.h"
 #include "Platform/Process/PlatformProcess.h"
 #include "Properties/Customizations/CoreTypeCustomization.h"
 #include "Renderer/RenderDocImpl.h"
@@ -45,7 +44,6 @@
 #include "Tools/AssetEditors/ArchetypeEditor/ArchetypeEditorTool.h"
 #include "Tools/AssetEditors/MaterialEditor/MaterialInstanceEditorTool.h"
 #include "Tools/AssetEditors/MeshEditor/MeshEditorTool.h"
-#include "Tools/AssetEditors/ScriptEditor/ScriptAssetEditorTool.h"
 #include "Tools/AssetEditors/TextureEditor/TextureEditorTool.h"
 #include "Tools/Import/ImportHelpers.h"
 #include "Tools/UI/ImGui/ImGuiRenderer.h"
@@ -109,8 +107,8 @@ namespace Lumina
         EditorWindowClass.ParentViewportId = 0; // Top level window
         EditorWindowClass.DockingAlwaysTabBar = true;
 
-        CWorld* NewWorld = NewObject<CWorld>();
-        WorldEditorTool = CreateTool<FWorldEditorTool>(this, NewWorld);
+        CWorld* TemporaryWorld = NewObject<CWorld>(nullptr, NAME_None, OF_Transient);
+        WorldEditorTool = CreateTool<FWorldEditorTool>(this, TemporaryWorld);
         
         (void)WorldEditorTool->GetOnPreviewStartRequestedDelegate().AddLambda([this]
         {
@@ -119,11 +117,14 @@ namespace Lumina
                 PreviewWorld->SetPaused(false);
                 GamePreviewTool = CreateTool<FGamePreviewTool>(this, PreviewWorld);
                 WorldEditorTool->NotifyPlayInEditorStart();
+                PreviewWorld->BeginPlay();
             }
         });
 
         (void)WorldEditorTool->GetOnPreviewStopRequestedDelegate().AddLambda([this]
         {
+            FInputProcessor::Get().SetCursorMode(GLFW_CURSOR_NORMAL);
+            GamePreviewTool->World->EndPlay();
             ToolsPendingDestroy.push(GamePreviewTool);
         });
 
@@ -947,7 +948,12 @@ namespace Lumina
     {
         ModalManager.CreateDialogue(Title, Size, DrawFunction);
     }
-    
+
+    void FEditorUI::OpenScriptEditor(FStringView ScriptPath)
+    {
+        Platform::LaunchURL(StringUtils::ToWideString(ScriptPath.data()).c_str());
+    }
+
     void FEditorUI::OpenAssetEditor(CObject* InAsset)
     {
         if (InAsset == nullptr)
@@ -994,10 +1000,6 @@ namespace Lumina
         else if (InAsset->IsA<CWorld>())
         {
             WorldEditorTool->SetWorld(Cast<CWorld>(InAsset));
-        }
-        else if (InAsset->IsA<CScriptAsset>())
-        {
-            NewTool = CreateTool<FScriptAssetEditorTool>(this, InAsset);
         }
 
         if (NewTool)
@@ -1347,11 +1349,6 @@ namespace Lumina
                 }
                 
             }
-        }
-
-        if (Tool->HasWorld() && !Tool->World->IsPlayWorld())
-        {
-            Tool->SetEditorCameraEnabled(Tool->bViewportFocused);
         }
     }
 

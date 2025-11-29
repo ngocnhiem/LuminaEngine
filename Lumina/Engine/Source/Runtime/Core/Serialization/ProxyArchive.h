@@ -36,6 +36,7 @@ namespace Lumina
 
         bool IsReading() const override { return InnerArchive.IsReading(); }
         bool IsWriting() const override { return InnerArchive.IsWriting(); }
+        bool HasError() const override { return InnerArchive.HasError(); }
         
         // Forward all standard types to the inner archive
         FArchive& operator<<(uint8& Value)  override { return InnerArchive << Value; }

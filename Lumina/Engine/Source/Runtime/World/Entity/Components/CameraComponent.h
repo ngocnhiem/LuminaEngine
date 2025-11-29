@@ -58,4 +58,10 @@ namespace Lumina
         
         FViewVolume ViewVolume;
     };
+
+
+    struct LUMINA_API FSwitchActiveCameraEvent
+    {
+        entt::entity NewActiveEntity;
+    };
 }

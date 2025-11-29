@@ -60,7 +60,7 @@ namespace Lumina
 		void OnInitialDiscoveryCompleted();
 
 		void AssetCreated(CObject* Asset);
-		void AssetDeleted(CPackage* Package);
+		void AssetDeleted(FName Package);
 		void AssetRenamed(CObject* Asset, const FString& OldPackagePath);
 		void AssetSaved(CObject* Asset);
 
@@ -104,6 +104,6 @@ namespace Lumina
 
 		// Maps asset package name to set of assets that depend on it (reverse dependencies)
 		THashMap<FName, THashSet<FName>> DependencyMap;
-
+		
 	};
 }

@@ -64,4 +64,5 @@ namespace Lumina
         LUM_PROPERTY(Editable)
         glm::vec3 Offset;
     };
+    
 }

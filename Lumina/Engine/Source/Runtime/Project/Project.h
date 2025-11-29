@@ -32,6 +32,8 @@ namespace Lumina
         LUMINA_API const FSettings& GetProjectSettings() const { return Settings; }
 
         LUMINA_API FString GetProjectContentDirectory() const;
+        LUMINA_API FString GetProjectGameDirectory() const;
+        LUMINA_API FString GetProjectScriptsDirectory() const;
 
         FOnProjectLoaded OnProjectLoaded;
 

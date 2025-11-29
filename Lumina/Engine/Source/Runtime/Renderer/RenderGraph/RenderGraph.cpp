@@ -99,6 +99,7 @@ namespace Lumina
             for (size_t PassIndex = 0; PassIndex < Passes.size(); ++PassIndex)
             {
                 FRGPassHandle Pass = Passes[PassIndex];
+                
                 // The user has promised us this pass can now run at any time without issues, so we dispatch it and keep going.
                 if (Pass->GetDescriptor()->HasAnyFlag(ERGExecutionFlags::Async))
                 {
