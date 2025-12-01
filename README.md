@@ -98,7 +98,7 @@ Performance profiling - Built-in Lua script profiling with Tracy
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -143,31 +143,14 @@ setx LUMINA_DIR "C:\path\to\lumina"
 
 ---
 
-## Project Structure
 
-```
-Lumina/
-├── Editor/          # Main editor application
-├── Sandbox/         # Testing and experimentation playground
-├── Reflector/       # Reflection metadata generator
-├── Engine/          # Core engine modules
-│   ├── Renderer/    # Vulkan rendering system
-│   ├── ECS/         # Entity Component System
-│   ├── Core/        # Foundation systems
-│   └── ...
-├── Scripts/         # Build and automation scripts
-└── External/        # Third-party dependencies
-```
-
----
-
-## 🎮 Supported Asset Formats
+## Supported Asset Formats
 
 | Format | Support | Notes |
 |--------|---------|-------|
-| **GLTF** | ✅ Full | Recommended format |
-| **GLB** | ✅ Full | Binary GLTF |
-| **PNG/JPG** | ✅ Full | Textures via STB_Image |
+| **GLTF** | Full | Recommended format |
+| **GLB** | Full | Binary GLTF |
+| **PNG/JPG** | Full | Textures via STB_Image |
 
 ### Free Asset Resources
 
