@@ -123,13 +123,10 @@ cd lumina
 # 2. Run setup (downloads dependencies automatically)
 python Setup.py
 
-# 3. Run Reflector in Shipping (MUST BE SHIPPING)
-This is a temporary step, but it must be built prior to attempting to build anything else, and only in shipping.
+# 3. Build and run the Editor
+Set Editor as startup project → Build → Run (Prefer Development configuration)
 
-# 4. Build and run the Editor
-Set Editor as startup project → Build → Run
-
-# 5. Select a project
+# 4. Select a project
 Open the Sandbox project to play around
 or..
 Open Tools/ProjectConfigurator.py to create a new project.
