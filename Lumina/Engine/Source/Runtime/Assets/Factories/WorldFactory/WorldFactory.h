@@ -6,7 +6,7 @@
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class CWorldFactory : public CFactory
     {
         GENERATED_BODY()

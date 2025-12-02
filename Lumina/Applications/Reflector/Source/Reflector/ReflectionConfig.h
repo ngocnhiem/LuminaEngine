@@ -1,17 +1,12 @@
 #pragma once
-#include <cstdint>
-
 
 namespace Lumina::Reflection
 {
-
     enum class EReflectionMacro : uint8_t
     {
-        Field,
-        Method,
-        Class,
-        Struct,
-        Enum,
+        Property,
+        Function,
+        Reflect,
         GeneratedBody,
         Size,
     };
@@ -20,16 +15,12 @@ namespace Lumina::Reflection
     {
         switch (Macro)
         {
-            case EReflectionMacro::Field:               return "LUM_PROPERTY";
-            case EReflectionMacro::Method:              return "LUM_FUNCTION";
-            case EReflectionMacro::Class:               return "LUM_CLASS";
-            case EReflectionMacro::Struct:              return "LUM_STRUCT";
-            case EReflectionMacro::Enum:                return "LUM_ENUM";
+            case EReflectionMacro::Property:            return "PROPERTY";
+            case EReflectionMacro::Function:            return "FUNCTION";
+            case EReflectionMacro::Reflect:             return "REFLECT";
             case EReflectionMacro::GeneratedBody:       return "GENERATED_BODY";
             default:                                    return "NONE";
         }
-        
-        return nullptr;
     }
 
 

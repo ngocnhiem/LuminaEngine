@@ -13,7 +13,7 @@ namespace Lumina
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class CThumbnailManager : public CObject
     {
         GENERATED_BODY()
@@ -29,13 +29,13 @@ namespace Lumina
 
         static FPackageThumbnail* GetThumbnailForPackage(CPackage* Package);
         
-        LUM_PROPERTY(NotSerialized)
+        PROPERTY(NotSerialized)
         TObjectPtr<CStaticMesh> CubeMesh;
 
-        LUM_PROPERTY(NotSerialized)
+        PROPERTY(NotSerialized)
         TObjectPtr<CStaticMesh> SphereMesh;
 
-        LUM_PROPERTY(NotSerialized)
+        PROPERTY(NotSerialized)
         TObjectPtr<CStaticMesh> PlaneMesh;
         
     };

@@ -5,7 +5,7 @@
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class LUMINA_API CUpdateTransformEntitySystem : public CEntitySystem
     {
         GENERATED_BODY()

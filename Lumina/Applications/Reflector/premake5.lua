@@ -3,12 +3,17 @@ include(os.getenv("LUMINA_DIR") .. "/Dependencies.lua")
 
 project "Reflector"
 	kind "ConsoleApp"
-
-    outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
-
     targetdir ("%{LuminaEngineDirectory}/Binaries/" .. outputdir)
     objdir ("%{LuminaEngineDirectory}/Intermediates/Obj/" .. outputdir .. "/%{prj.name}")
+	configmap 
+	{
+		["Debug"] 		= "Development",
+	}
 
+	disablewarnings
+	{
+		"4291" -- memory will not be freed if initialization throws an exception
+	}
 
 	prebuildcommands 
 	{
@@ -23,9 +28,7 @@ project "Reflector"
 	}
 
 	links
-	{
-	  	"EA",
-	  	
+	{	  	
 	  	"clangBasic.lib",
 	  	"clangLex.lib",
 	  	"clangAST.lib",
@@ -52,6 +55,8 @@ project "Reflector"
 	{
 		"Source/**.cpp",
 		"Source/**.h",
+		"%{wks.location}/Lumina/Engine/ThirdParty/EA/**.h",
+		"%{wks.location}/Lumina/Engine/ThirdParty/EA/**.cpp",
 		"%{wks.location}/Lumina/Engine/ThirdParty/xxhash/**.c",
 	}
 
@@ -62,8 +67,6 @@ project "Reflector"
 	    
 	   	"%{LuminaEngineDirectory}/Lumina",
 		"%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/",
-		"%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/EA/EABase/include/common",
-		"%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/EA/EASTL/include/",
 		"%{LuminaEngineDirectory}/External/LLVM/include/",
 		
 		includedependencies(),

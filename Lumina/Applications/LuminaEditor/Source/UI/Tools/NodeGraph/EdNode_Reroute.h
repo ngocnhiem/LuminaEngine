@@ -11,7 +11,7 @@ namespace Lumina
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class CEdNode_Reroute : public CEdGraphNode
     {
         GENERATED_BODY()

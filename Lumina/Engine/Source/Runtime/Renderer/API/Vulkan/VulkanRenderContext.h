@@ -2,7 +2,6 @@
 
 #include <Containers/Array.h>
 #include <volk/volk.h>
-#define VK_NO_PROTOTYPES
 #include <tracy/TracyVulkan.hpp>
 #include "TrackedCommandBuffer.h"
 #include "VulkanPipelineCache.h"

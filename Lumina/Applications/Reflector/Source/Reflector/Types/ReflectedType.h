@@ -8,6 +8,11 @@
 #include "EASTL/vector.h"
 #include "Reflector/Utils/MetadataUtils.h"
 
+namespace Lumina
+{
+    class FReflectedFunction;
+}
+
 namespace Lumina::Reflection
 {
     class FReflectedProject;
@@ -119,9 +124,10 @@ namespace Lumina::Reflection
         void GenerateMetadata(const eastl::string& InMetadata);
 
         eastl::vector<eastl::shared_ptr<FReflectedProperty>>    Props;
+        eastl::vector<eastl::shared_ptr<FReflectedFunction>>    Functions;
         eastl::vector<FMetadataPair>                            Metadata;
         eastl::string                                           Project;
-        eastl::string_view                                      HeaderID;
+        eastl::string                                           HeaderID;
         eastl::string                                           DisplayName;
         eastl::string                                           QualifiedName;
         eastl::string                                           Namespace;
@@ -176,6 +182,7 @@ namespace Lumina::Reflection
         }
 
         void PushProperty(const eastl::shared_ptr<FReflectedProperty>& NewProperty);
+        void PushFunction(const eastl::shared_ptr<FReflectedFunction>& NewFunction);
 
         eastl::string GetTypeName() const override { return "CStruct"; }
         

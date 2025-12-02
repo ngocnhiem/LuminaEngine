@@ -76,6 +76,48 @@ namespace Lumina
         GTaskSystem = nullptr;
     }
 
+    void FTaskSystem::ScheduleLambda(uint32 Num, uint32 MinRange, TaskSetFunction&& Function, ETaskPriority Priority)
+    {
+        if (Num == 0)
+        {
+            LOG_WARN("Task Size of [0] passed to task system.");
+            return;
+        }
+            
+        FLambdaTask* Task = Memory::New<FLambdaTask>(Priority, Num, std::max(1u, MinRange), Move(Function));
+        ScheduleTask(Task);
+    }
+
+    void FTaskSystem::ScheduleTask(ITaskSet* pTask)
+    {
+        LUMINA_PROFILE_SECTION("Tasks::ScheduleTask");
+        Scheduler.AddTaskSetToPipe(pTask);
+    }
+
+    void FTaskSystem::ScheduleTask(IPinnedTask* pTask)
+    {
+        LUMINA_PROFILE_SECTION("Tasks::ScheduleTask");
+        Scheduler.AddPinnedTask(pTask);
+    }
+
+    void FTaskSystem::WaitForTask(const ITaskSet* pTask, ETaskPriority Priority)
+    {
+        LUMINA_PROFILE_SECTION("Tasks::WaitForTask");
+        Scheduler.WaitforTask(pTask, (enki::TaskPriority)Priority);
+    }
+
+    void FTaskSystem::WaitForTask(const IPinnedTask* pTask)
+    {
+        LUMINA_PROFILE_SECTION("Tasks::WaitForTask");
+        Scheduler.WaitforTask(pTask);
+    }
+
+    void FTaskSystem::WaitForAll()
+    {
+        LUMINA_PROFILE_SCOPE();
+        Scheduler.WaitforAll(); 
+    }
+
     void Task::AsyncTask(uint32 Num, uint32 MinRange, TaskSetFunction&& Function, ETaskPriority Priority)
     {
         GTaskSystem->ScheduleLambda(Num, MinRange, Move(Function), Priority);

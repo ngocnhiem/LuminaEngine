@@ -11,7 +11,7 @@ namespace Lumina
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class LUMINA_API CAssetDefinition : public CObject
     {
         GENERATED_BODY()
@@ -33,7 +33,7 @@ namespace Lumina
     };
 
     
-    LUM_CLASS()
+    REFLECT()
     class LUMINA_API CAssetDefinitionRegistry : public CObject
     {
         GENERATED_BODY()

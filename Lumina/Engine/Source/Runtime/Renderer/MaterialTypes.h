@@ -16,7 +16,7 @@ namespace Lumina
     };
     
 
-    LUM_ENUM()
+    REFLECT()
     enum class EMaterialParameterType : uint8
     {
         Scalar,
@@ -25,18 +25,18 @@ namespace Lumina
     };
 
 
-    LUM_STRUCT()
+    REFLECT()
     struct LUMINA_API FMaterialParameter
     {
         GENERATED_BODY()
         
-        LUM_PROPERTY()
+        PROPERTY()
         FName ParameterName;
 
-        LUM_PROPERTY()
+        PROPERTY()
         EMaterialParameterType Type;
 
-        LUM_PROPERTY()
+        PROPERTY()
         uint16 Index;
     };
     

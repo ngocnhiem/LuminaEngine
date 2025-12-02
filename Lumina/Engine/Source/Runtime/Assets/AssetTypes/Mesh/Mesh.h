@@ -16,7 +16,7 @@ namespace Lumina
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class LUMINA_API CMesh : public CObject
     {
         GENERATED_BODY()
@@ -57,7 +57,7 @@ namespace Lumina
 
         
         
-        LUM_PROPERTY(Editable, Category = "Materials")
+        PROPERTY(Editable, Category = "Materials")
         TVector<TObjectPtr<CMaterialInterface>> Materials;
 
         FAABB BoundingBox;

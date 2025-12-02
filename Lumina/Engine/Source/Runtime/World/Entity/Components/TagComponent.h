@@ -8,13 +8,13 @@
 
 namespace Lumina
 {
-    LUM_STRUCT()
+    REFLECT()
     struct LUMINA_API STagComponent
     {
         GENERATED_BODY()
         ENTITY_COMPONENT(STagComponent)
 
-        LUM_PROPERTY()
+        PROPERTY(Script)
         FName Tag;
     };
 }

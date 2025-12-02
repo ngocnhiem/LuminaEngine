@@ -9,7 +9,7 @@
 
 namespace Lumina
 {
-    LUM_STRUCT()
+    REFLECT()
     struct LUMINA_API SStaticMeshComponent : SMeshComponent
     {
         GENERATED_BODY()
@@ -17,7 +17,7 @@ namespace Lumina
         
         CMaterialInterface* GetMaterialForSlot(SIZE_T Slot) const;
         
-        LUM_PROPERTY(Editable, Category = "Mesh")
+        PROPERTY(Editable, Category = "Mesh")
         TObjectPtr<CStaticMesh> StaticMesh;
 
         TVector<FTransform>        Instances;

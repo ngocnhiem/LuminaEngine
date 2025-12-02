@@ -22,7 +22,7 @@ namespace Lumina
         Count       = 2,
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CEdGraphNode : public CObject
     {
         GENERATED_BODY()
@@ -77,10 +77,10 @@ namespace Lumina
 
         CEdNodeGraphPin* CreatePin(CClass* InClass, const FString& Name, ENodePinDirection Direction, EMaterialInputType Type);
 
-        LUM_PROPERTY()
+        PROPERTY()
         float GridX;
 
-        LUM_PROPERTY()
+        PROPERTY()
         float GridY;
 
     protected:

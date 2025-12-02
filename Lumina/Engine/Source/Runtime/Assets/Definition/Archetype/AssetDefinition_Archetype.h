@@ -6,7 +6,7 @@
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class CAssetDefinition_Archetype: public CAssetDefinition
     {
         GENERATED_BODY()

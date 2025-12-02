@@ -94,4 +94,11 @@ namespace Lumina
     
         return true;
     }
+
+    bool FReflectedArrayProperty::GenerateLuaBinding(eastl::string& Stream)
+    {
+        Stream += "\t\t\"" + GetDisplayName() + "\", sol::property([]() { })";
+
+        return true;
+    }
 }

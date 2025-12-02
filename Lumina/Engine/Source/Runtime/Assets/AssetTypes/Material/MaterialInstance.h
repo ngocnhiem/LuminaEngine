@@ -10,7 +10,7 @@ namespace Lumina { class CMaterial; };
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class LUMINA_API CMaterialInstance : public CMaterialInterface
     {
         GENERATED_BODY()
@@ -32,7 +32,7 @@ namespace Lumina
 
         void PostLoad() override;
 
-        LUM_PROPERTY(ReadOnly, Category = "Material")
+        PROPERTY(ReadOnly, Category = "Material")
         TObjectPtr<CMaterial> Material;
 
 

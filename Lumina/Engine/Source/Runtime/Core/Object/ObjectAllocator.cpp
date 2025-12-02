@@ -18,17 +18,9 @@ namespace Lumina
     {
     }
 
-    CObjectBase* FCObjectAllocator::AllocateCObject(uint32 Size, uint32 Alignment)
+    void* FCObjectAllocator::AllocateCObject(uint32 Size, uint32 Alignment)
     {
-        void* RawMemory = Memory::Malloc(Size + Alignment - 1);
-        void* AlignedMemory = RawMemory;
-
-        SIZE_T Space = Size + Alignment - 1;
-        if (std::align(Alignment, Size, AlignedMemory, Space))
-        {
-            return static_cast<CObjectBase*>(AlignedMemory);
-        }
-        return nullptr;
+        return static_cast<CObjectBase*>(Memory::Malloc(Size, Alignment));
     }
 
     void FCObjectAllocator::FreeCObject(CObjectBase* Ptr)

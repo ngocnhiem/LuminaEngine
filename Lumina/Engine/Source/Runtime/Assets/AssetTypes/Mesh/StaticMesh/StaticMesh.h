@@ -4,7 +4,7 @@
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class LUMINA_API CStaticMesh : public CMesh
     {
         GENERATED_BODY()

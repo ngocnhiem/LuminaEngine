@@ -7,7 +7,7 @@
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class LUMINA_API CFactory : public CObject
     {
         GENERATED_BODY()

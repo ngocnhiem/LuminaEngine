@@ -93,8 +93,9 @@ struct FLightShadow
     vec2 AtlasUVOffset;
     vec2 AtlasUVScale;
     int ShadowMapIndex; // -1 means no shadow.
+    int ShadowMapLayer;
     int LightIndex;
-    uint Pad[2];
+    int Pad;
 };
 
 struct FLight

@@ -43,7 +43,7 @@ namespace Lumina
                 Batch.RenderTransform = RenderTransform;
                 Batch.IndexBuffer = StaticMeshComponent.StaticMesh->GetIndexBuffer();
                 Batch.VertexBuffer = StaticMeshComponent.StaticMesh->GetVertexBuffer();
-                Batch.Scene = InScene;
+                //Batch.Scene = InScene;
 
                 MeshBatches.push_back(std::move(Batch));
 

@@ -39,8 +39,10 @@ namespace Lumina
     void FReflectedProperty::GenerateMetadata(const eastl::string& InMetadata)
     {
         if (InMetadata.empty())
+        {
             return;
-        
+        }
+
         FMetadataParser Parser(InMetadata);
         Metadata = eastl::move(Parser.Metadata);
 
@@ -70,6 +72,13 @@ namespace Lumina
                 }
             }
         }
+    }
+
+    bool FReflectedProperty::GenerateLuaBinding(eastl::string& Stream)
+    {
+        Stream += "\t\t\"" + GetDisplayName() + "\", &" + Outer + "::" + GetDisplayName();
+
+        return true;
     }
 
     bool FReflectedProperty::HasAccessors()

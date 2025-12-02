@@ -11,7 +11,7 @@ namespace Lumina
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class CMaterialNodeGraph : public CEdNodeGraph
     {
         GENERATED_BODY()

@@ -20,6 +20,7 @@ namespace Lumina
         }
 
         const char* GetPropertyParamType() const override { return "FObjectPropertyParams"; }
+        bool GenerateLuaBinding(eastl::string& Stream) override;
 
         void DeclareCrossModuleReference(const eastl::string& API, eastl::string& Stream) override
         {

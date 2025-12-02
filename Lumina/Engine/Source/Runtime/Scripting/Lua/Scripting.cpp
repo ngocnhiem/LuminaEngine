@@ -4,6 +4,7 @@
 #include "Input/InputProcessor.h"
 #include "Memory/SmartPtr.h"
 #include "Paths/Paths.h"
+#include "Scripting/DeferredScriptRegistry.h"
 #include "World/Entity/Components/TagComponent.h"
 #include "World/Entity/Systems/SystemContext.h"
 
@@ -39,6 +40,7 @@ namespace Lumina::Scripting
             sol::lib::table,
             sol::lib::io);
 
+        FDeferredScriptRegistry::Get().ProcessRegistrations(sol::state_view(State));
         RegisterCoreTypes();
         SetupInput();
     }
@@ -190,111 +192,166 @@ namespace Lumina::Scripting
 
     void FScriptingContext::RegisterCoreTypes()
     {
+
+        // vec2
         State.new_usertype<glm::vec2>("vec2",
             sol::call_constructor,
-            sol::constructors<glm::vec2(), glm::vec2(float, float)>(),
+            sol::constructors<glm::vec2(), glm::vec2(float), glm::vec2(float, float)>(),
             "x", &glm::vec2::x,
             "y", &glm::vec2::y,
-            sol::meta_function::addition, [](const glm::vec2& a, const glm::vec2& b){ return a + b; },
-            sol::meta_function::subtraction, [](const glm::vec2& a, const glm::vec2& b){ return a - b; },
+            
+            sol::meta_function::addition, sol::overload(
+                [](const glm::vec2& a, const glm::vec2& b){ return a + b; },
+                [](const glm::vec2& a, float s){ return a + s; }
+            ),
+            sol::meta_function::subtraction, sol::overload(
+                [](const glm::vec2& a, const glm::vec2& b){ return a - b; },
+                [](const glm::vec2& a, float s){ return a - s; }
+            ),
             sol::meta_function::multiplication, sol::overload(
+                [](const glm::vec2& a, const glm::vec2& b){ return a * b; },
                 [](const glm::vec2& a, float s){ return a * s; },
-                [](const glm::vec2& a, const glm::vec2& b){ return a * b; }
+                [](float s, const glm::vec2& a){ return s * a; }
             ),
             sol::meta_function::division, sol::overload(
-                [](const glm::vec2& a, float s){ return a / s; },
-                [](const glm::vec2& a, const glm::vec2& b){ return a / b; }
-            )
+                [](const glm::vec2& a, const glm::vec2& b){ return a / b; },
+                [](const glm::vec2& a, float s){ return a / s; }
+            ),
+            sol::meta_function::unary_minus, [](const glm::vec2& a){ return -a; },
+            sol::meta_function::equal_to, [](const glm::vec2& a, const glm::vec2& b){ return a == b; },
+            sol::meta_function::to_string, [](const glm::vec2& v){ 
+                return "vec2(" + std::to_string(v.x) + ", " + std::to_string(v.y) + ")"; 
+            },
+            
+            "Length", [](const glm::vec2& v){ return glm::length(v); },
+            "Normalize", [](const glm::vec2& v){ return glm::normalize(v); },
+            "Dot", [](const glm::vec2& a, const glm::vec2& b){ return glm::dot(a, b); },
+            "Distance", [](const glm::vec2& a, const glm::vec2& b){ return glm::distance(a, b); }
         );
-
+        
         RegisterLuaConverterByName<glm::vec2>("vec2");
         
+        // vec3
         State.new_usertype<glm::vec3>("vec3",
             sol::call_constructor,
-            sol::constructors<glm::vec3(), glm::vec3(float, float, float)>(),
+            sol::constructors<glm::vec3(), glm::vec3(float), glm::vec3(float, float, float)>(),
             "x", &glm::vec3::x,
             "y", &glm::vec3::y,
             "z", &glm::vec3::z,
-            sol::meta_function::addition, [](const glm::vec3& a, const glm::vec3& b){ return a + b; },
-            sol::meta_function::subtraction, [](const glm::vec3& a, const glm::vec3& b){ return a - b; },
+            
+            sol::meta_function::addition, sol::overload(
+                [](const glm::vec3& a, const glm::vec3& b){ return a + b; },
+                [](const glm::vec3& a, float s){ return a + s; }
+            ),
+            sol::meta_function::subtraction, sol::overload(
+                [](const glm::vec3& a, const glm::vec3& b){ return a - b; },
+                [](const glm::vec3& a, float s){ return a - s; }
+            ),
             sol::meta_function::multiplication, sol::overload(
+                [](const glm::vec3& a, const glm::vec3& b){ return a * b; },
                 [](const glm::vec3& a, float s){ return a * s; },
-                [](const glm::vec3& a, const glm::vec3& b){ return a * b; }
+                [](float s, const glm::vec3& a){ return s * a; }
             ),
             sol::meta_function::division, sol::overload(
-                [](const glm::vec3& a, float s){ return a / s; },
-                [](const glm::vec3& a, const glm::vec3& b){ return a / b; }
-            )
+                [](const glm::vec3& a, const glm::vec3& b){ return a / b; },
+                [](const glm::vec3& a, float s){ return a / s; }
+            ),
+            sol::meta_function::unary_minus, [](const glm::vec3& a){ return -a; },
+            sol::meta_function::equal_to, [](const glm::vec3& a, const glm::vec3& b){ return a == b; },
+            sol::meta_function::to_string, [](const glm::vec3& v){ 
+                return "vec3(" + std::to_string(v.x) + ", " + std::to_string(v.y) + ", " + std::to_string(v.z) + ")"; 
+            },
+            
+            "Length", [](const glm::vec3& v){ return glm::length(v); },
+            "Normalize", [](const glm::vec3& v){ return glm::normalize(v); },
+            "Dot", [](const glm::vec3& a, const glm::vec3& b){ return glm::dot(a, b); },
+            "Cross", [](const glm::vec3& a, const glm::vec3& b){ return glm::cross(a, b); },
+            "Distance", [](const glm::vec3& a, const glm::vec3& b){ return glm::distance(a, b); },
+            "Reflect", [](const glm::vec3& v, const glm::vec3& n){ return glm::reflect(v, n); },
+            "Lerp", [](const glm::vec3& a, const glm::vec3& b, float t){ return glm::mix(a, b, t); }
         );
-
-        RegisterLuaConverterByName<glm::vec3>("vec3");
-
         
+        RegisterLuaConverterByName<glm::vec3>("vec3");
+        
+        // vec4
         State.new_usertype<glm::vec4>("vec4",
             sol::call_constructor,
-            sol::constructors<glm::vec4(), glm::vec4(float, float, float, float)>(),
+            sol::constructors<glm::vec4(), glm::vec4(float), glm::vec4(float, float, float, float), glm::vec4(const glm::vec3&, float)>(),
             "x", &glm::vec4::x,
             "y", &glm::vec4::y,
             "z", &glm::vec4::z,
             "w", &glm::vec4::w,
-            sol::meta_function::addition, [](const glm::vec4& a, const glm::vec4& b){ return a + b; },
-            sol::meta_function::subtraction, [](const glm::vec4& a, const glm::vec4& b){ return a - b; },
+            
+            sol::meta_function::addition, sol::overload(
+                [](const glm::vec4& a, const glm::vec4& b){ return a + b; },
+                [](const glm::vec4& a, float s){ return a + s; }
+            ),
+            sol::meta_function::subtraction, sol::overload(
+                [](const glm::vec4& a, const glm::vec4& b){ return a - b; },
+                [](const glm::vec4& a, float s){ return a - s; }
+            ),
             sol::meta_function::multiplication, sol::overload(
+                [](const glm::vec4& a, const glm::vec4& b){ return a * b; },
                 [](const glm::vec4& a, float s){ return a * s; },
-                [](const glm::vec4& a, const glm::vec4& b){ return a * b; }
+                [](float s, const glm::vec4& a){ return s * a; }
             ),
             sol::meta_function::division, sol::overload(
-                [](const glm::vec4& a, float s){ return a / s; },
-                [](const glm::vec4& a, const glm::vec4& b){ return a / b; }
-            )
+                [](const glm::vec4& a, const glm::vec4& b){ return a / b; },
+                [](const glm::vec4& a, float s){ return a / s; }
+            ),
+            sol::meta_function::unary_minus, [](const glm::vec4& a){ return -a; },
+            sol::meta_function::equal_to, [](const glm::vec4& a, const glm::vec4& b){ return a == b; },
+            sol::meta_function::to_string, [](const glm::vec4& v){ 
+                return "vec4(" + std::to_string(v.x) + ", " + std::to_string(v.y) + ", " + std::to_string(v.z) + ", " + std::to_string(v.w) + ")"; 
+            },
+            
+            "Length", [](const glm::vec4& v){ return glm::length(v); },
+            "Normalize", [](const glm::vec4& v){ return glm::normalize(v); },
+            "Dot", [](const glm::vec4& a, const glm::vec4& b){ return glm::dot(a, b); },
+            "Distance", [](const glm::vec4& a, const glm::vec4& b){ return glm::distance(a, b); }
         );
-
+        
         RegisterLuaConverterByName<glm::vec4>("vec4");
         
+        // quat
         State.new_usertype<glm::quat>("quat",
             sol::call_constructor,
-            sol::constructors<glm::quat(), glm::quat(float, float, float, float)>(),
+            sol::constructors<
+                glm::quat(), 
+                glm::quat(float, float, float, float),
+                glm::quat(const glm::vec3&)
+            >(),
             "x", &glm::quat::x,
             "y", &glm::quat::y,
             "z", &glm::quat::z,
             "w", &glm::quat::w,
-            sol::meta_function::addition, [](const glm::quat& a, const glm::quat& b){ return a + b; },
-            sol::meta_function::subtraction, [](const glm::quat& a, const glm::quat& b){ return a - b; },
+            
             sol::meta_function::multiplication, sol::overload(
-                [](const glm::quat& a, float s){ return a * s; },
                 [](const glm::quat& a, const glm::quat& b){ return a * b; },
-                [](const glm::quat& a, const glm::vec4 b) { return a * b; },
-                [](const glm::quat& a, const glm::vec3 b) { return a * b; }
-
-            )
+                [](const glm::quat& a, const glm::vec3& v){ return a * v; },
+                [](const glm::quat& a, const glm::vec4& v){ return a * v; },
+                [](const glm::quat& a, float s){ return a * s; }
+            ),
+            sol::meta_function::equal_to, [](const glm::quat& a, const glm::quat& b){ return a == b; },
+            sol::meta_function::to_string, [](const glm::quat& q)
+            { 
+                return "quat(" + std::to_string(q.w) + ", " + std::to_string(q.x) + ", " + std::to_string(q.y) + ", " + std::to_string(q.z) + ")"; 
+            },
+            
+            "Length", [](const glm::quat& q){ return glm::length(q); },
+            "Normalize", [](const glm::quat& q){ return glm::normalize(q); },
+            "Conjugate", [](const glm::quat& q){ return glm::conjugate(q); },
+            "Inverse", [](const glm::quat& q){ return glm::inverse(q); },
+            "Dot", [](const glm::quat& a, const glm::quat& b){ return glm::dot(a, b); },
+            "Slerp", [](const glm::quat& a, const glm::quat& b, float t){ return glm::slerp(a, b, t); },
+            "Lerp", [](const glm::quat& a, const glm::quat& b, float t){ return glm::mix(a, b, t); },
+            "EulerAngles", [](const glm::quat& q){ return glm::eulerAngles(q); },
+            "AngleAxis", [](float angle, const glm::vec3& axis){ return glm::angleAxis(angle, axis); },
+            "FromEuler", [](const glm::vec3& euler){ return glm::quat(euler); }
         );
-
+        
         RegisterLuaConverterByName<glm::quat>("quat");
         
-        State.new_usertype<FTransform>("FTransform",
-            sol::call_constructor,
-            sol::constructors<FTransform(), FTransform(glm::vec3)>(),
-            
-            "Location", &FTransform::Location,
-            "Rotation", &FTransform::Rotation,
-            "Scale",    &FTransform::Scale,
-
-            "Translate",    [](FTransform& Self, const glm::vec3& Translation) { Self.Translate(Translation); },
-            "SetLocation",  [](FTransform& Self, const glm::vec3& NewLocation) { Self.Location = NewLocation; },
-            "SetRotation",  [](FTransform& Self, const glm::vec3& NewRotation) { Self.SetRotationFromEuler(NewRotation); },
-            "SetScale",     [](FTransform& Self, const glm::vec3& NewScale) { Self.SetScale(NewScale); }
-        );
-
-        RegisterLuaConverterByName<FTransform>("FTransform");
-
-        State.new_usertype<STagComponent>("STagComponent",
-            sol::call_constructor,
-            sol::constructors<STagComponent()>(),
-            "Tag", &STagComponent::Tag
-        );
-
-        RegisterLuaConverterByName<STagComponent>("STagComponent");
-
         State.new_enum("UpdateStage",
             "FrameStart",       EUpdateStage::FrameStart,
             "PrePhysics",       EUpdateStage::PrePhysics,

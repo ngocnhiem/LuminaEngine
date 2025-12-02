@@ -6,7 +6,7 @@
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class CMaterialOutput : public CEdNodeGraphPin
     {
         GENERATED_BODY()

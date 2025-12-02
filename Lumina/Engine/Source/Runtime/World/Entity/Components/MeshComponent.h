@@ -11,12 +11,12 @@ namespace Lumina
 {
     class CMaterialInterface;
     
-    LUM_STRUCT()
+    REFLECT()
     struct LUMINA_API SMeshComponent : SRenderComponent
     {
         GENERATED_BODY()
         
-        LUM_PROPERTY(Editable, Category = "Materials")
+        PROPERTY(Editable, Category = "Materials")
         TVector<TObjectPtr<CMaterialInterface>> MaterialOverrides;
 
     };

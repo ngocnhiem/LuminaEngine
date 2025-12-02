@@ -5,7 +5,7 @@
 
 namespace Lumina
 {
-    LUM_STRUCT()
+    REFLECT()
     struct LUMINA_API SRenderComponent
     {
         GENERATED_BODY()

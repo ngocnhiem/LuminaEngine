@@ -6,47 +6,47 @@
 
 namespace Lumina
 {
-    LUM_STRUCT()
+    REFLECT()
     struct LUMINA_API SSSAOInfo
     {
         GENERATED_BODY()
         
-        LUM_PROPERTY(Editable, Category = "SSAO")
+        PROPERTY(Editable, Category = "SSAO")
         float Radius = 1.0f;
 
-        LUM_PROPERTY(Editable, Category = "SSAO")
+        PROPERTY(Editable, Category = "SSAO")
         float Intensity = 2.0f;
 
-        LUM_PROPERTY(Editable, Category = "SSAO")
+        PROPERTY(Editable, Category = "SSAO")
         float Power = 1.5f;
     };
 
-    LUM_STRUCT()
+    REFLECT()
     struct LUMINA_API SAmbientLight
     {
         GENERATED_BODY()
         
-        LUM_PROPERTY(Editable, Color, Category = "Ambient Light")
+        PROPERTY(Editable, Color, Category = "Ambient Light")
         glm::vec3 Color = glm::vec3(1.0f);
 
-        LUM_PROPERTY(Editable, Category = "Ambient Light")
+        PROPERTY(Editable, Category = "Ambient Light")
         float Intensity = 0.065f;
         
     };
     
-    LUM_STRUCT()
+    REFLECT()
     struct LUMINA_API SEnvironmentComponent
     {
         GENERATED_BODY()
         ENTITY_COMPONENT(SEnvironmentComponent);
         
-        LUM_PROPERTY(Editable, Category = "Lighting")
+        PROPERTY(Editable, Category = "Lighting")
         SAmbientLight AmbientLight;
         
-        LUM_PROPERTY(Editable, Category = "SSAO")
+        PROPERTY(Editable, Category = "SSAO")
         bool bSSAOEnabled = false;
 
-        LUM_PROPERTY(Editable, Category = "SSAO")
+        PROPERTY(Editable, Category = "SSAO")
         SSSAOInfo SSAOInfo;
         
     };

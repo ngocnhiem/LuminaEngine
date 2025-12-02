@@ -3,11 +3,18 @@
 #include <iostream>
 
 #include "Engine/Source/Runtime/Core/Templates/Optional.h"
+#include "Functions/ReflectedFunction.h"
 #include "Properties/ReflectedProperty.h"
 
 
 namespace Lumina::Reflection
 {
+
+    static bool IsManualReflectFile(const eastl::string& HeaderID)
+    {
+        return HeaderID.find("manualreflecttypes") != eastl::string::npos;
+    }
+    
     bool FReflectedType::DeclareAccessors(eastl::string& Stream, const eastl::string& FileID)
     {
         // First pass: check if any property has accessors
@@ -139,6 +146,19 @@ namespace Lumina::Reflection
         Props.push_back(NewProperty);
     }
 
+    void FReflectedStruct::PushFunction(const eastl::shared_ptr<FReflectedFunction>& NewFunction)
+    {
+        if (Namespace.empty())
+        {
+            NewFunction->Outer = DisplayName;
+        }
+        else
+        {
+            NewFunction->Outer = Namespace + "::" + DisplayName;
+        }
+        Functions.push_back(NewFunction);
+    }
+
     void FReflectedStruct::DefineConstructionStatics(eastl::string& Stream)
     {
         Stream += "struct Construct_CStruct_" + Namespace + "_" + DisplayName + "_Statics\n{\n\n";
@@ -168,7 +188,7 @@ namespace Lumina::Reflection
 
     void FReflectedStruct::DefineSecondaryHeader(eastl::string& Stream, const eastl::string& FileID)
     {
-        if (FileID.find("manualreflecttypes") != eastl::string::npos)
+        if (IsManualReflectFile(FileID))
         {
             Stream += "\n\n";
             return;
@@ -241,7 +261,7 @@ namespace Lumina::Reflection
         Stream += "\treturn Registration_Info_CStruct_" + Namespace + "_" + DisplayName + ".InnerSingleton;\n";
         Stream += "}\n\n";
 
-        if (HeaderID.find("manualreflecttypes") == eastl::string::npos)
+        if (!IsManualReflectFile(eastl::string(HeaderID)))
         {
             Stream += "class Lumina::CStruct* " + Namespace + "::" + DisplayName + "::StaticStruct()\n";
             Stream += "{\n";

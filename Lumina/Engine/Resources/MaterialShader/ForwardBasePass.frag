@@ -19,7 +19,7 @@ layout(location = 0) out vec4 outColor;
 layout(location = 1) out uint GPicker;
 
 layout(set = 1, binding = 0) uniform sampler2DArray uShadowCascade;
-layout(set = 1, binding = 1) uniform sampler2D uShadowAtlas;
+layout(set = 1, binding = 1) uniform sampler2DArray uShadowAtlas;
 
 // Cluster data
 layout(set = 1, binding = 2) restrict readonly buffer ClusterSSBO
@@ -241,8 +241,9 @@ float ComputeShadowFactor(FLight Light, vec3 FragmentPos, float Bias)
             // We apply a clamp due to a small pixel difference in the atlas.
             vec2 ClampedUV  = clamp(Coord.UV + (Offset / ShadowTile.AtlasUVScale), 0.001, 0.999);
             vec2 SampleUV   = ShadowTile.AtlasUVOffset + (ClampedUV * ShadowTile.AtlasUVScale);
+            int ArrayLayer = ShadowTile.ShadowMapLayer;
             
-            ShadowDepth     = texture(uShadowAtlas, SampleUV).r;
+            ShadowDepth     = texture(uShadowAtlas, vec3(SampleUV, ArrayLayer)).r;
             Shadow          += step(CurrentDepth - Bias, ShadowDepth);
         }
     }

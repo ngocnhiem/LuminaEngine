@@ -4,7 +4,7 @@
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class LUMINA_API CArchetype : public CObject
     {
         GENERATED_BODY()

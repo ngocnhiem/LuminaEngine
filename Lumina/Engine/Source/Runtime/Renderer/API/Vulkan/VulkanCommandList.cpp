@@ -1396,7 +1396,7 @@ namespace Lumina
             }
             
             TracyVkZone(CurrentCommandBuffer->TracyContext, CurrentCommandBuffer->CommandBuffer, "vkCmdSetViewport")        
-            vkCmdSetViewport(CurrentCommandBuffer->CommandBuffer, 0, Viewports.size(), Viewports.data());
+            vkCmdSetViewport(CurrentCommandBuffer->CommandBuffer, 0, (uint32)Viewports.size(), Viewports.data());
         }
 
 

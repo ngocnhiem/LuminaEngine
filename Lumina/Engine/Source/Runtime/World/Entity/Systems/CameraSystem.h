@@ -4,7 +4,7 @@
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class CCameraSystem : public CEntitySystem
     {
         GENERATED_BODY()

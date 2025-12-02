@@ -5,25 +5,25 @@
 
 namespace Lumina
 {
-    LUM_STRUCT()
+    REFLECT()
     struct SSpringArmComponent
     {
         GENERATED_BODY()
         ENTITY_COMPONENT(SSpringArmComponent)
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         float TargetArmLength = 3.0f;
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         glm::vec3 SocketOffset;
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         float ProbeSize = 0.2f;
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         bool bDoCollisionTest = true;
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         bool bUseControlRotation = true;
     
     };

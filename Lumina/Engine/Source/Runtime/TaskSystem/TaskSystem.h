@@ -2,7 +2,6 @@
 
 #include "TaskScheduler.h"
 #include "TaskTypes.h"
-#include "Core/Singleton/Singleton.h"
 #include "Core/Templates/LuminaTemplate.h"
 #include "Core/Threading/Thread.h"
 #include "Memory/Memory.h"
@@ -57,17 +56,7 @@ namespace Lumina
          * @param Priority 
          * @return The task you can wait on, but should not be saved as it will be cleaned up automatically.
          */
-        LUMINA_API void ScheduleLambda(uint32 Num, uint32 MinRange, TaskSetFunction&& Function, ETaskPriority Priority = ETaskPriority::Medium)
-        {
-            if (Num == 0)
-            {
-                LOG_WARN("Task Size of [0] passed to task system.");
-                return;
-            }
-            
-            FLambdaTask* Task = Memory::New<FLambdaTask>(Priority, Num, std::max(1u, MinRange), Move(Function));
-            ScheduleTask(Task);
-        }
+        LUMINA_API void ScheduleLambda(uint32 Num, uint32 MinRange, TaskSetFunction&& Function, ETaskPriority Priority = ETaskPriority::Medium);
         
         
         template<typename TFunc>
@@ -186,35 +175,15 @@ namespace Lumina
             WaitForTask(&Task, Priority);
         }
         
-        LUMINA_API void ScheduleTask(ITaskSet* pTask)
-        {
-            LUMINA_PROFILE_SECTION("Tasks::ScheduleTask");
-            Scheduler.AddTaskSetToPipe(pTask);
-        }
+        LUMINA_API void ScheduleTask(ITaskSet* pTask);
 
-        LUMINA_API void ScheduleTask(IPinnedTask* pTask)
-        {
-            LUMINA_PROFILE_SECTION("Tasks::ScheduleTask");
-            Scheduler.AddPinnedTask(pTask);
-        }
+        LUMINA_API void ScheduleTask(IPinnedTask* pTask);
 
-        LUMINA_API void WaitForTask(const ITaskSet* pTask, ETaskPriority Priority = ETaskPriority::Low)
-        {
-            LUMINA_PROFILE_SECTION("Tasks::WaitForTask");
-            Scheduler.WaitforTask(pTask, (enki::TaskPriority)Priority);
-        }
+        LUMINA_API void WaitForTask(const ITaskSet* pTask, ETaskPriority Priority = ETaskPriority::Low);
         
-        LUMINA_API void WaitForTask(const IPinnedTask* pTask)
-        {
-            LUMINA_PROFILE_SECTION("Tasks::WaitForTask");
-            Scheduler.WaitforTask(pTask);
-        }
+        LUMINA_API void WaitForTask(const IPinnedTask* pTask);
         
-        LUMINA_API void WaitForAll() 
-        {
-            LUMINA_PROFILE_SCOPE();
-            Scheduler.WaitforAll(); 
-        }
+        LUMINA_API void WaitForAll();
     
     private:
 

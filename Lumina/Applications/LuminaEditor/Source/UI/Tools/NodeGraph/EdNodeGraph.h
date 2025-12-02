@@ -14,7 +14,7 @@ namespace Lumina
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class CEdNodeGraph : public CObject
     {
         GENERATED_BODY()
@@ -69,13 +69,13 @@ namespace Lumina
         
         uint64 AddNode(CEdGraphNode* InNode);
 
-        LUM_PROPERTY()
+        PROPERTY()
         TVector<TObjectPtr<CEdGraphNode>>            Nodes;
         
-        LUM_PROPERTY()
+        PROPERTY()
         TVector<uint16>                                 Connections;
 
-        LUM_PROPERTY()
+        PROPERTY()
         FString GraphSaveData;
         
         THashSet<CClass*>                               SupportedNodes;

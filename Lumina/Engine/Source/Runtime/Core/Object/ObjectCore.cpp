@@ -4,7 +4,6 @@
 #include "Class.h"
 #include "Object.h"
 #include "ObjectAllocator.h"
-#include "ObjectArray.h"
 #include "ObjectHash.h"
 #include "ObjectIterator.h"
 #include "Assets/AssetManager/AssetManager.h"
@@ -21,7 +20,7 @@
 namespace Lumina
 {
     /** Allocates a section of memory for the new object, does not place anything into the memory */
-    static CObjectBase* AllocateCObjectMemory(const CClass* InClass, EObjectFlags InFlags)
+    static void* AllocateCObjectMemory(const CClass* InClass, EObjectFlags InFlags)
     {
         // Force 16-byte minimal
         uint32 Alignment = Math::Max<uint32>(16, InClass->GetAlignment());
@@ -76,12 +75,12 @@ namespace Lumina
         Params.Name = UniqueName;
         EObjectFlags Flags = Params.Flags;
 
-        CObjectBase* Object = AllocateCObjectMemory(Params.Class, Flags);
+        void* ObjectMemory = AllocateCObjectMemory(Params.Class, Flags);
         
-        Memory::Memzero(Object, Params.Class->GetAlignedSize());
-        new (Object) CObjectBase(const_cast<CClass*>(Params.Class), Params.Flags, Package, UniqueName);
+        Memory::Memzero(ObjectMemory, Params.Class->GetAlignedSize());
+        new (ObjectMemory) CObjectBase(const_cast<CClass*>(Params.Class), Params.Flags, Package, UniqueName);
 
-        CObject* Obj = (CObject*)Object;
+        CObject* Obj = (CObject*)ObjectMemory;
         Params.Class->ClassConstructor(FObjectInitializer(Obj, Package, Params));
         
         Obj->PostInitProperties();

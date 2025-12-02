@@ -4,7 +4,6 @@
 
 #include "Containers/Array.h"
 #include "Platform/GenericPlatform.h"
-#include "Renderer/MeshData.h"
 #include "Renderer/RenderContext.h"
 #include "Renderer/RenderResource.h"
 #include "Renderer/RHIFwd.h"
@@ -28,14 +27,15 @@
 #define VERIFY_SSBO_ALIGNMENT(Type) \
 static_assert(sizeof(Type) % 16 == 0, #Type " must be 16-byte aligned");
 
-constexpr unsigned int ClusterGridSizeX = 16;
-constexpr unsigned int ClusterGridSizeY = 9;
-constexpr unsigned int ClusterGridSizeZ = 24;
+constexpr int NumCascades = 4;
+constexpr int ClusterGridSizeX = 16;
+constexpr int ClusterGridSizeY = 9;
+constexpr int ClusterGridSizeZ = 24;
 
-constexpr unsigned int NumClusters = ClusterGridSizeX * ClusterGridSizeY * ClusterGridSizeZ;
+constexpr int NumClusters = ClusterGridSizeX * ClusterGridSizeY * ClusterGridSizeZ;
 
 constexpr int GCSMResolution            = 2048;
-constexpr int GShadowAtlasResolution    = 8192;
+constexpr int GShadowAtlasResolution    = 4096;
 constexpr int GMaxPointLightShadows     = 100;
 
 namespace Lumina
@@ -96,8 +96,9 @@ namespace Lumina
 
     struct FShadowAtlasConfig
     {
-        uint32 AtlasResolution = 8192;
+        uint32 AtlasResolution = 4096;
         uint32 TileResolution = 512;
+        uint32 NumLayers = 7;
 
         constexpr uint32 TilesPerRow() const { return AtlasResolution / TileResolution; }
         constexpr uint32 MaxTiles() const { return TilesPerRow() * TilesPerRow(); }
@@ -121,7 +122,8 @@ namespace Lumina
             ImageDesc.Format            = EFormat::D32;
             ImageDesc.bKeepInitialState = true;
             ImageDesc.InitialState      = EResourceStates::ShaderResource;
-            ImageDesc.Dimension         = EImageDimension::Texture2D;
+            ImageDesc.Dimension         = EImageDimension::Texture2DArray;
+            ImageDesc.ArraySize         = (uint16)Config.NumLayers;
             ImageDesc.Flags.SetMultipleFlags(EImageCreateFlags::DepthAttachment, EImageCreateFlags::ShaderResource);
             ImageDesc.DebugName         = "Shadow Atlas";
 
@@ -185,8 +187,9 @@ namespace Lumina
         glm::vec2   AtlasUVScale;
         
         int32       ShadowMapIndex;
+        int32       ShadowMapLayer;
         int32       LightIndex;
-        int32       Padding[2];
+        int32       Padding;
     };
     
     VERIFY_SSBO_ALIGNMENT(FLightShadow)
@@ -338,7 +341,7 @@ namespace Lumina
 
     struct FSceneRenderSettings
     {
-        float CascadeSplitLambda = 0.95;
+        float CascadeSplitLambda = 0.95f;
         uint8 bUseInstancing:1 = true;
         uint8 bHasEnvironment:1 = false;
         uint8 bDrawAABB:1 = false;

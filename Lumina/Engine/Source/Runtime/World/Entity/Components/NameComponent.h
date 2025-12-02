@@ -6,13 +6,13 @@
 
 namespace Lumina
 {
-    LUM_STRUCT()
+    REFLECT()
     struct LUMINA_API SNameComponent
     {
         GENERATED_BODY()
         ENTITY_COMPONENT(SNameComponent)
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         FName Name;
     };
 }

@@ -152,10 +152,10 @@ namespace Lumina
     /** Helper for static registration, mostly from LRT code */
     struct FRegisterCompiledInInfo
     {
-        template<typename ... Args>
-        FRegisterCompiledInInfo(Args&& ... args)
+        template<typename ... TArgs>
+        FRegisterCompiledInInfo(TArgs&& ... Args)
         {
-            RegisterCompiledInInfo(std::forward<Args>(args)...);
+            RegisterCompiledInInfo(std::forward<TArgs>(Args)...);
         }
     };
 
@@ -176,7 +176,6 @@ namespace Lumina
     {
         class CEnum* (*RegisterFn)();
         const TCHAR* Name;
-        
     };
 
 

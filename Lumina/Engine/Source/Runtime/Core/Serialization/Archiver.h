@@ -7,13 +7,10 @@
 #include "Core/Templates/IsSigned.h"
 #include "Core/Versioning/CoreVersion.h"
 #include "glm/glm.hpp"
-#include "Platform/Platform.h"
-#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtc/quaternion.hpp>
 
 #include "Log/Log.h"
 #include "Memory/Memcpy.h"
-#include "Memory/Memory.h"
 #include "Types/BitFlags.h"
 
 namespace Lumina

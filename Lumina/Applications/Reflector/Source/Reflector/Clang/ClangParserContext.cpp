@@ -29,12 +29,12 @@ namespace Lumina::Reflection
         Macros.push(eastl::move(Macro));
     }
 
-    bool FClangParserContext::TryFindMacroForCursor(eastl::string HeaderID, const CXCursor& Cursor, FReflectionMacro& Macro)
+    bool FClangParserContext::TryFindMacroForCursor(const eastl::string& HeaderID, const CXCursor& Cursor, FReflectionMacro& Macro)
     {
         uint64 Hash = ClangUtils::HashString(HeaderID);
 
-        auto headerIter = ReflectionMacros.find(Hash);
-        if (headerIter == ReflectionMacros.end())
+        auto HeaderIter = ReflectionMacros.find(Hash);
+        if (HeaderIter == ReflectionMacros.end())
         {
             return false;
         }
@@ -44,7 +44,7 @@ namespace Lumina::Reflection
 
         CXFile cursorFile;
         uint32_t cursorLine, cursorColumn;
-        clang_getSpellingLocation(startLoc, &cursorFile, &cursorLine, &cursorColumn, nullptr);
+        clang_getExpansionLocation(startLoc, &cursorFile, &cursorLine, &cursorColumn, nullptr);
 
         CXString FileName = clang_getFileName(cursorFile);
 
@@ -64,23 +64,23 @@ namespace Lumina::Reflection
             return false;
         }
 
-        eastl::vector<FReflectionMacro>& macrosForHeader = headerIter->second;
-        for (auto iter = macrosForHeader.begin(); iter != macrosForHeader.end(); ++iter)
+        eastl::vector<FReflectionMacro>& MacrosForHeader = HeaderIter->second;
+        for (auto iter = MacrosForHeader.begin(); iter != MacrosForHeader.end(); ++iter)
         {
             bool bValidMacro = (iter->LineNumber < cursorLine) && ((cursorLine - iter->LineNumber) <= 1);
         
             if (bValidMacro)
             {
                 Macro = *iter;
-                macrosForHeader.erase(iter);
+                MacrosForHeader.erase(iter);
                 return true;
             }
         }
-
+        
         return false;
     }
 
-    bool FClangParserContext::TryFindGeneratedBodyMacro(eastl::string HeaderID, const CXCursor& Cursor, FReflectionMacro& Macro)
+    bool FClangParserContext::TryFindGeneratedBodyMacro(const eastl::string& HeaderID, const CXCursor& Cursor, FReflectionMacro& Macro)
     {
         // Exported types, we don't care.
         if (HeaderID.find("manualreflecttypes") != eastl::string::npos)
@@ -111,9 +111,7 @@ namespace Lumina::Reflection
 
         return true;
     }
-
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Wformat-nonliteral"
+    
     void FClangParserContext::LogError(const char* ErrorFormat, ...) const
     {
         char MessageBuffer[1024];
@@ -143,16 +141,16 @@ namespace Lumina::Reflection
 
         WarningMessage = FinalBuffer;
     }
-#pragma clang diagnostic pop
 
     void FClangParserContext::FlushLogs()
     {
         std::cout << "\033[31m" << ErrorMessage.c_str() << "\033[0m\n";
         ErrorMessage.clear();
+
+        std::cout << "\033[31m" << WarningMessage.c_str() << "\033[0m\n";
+        WarningMessage.clear();
     }
-
-
-
+    
     void FClangParserContext::PushNamespace(const eastl::string& Namespace)
     {
         NamespaceStack.push_back(Namespace);

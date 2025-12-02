@@ -5,7 +5,7 @@
 
 namespace Lumina::Reflection::Visitor
 {
-    static CXChildVisitResult VisitEnumContents(CXCursor Cursor, CXCursor parent, CXClientData pClientData)
+    static CXChildVisitResult VisitEnumContents(CXCursor Cursor, CXCursor, CXClientData pClientData)
     {
         FClangParserContext* pContext = static_cast<FClangParserContext*>(pClientData);
         FReflectedEnum* Enum = (FReflectedEnum*)pContext->ParentReflectedType;
@@ -38,7 +38,7 @@ namespace Lumina::Reflection::Visitor
         return CXChildVisit_Continue;
     }
     
-    CXChildVisitResult VisitEnum(CXCursor Cursor, CXCursor Parent, FClangParserContext* Context)
+    CXChildVisitResult VisitEnum(CXCursor Cursor, CXCursor, FClangParserContext* Context)
     {
         eastl::string CursorName = ClangUtils::GetCursorDisplayName(Cursor);
 
@@ -61,7 +61,7 @@ namespace Lumina::Reflection::Visitor
             return CXChildVisit_Continue;
         }
 
-        if(Macro.Type != EReflectionMacro::Enum)
+        if(Macro.Type != EReflectionMacro::Reflect)
         {
             return CXChildVisit_Continue;
         }

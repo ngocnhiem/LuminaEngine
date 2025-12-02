@@ -6,7 +6,7 @@
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class LUMINA_API CArchetypeFactory : public CFactory
     {
         GENERATED_BODY()

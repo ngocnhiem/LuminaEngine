@@ -7,7 +7,7 @@
 namespace Lumina
 {
 
-    LUM_ENUM()
+    REFLECT()
     enum class LUMINA_API EBodyType : uint8
     {
         None,
@@ -17,51 +17,51 @@ namespace Lumina
     };    
     
     
-    LUM_STRUCT()
+    REFLECT()
     struct LUMINA_API SRigidBodyComponent
     {
         GENERATED_BODY()
         ENTITY_COMPONENT(SRigidBodyComponent)
 
-        LUM_PROPERTY(Editable, Category = "Physics")
+        PROPERTY(Editable, Category = "Physics")
         EBodyType BodyType = EBodyType::Dynamic;
 
-        LUM_PROPERTY(Editable, Category = "Physics")
+        PROPERTY(Editable, Category = "Physics")
         float Mass = 1.0f;
 
-        LUM_PROPERTY(Editable, Category = "Physics")
+        PROPERTY(Editable, Category = "Physics")
         bool bUseGravity = true;
 
-        LUM_PROPERTY(Editable, ClampMin = 0.001f, ClampMax = 1.0f, Category = "Physics")
+        PROPERTY(Editable, ClampMin = 0.001f, ClampMax = 1.0f, Category = "Physics")
         float LinearDamping = 0.0f;
 
-        LUM_PROPERTY(Editable, ClampMin = 0.001f, ClampMax = 1.0f, Category = "Physics")
+        PROPERTY(Editable, ClampMin = 0.001f, ClampMax = 1.0f, Category = "Physics")
         float AngularDamping = 0.05f;
     };
 
-    LUM_STRUCT()
+    REFLECT()
     struct LUMINA_API SBoxColliderComponent
     {
         GENERATED_BODY()
         ENTITY_COMPONENT(SBoxColliderComponent)
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         glm::vec3 HalfExtent = glm::vec3(0.5f);
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         glm::vec3 Offset;
     };
 
-    LUM_STRUCT()
+    REFLECT()
     struct LUMINA_API SSphereColliderComponent
     {
         GENERATED_BODY()
         ENTITY_COMPONENT(SSphereColliderComponent)
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         float Radius = 0.5f;
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         glm::vec3 Offset;
     };
     

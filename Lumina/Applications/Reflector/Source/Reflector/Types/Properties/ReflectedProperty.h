@@ -2,6 +2,7 @@
 
 #include <EASTL/string.h>
 #include "EASTL/vector.h"
+#include "Reflector/Types/StructReflectItem.h"
 #include "Reflector/Utils/MetadataUtils.h"
 
 namespace Lumina::Reflection
@@ -11,7 +12,7 @@ namespace Lumina::Reflection
 
 namespace Lumina
 {
-    class FReflectedProperty
+    class FReflectedProperty : public IStructReflectable
     {
     public:
 
@@ -22,11 +23,13 @@ namespace Lumina
 
         virtual const char* GetTypeName() = 0;
         eastl::string GetDisplayName() const { return Name; }
-        void GenerateMetadata(const eastl::string& InMetadata);
+        void GenerateMetadata(const eastl::string& InMetadata) override;
 
         virtual bool CanDeclareCrossModuleReferences() const { return false; }
         virtual void DeclareCrossModuleReference(const eastl::string& API, eastl::string& Stream) { }
 
+        bool GenerateLuaBinding(eastl::string& Stream) override;
+        
         virtual bool HasAccessors();
         virtual bool DeclareAccessors(eastl::string& Stream, const eastl::string& FileID);
         virtual bool DefineAccessors(eastl::string& Stream, Reflection::FReflectedType* ReflectedType);

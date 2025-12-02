@@ -23,7 +23,7 @@ namespace Lumina
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class LUMINA_API CWorld : public CObject
     {
         GENERATED_BODY()

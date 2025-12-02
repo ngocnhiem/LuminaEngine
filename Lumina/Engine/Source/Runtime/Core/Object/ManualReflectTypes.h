@@ -17,74 +17,74 @@
 namespace glm
 {
     
-    LUM_STRUCT()
+    REFLECT()
     struct vec2
     {
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         float x;
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         float y;
     };
 
-    LUM_STRUCT()
+    REFLECT()
     struct vec3
     {
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         float x;
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         float y;
     
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         float z;
     };
 
-    LUM_STRUCT()
+    REFLECT()
     struct vec4
     {
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         float x;
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         float y;
     
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         float z;
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         float w;
     };
 
-    LUM_STRUCT()
+    REFLECT()
     struct quat
     {
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         float x;
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         float y;
     
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         float z;
 
-        LUM_PROPERTY()
+        PROPERTY()
         float w;
     };
 }
 
 namespace Lumina
 {
-    LUM_STRUCT()
+    REFLECT()
     struct FTransform
     {
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         glm::vec3 Location;
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         glm::quat Rotation;
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         glm::vec3 Scale;
     };
 }

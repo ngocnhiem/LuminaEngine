@@ -10,7 +10,7 @@ namespace Lumina
     {
     public:
         
-        using TType = typename T::TType;
+        using TType = T::TType;
 
         static TDeferredRegistry& Get()
         {
@@ -68,4 +68,5 @@ namespace Lumina
     using FClassDeferredRegistry = TDeferredRegistry<FClassRegistrationInfo>;
     using FEnumDeferredRegistry = TDeferredRegistry<FEnumRegistrationInfo>;
     using FStructDeferredRegistry = TDeferredRegistry<FStructRegistrationInfo>;
+    
 }

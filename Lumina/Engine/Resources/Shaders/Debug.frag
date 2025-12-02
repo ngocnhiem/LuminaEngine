@@ -4,7 +4,7 @@
 #include "Includes/SceneGlobals.glsl"
 
 layout(set = 1, binding = 0) uniform sampler2D uDepth;
-layout(set = 1, binding = 1) uniform sampler2D uShadowAtlas;
+layout(set = 1, binding = 1) uniform sampler2DArray uShadowAtlas;
 
 
 layout(location = 0) in vec2 vUV;
@@ -51,7 +51,7 @@ void main()
 
     if(Debug.DebugFlags == DEBUG_SHADOW_ATLAS)
     {
-        float Shadow = texture(uShadowAtlas, vUV).r;
+        float Shadow = texture(uShadowAtlas, vec3(vUV, 1.0)).r;
         Shadow *= 1.5;
         OutFragColor = vec4(vec3(Shadow), 1.0);
         return;

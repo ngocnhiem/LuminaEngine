@@ -270,7 +270,7 @@ namespace Lumina
 
     void CPackage::CreateExports()
     {
-        while (ExportIndex < ExportTable.size())
+        while (ExportIndex < (int64)ExportTable.size())
         {
             
 

@@ -22,7 +22,7 @@ namespace Lumina
     FForwardRenderScene::FForwardRenderScene(CWorld* InWorld)
         : World(InWorld)
         , LightData(), SceneGlobalData()
-        , ShadowAtlas(FShadowAtlasConfig{8192})
+        , ShadowAtlas(FShadowAtlasConfig{GShadowAtlasResolution})
         , DebugVisualizationMode()
         , ShadowCascades()
         , DepthMeshPass()
@@ -411,6 +411,7 @@ namespace Lumina
                         {
                             const FShadowTile& Tile                 = ShadowAtlas.GetTile(TileIndex);
                             Light.Shadow[Face].ShadowMapIndex       = TileIndex;
+                            Light.Shadow[Face].ShadowMapLayer       = Face + 1;
                             Light.Shadow[Face].AtlasUVOffset        = Tile.UVOffset;
                             Light.Shadow[Face].AtlasUVScale         = Tile.UVScale;
                             Light.Shadow[Face].LightIndex           = (int32)LightData.NumLights;
@@ -468,6 +469,7 @@ namespace Lumina
                     {
                         const FShadowTile& Tile             = ShadowAtlas.GetTile(TileIndex);
                         Light.Shadow[0].ShadowMapIndex      = TileIndex;
+                        Light.Shadow[0].ShadowMapLayer      = 0;
                         Light.Shadow[0].AtlasUVOffset       = Tile.UVOffset;
                         Light.Shadow[0].AtlasUVScale        = Tile.UVScale;
                         Light.Shadow[0].LightIndex          = (int32)LightData.NumLights;
@@ -835,6 +837,12 @@ namespace Lumina
 
     void FForwardRenderScene::PointShadowPass(FRenderGraph& RenderGraph)
     {
+        if (PackedShadows[(uint32)ELightType::Point].empty())
+        {
+            return;
+        }
+        
+        
         FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
         Descriptor->AddBinding(BindingSet);
         Descriptor->AddBinding(ShadowPassSet);
@@ -843,11 +851,7 @@ namespace Lumina
         RenderGraph.AddPass<RG_Raster>(FRGEvent("Point Light Shadow Pass"), Descriptor, [&](ICommandList& CmdList)
         {
             LUMINA_PROFILE_SECTION_COLORED("Point Light Shadow Pass", tracy::Color::DeepPink2);
-        
-            if (LightData.NumLights == 0)
-            {
-                return;
-            }
+            
         
             FRHIVertexShaderRef VertexShader = FShaderLibrary::GetVertexShader("ShadowMapping.vert");
             FRHIPixelShaderRef PixelShader = FShaderLibrary::GetPixelShader("ShadowMapping.frag");
@@ -865,61 +869,67 @@ namespace Lumina
                 .AddBindingLayout(ShadowPassLayout)
                 .SetVertexShader(VertexShader)
                 .SetPixelShader(PixelShader);
-
-            FRenderPassDesc::FAttachment Depth; Depth
-                .SetLoadOp(ERenderLoadOp::Load)
-                .SetImage(ShadowAtlas.GetImage());
-                    
-            FRenderPassDesc RenderPass; RenderPass
-                .SetDepthAttachment(Depth)
-                .SetRenderArea(glm::uvec2(GShadowAtlasResolution, GShadowAtlasResolution));
-
-            FRHIGraphicsPipelineRef Pipeline = GRenderContext->CreateGraphicsPipeline(Desc, RenderPass);
-
             
-            FGraphicsState GraphicsState; GraphicsState
-                .SetRenderPass(Move(RenderPass))
-                .AddBindingSet(BindingSet)
-                .AddBindingSet(ShadowPassSet)
-                .SetIndirectParams(IndirectDrawBuffer)
-                .SetPipeline(Pipeline);
 
             TVector<FLightShadow>& PointShadows = PackedShadows[(uint32)ELightType::Point];
 
             LUM_ASSERT(PointShadows.size() % 6 == 0)
-            for (int i = 0; i < PointShadows.size(); ++i)
+            for (size_t Shadow = 0; Shadow < PointShadows.size(); Shadow += 6)
             {
-                const FLightShadow& Shadow = PointShadows[i];
-                
                 LUMINA_PROFILE_SECTION_COLORED("Process Point Light", tracy::Color::DeepPink2);
-                
-                const FShadowTile& Tile = ShadowAtlas.GetTile(Shadow.ShadowMapIndex);
-                uint32 TilePixelX       = static_cast<uint32>(Tile.UVOffset.x * GShadowAtlasResolution);
-                uint32 TilePixelY       = static_cast<uint32>(Tile.UVOffset.y * GShadowAtlasResolution);
-                uint32 TileSize         = static_cast<uint32>(Tile.UVScale.x * GShadowAtlasResolution);
-                
-                FViewport Viewport
-                (
-                    (float)TilePixelX,
-                    (float)TilePixelX + TileSize,
-                    (float)TilePixelY,
-                    (float)TilePixelY + TileSize,
-                    0.0f,
-                    1.0f 
-                );
-                
-                // FRect(minX, maxX, minY, maxY)
-                FRect Scissor
-                (
-                    (int)TilePixelX,
-                    (int)TilePixelX + TileSize,
-                    (int)TilePixelY,
-                    (int)TilePixelY + TileSize
-                );
 
-                GraphicsState.ViewportState = FViewportState();
-                GraphicsState.AddViewport(Viewport);
-                GraphicsState.AddScissor(Scissor);
+                const FLightShadow& LightShadow = PointShadows[Shadow];
+                
+                FRenderPassDesc::FAttachment Depth; Depth
+                    .SetLoadOp(ERenderLoadOp::Load)
+                    .SetImage(ShadowAtlas.GetImage())
+                        .SetArraySliceRange(1, 1);
+                
+                FRenderPassDesc RenderPass; RenderPass
+                    .SetDepthAttachment(Depth)
+                    .SetRenderArea(glm::uvec2(GShadowAtlasResolution, GShadowAtlasResolution));
+                
+                
+                FRHIGraphicsPipelineRef Pipeline = GRenderContext->CreateGraphicsPipeline(Desc, RenderPass);
+            
+                FGraphicsState GraphicsState; GraphicsState
+                    .SetRenderPass(Move(RenderPass))
+                    .AddBindingSet(BindingSet)
+                    .AddBindingSet(ShadowPassSet)
+                    .SetIndirectParams(IndirectDrawBuffer)
+                    .SetPipeline(Pipeline);
+
+                for (size_t Face = Shadow; Face < Shadow + 6; ++Face)
+                {
+                    const FLightShadow& FaceShadow = PointShadows[Face];
+                
+                    const FShadowTile& Tile = ShadowAtlas.GetTile(FaceShadow.ShadowMapIndex);
+                    uint32 TilePixelX       = static_cast<uint32>(Tile.UVOffset.x * GShadowAtlasResolution);
+                    uint32 TilePixelY       = static_cast<uint32>(Tile.UVOffset.y * GShadowAtlasResolution);
+                    uint32 TileSize         = static_cast<uint32>(Tile.UVScale.x * GShadowAtlasResolution);
+                
+                    FViewport Viewport
+                    (
+                        (float)TilePixelX,
+                        (float)TilePixelX + TileSize,
+                        (float)TilePixelY,
+                        (float)TilePixelY + TileSize,
+                        0.0f,
+                        1.0f 
+                    );
+                
+                    // FRect(minX, maxX, minY, maxY)
+                    FRect Scissor
+                    (
+                        (int)TilePixelX,
+                        (int)TilePixelX + TileSize,
+                        (int)TilePixelY,
+                        (int)TilePixelY + TileSize
+                    );
+
+                    GraphicsState.AddViewport(Viewport);
+                    GraphicsState.AddScissor(Scissor);
+                }
                 
                 for (SIZE_T CurrentDraw = 0; CurrentDraw < DrawCommands.size(); ++CurrentDraw)
                 {
@@ -929,9 +939,9 @@ namespace Lumina
                     GraphicsState.SetIndexBuffer({ Batch.IndexBuffer });
                     
                     CmdList.SetGraphicsState(GraphicsState);
-
-                    uint32 Face = i % 6;
-                    uint32 PCMask = (Shadow.LightIndex << 16) | (Face & 0xFFFF);
+                    
+                    uint32 Face = 0;
+                    uint32 PCMask = (LightShadow.LightIndex << 16) | (Face & 0xFFFF);
                     
                     CmdList.SetPushConstants(&PCMask, sizeof(uint32));
                     CmdList.DrawIndexedIndirect(1, Batch.IndirectDrawOffset * sizeof(FDrawIndexedIndirectArguments));
@@ -942,6 +952,11 @@ namespace Lumina
 
     void FForwardRenderScene::SpotShadowPass(FRenderGraph& RenderGraph)
     {
+        if (PackedShadows[(uint32)ELightType::Spot].empty())
+        {
+            return;
+        }
+        
         FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
         Descriptor->AddBinding(BindingSet);
         Descriptor->AddBinding(ShadowPassSet);
@@ -960,7 +975,7 @@ namespace Lumina
                 .SetDepthStencilState(FDepthStencilState()
                     .SetDepthFunc(EComparisonFunc::LessOrEqual))
                     .SetRasterState(FRasterState().SetSlopeScaleDepthBias(1.75f).SetDepthBias(100).SetCullFront());
-        
+            
             
             FGraphicsPipelineDesc Desc; Desc
                 .SetDebugName("Spot Shadow Pass")
@@ -983,7 +998,8 @@ namespace Lumina
                 
                 FRenderPassDesc::FAttachment Depth; Depth
                     .SetLoadOp(ERenderLoadOp::Load)
-                    .SetImage(ShadowAtlas.GetImage());
+                    .SetImage(ShadowAtlas.GetImage())
+                        .SetArraySlice(0);
                 
                 FRenderPassDesc RenderPass; RenderPass
                     .SetDepthAttachment(Depth)
@@ -1040,6 +1056,11 @@ namespace Lumina
 
     void FForwardRenderScene::DirectionalShowPass(FRenderGraph& RenderGraph)
     {
+        if (!LightData.bHasSun)
+        {
+            return;
+        }
+        
         FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
         Descriptor->AddBinding(BindingSet);
         Descriptor->AddBinding(ShadowPassSet);
@@ -1049,11 +1070,6 @@ namespace Lumina
         RenderGraph.AddPass<RG_Raster>(FRGEvent("Cascaded Shadow Map Pass"), Descriptor, [&](ICommandList& CmdList)
         {
             LUMINA_PROFILE_SECTION_COLORED("Cascaded Shadow Map Pass", tracy::Color::DeepPink2);
-        
-            if (!LightData.bHasSun)
-            {
-                return;
-            }
         
             FRHIVertexShaderRef VertexShader = FShaderLibrary::GetVertexShader("ShadowMapping.vert");
             //FRHIPixelShaderRef PixelShader = FShaderLibrary::GetPixelShader("ShadowMapping.frag");

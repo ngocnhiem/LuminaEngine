@@ -17,8 +17,9 @@ namespace Lumina
 
         FCObjectAllocator();
         ~FCObjectAllocator();
-        
-        LUMINA_API CObjectBase* AllocateCObject(uint32 Size, uint32 Alignment);
+
+        /** Allocates memory for a new CObject, but does not place in memory */
+        LUMINA_API void* AllocateCObject(uint32 Size, uint32 Alignment);
         LUMINA_API void FreeCObject(CObjectBase* Ptr);
 
     private:

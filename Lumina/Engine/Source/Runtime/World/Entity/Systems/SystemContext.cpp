@@ -107,6 +107,12 @@ namespace Lumina
             if (Arg.is<sol::table>())
             {
                 sol::table ComponentTable = Arg.as<sol::table>();
+                if (!ComponentTable["__type"].valid())
+                {
+                    LOG_WARN("No __type found for component!");
+                    continue;
+                }
+                
                 FName LuaName = ComponentTable["__type"].get<const char*>();
 
                 auto HashedComponentName = entt::hashed_string(LuaName.c_str());
@@ -150,9 +156,13 @@ namespace Lumina
             {
                 Row[Info.Name.c_str()] = Info.ConversionFunctionPtr(StateView, Info.Storage->value(EntityID));
             }
-
+            
             ViewTable[(uint32)EntityID] = Row;
         });
+
+        sol::table meta = StateView.create_table();
+        meta[sol::meta_function::length] = [NumEntities](sol::table) { return NumEntities; };
+        ViewTable[sol::metatable_key] = meta;
         
         return ViewTable;
     }

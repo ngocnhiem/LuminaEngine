@@ -6,7 +6,7 @@
 
 namespace Lumina
 {
-    LUM_STRUCT()
+    REFLECT()
     struct LUMINA_API SLuaComponent
     {
         GENERATED_BODY()

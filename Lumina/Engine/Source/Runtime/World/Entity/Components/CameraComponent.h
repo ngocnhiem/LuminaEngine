@@ -11,7 +11,7 @@
 
 namespace Lumina
 {
-    LUM_PROPERTY()
+    PROPERTY()
     struct LUMINA_API SCameraComponent
     {
         GENERATED_BODY()
@@ -51,7 +51,7 @@ namespace Lumina
         const glm::vec3& GetForwardVector() const { return ViewVolume.GetForwardVector(); }
         const glm::vec3& GetRightVector() const { return ViewVolume.GetRightVector(); }
 
-        LUM_PROPERTY(Editable, Category = "Camera")
+        PROPERTY(Editable, Category = "Camera")
         float FOV = 0.0f;
         
     private:

@@ -12,7 +12,7 @@ namespace Lumina
 #define ENTITY_COMPONENT(Type) \
     static void* GetComponentStructType() { return Type::StaticStruct(); } \
     static void* AddComponent(entt::entity e, void* Registry) { return &static_cast<Lumina::FEntityRegistry*>(Registry)->emplace_or_replace<Type>(e); } \
-    static sol::object ToSolObject(sol::state_view Lua, void* ComponentPtr) { return sol::make_object(Lua, static_cast<Type*>(ComponentPtr)); } \
+    static sol::object ToLua(sol::state_view Lua, void* ComponentPtr) { return sol::make_object(Lua, std::ref(*static_cast<Type*>(ComponentPtr))); } \
     static void Serialize(FArchive& Ar, void* Data) \
     { \
         CStruct* Struct = StaticStruct(); \
@@ -26,11 +26,8 @@ namespace Lumina
         .type(#Type ## _hs) \
         .func<&Type::GetComponentStructType>("staticstruct"_hs) \
         .func<&Type::AddComponent>("addcomponent"_hs) \
-        .func<&Type::ToSolObject>("tosolobject"_hs) \
+        .func<&Type::ToLua>("tolua"_hs) \
         .func<&Type::Serialize>("serialize"_hs); \
-        \
-        \
-        Scripting::FScriptingContext::Get().RegisterEntityComponentStruct<Type>(); \
     } \
     struct DeferredAutoRegister { \
         DeferredAutoRegister() { \

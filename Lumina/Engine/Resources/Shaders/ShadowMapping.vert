@@ -1,8 +1,8 @@
 #version 460
 #extension GL_ARB_shader_viewport_layer_array : require
 #extension GL_EXT_multiview : require
-
 #pragma shader_stage(vertex)
+
 #include "Includes/SceneGlobals.glsl"
 
 layout(location = 0) in vec3 inPosition;
@@ -17,7 +17,6 @@ layout(push_constant) uniform PushConstants
 void main()
 {
     uint LightNum = PC.Mask >> 16;
-    uint FaceIndex = PC.Mask & 0xFFFF;
     
     FLight Light = LightData.Lights[LightNum];
     mat4 ModelMatrix = GetModelMatrix(gl_InstanceIndex);
@@ -26,5 +25,5 @@ void main()
     outWorldPos = WorldPos.xyz;
     outLightPos = Light.Position;
     
-    gl_Position = Light.ViewProjection[FaceIndex] * WorldPos;
+    gl_Position = Light.ViewProjection[gl_ViewIndex] * WorldPos;
 }

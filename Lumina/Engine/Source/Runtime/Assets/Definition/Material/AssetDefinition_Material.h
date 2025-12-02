@@ -7,7 +7,7 @@
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class LUMINA_API CAssetDefinition_Material : public CAssetDefinition
     {
         GENERATED_BODY()

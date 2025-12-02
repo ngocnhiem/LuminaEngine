@@ -8,6 +8,7 @@
 #include "Reflector/Clang/Utils.h"
 #include "Reflector/ReflectionCore/ReflectedHeader.h"
 #include "Reflector/ReflectionCore/ReflectedProject.h"
+#include "Reflector/Types/Functions/ReflectedFunction.h"
 #include "Reflector/Types/Properties/ReflectedProperty.h"
 #include "Reflector/Utils/StringUtils.h"
 
@@ -22,6 +23,12 @@ namespace eastl
         return os;
     }
 }
+
+static bool IsManualReflectFile(const eastl::string& HeaderID)
+{
+    return HeaderID.find("manualreflecttypes") != eastl::string::npos;
+}
+    
 
 static void GenerateFileWarning(eastl::string& Stream)
 {
@@ -373,6 +380,80 @@ namespace Lumina::Reflection
         Stream += ");\n\n";
 
         Stream += "// ** End Static Registration **\n\n";
+
+
+        if(IsManualReflectFile(FileID))
+        {
+            return;
+        }
+        
+        Stream += "// ** Begin Lua Registration **\n";
+        Stream += "#include <sol/sol.hpp>\n";
+        Stream += "#include \"Scripting/DeferredScriptRegistry.h\"\n";
+
+        Stream += "static void " + FileID + "_" + "LuaRegistration(sol::state_view State)\n";
+        Stream += "{\n";
+
+        for (FReflectedType* Type : ReflectedTypes)
+        {
+            if (Type->Type != FReflectedType::EType::Structure)
+            {
+                continue;
+            }
+            
+            Stream += "\t State.new_usertype<" + Type->Namespace + "::" + Type->DisplayName + ">(\"" + Type->DisplayName + "\",\n";
+
+            Stream += "\t\t\"__type\", sol::readonly_property([]() { return \"" + Type->DisplayName + "\"; })";
+
+            if (!Type->Props.empty() || !Type->Functions.empty())
+            {
+                Stream += ",";
+            }
+
+            Stream += "\n";
+            
+            
+            for (const eastl::shared_ptr<FReflectedProperty>& Property : Type->Props)
+            {
+                if (Property->bInner)
+                {
+                    continue;
+                }
+
+                if (Property->GenerateLuaBinding(Stream) && (Property != Type->Props.back() || !Type->Functions.empty()))
+                {
+                    Stream += ",";
+                }
+                
+                Stream += "\n";
+            }
+
+            Stream += "\n\n";
+
+            for (const eastl::shared_ptr<FReflectedFunction>& Function : Type->Functions)
+            {
+                Stream += "\t\t\"" + Function->Name + "\", &" + Type->Namespace + "::" + Type->DisplayName + "::" + Function->Name;
+
+                if (Function != Type->Functions.back())
+                {
+                    Stream += ",";
+                }
+
+                Stream += "\n";
+            }
+
+            Stream += "\t);\n";
+
+            Stream += "\tLumina::Scripting::FScriptingContext::Get().RegisterLuaConverterByName<" + Type->Namespace + "::" + Type->DisplayName + ">" + "(\"" + Type->DisplayName + "\");\n";
+            
+        }
+        
+        Stream += "}\n";
+
+        Stream += "static Lumina::Scripting::FRegisterScriptInfo " + FileID + "LuaRegisterInfo(&" + FileID + "_" + "LuaRegistration);\n";
+        
+
+        Stream += "// ** End Lua Registration **\n\n";
     }
 
 }

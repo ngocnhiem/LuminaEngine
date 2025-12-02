@@ -2,14 +2,12 @@ include(os.getenv("LUMINA_DIR") .. "/Dependencies.lua")
 
 project "Lumina"
     kind "SharedLib"
-    
-    outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
-    
     targetdir ("%{LuminaEngineDirectory}/Binaries/" .. outputdir)
     objdir ("%{LuminaEngineDirectory}/Intermediates/Obj/" .. outputdir .. "/%{prj.name}")
 
     pchheader "pch.h"
     pchsource "Engine/Source/pch.cpp"
+    dependson { "GLFW", "EA", "ImGui", "Tracy", "Reflector" }
 
     defines
     {
@@ -33,19 +31,16 @@ project "Lumina"
 
     prebuildcommands 
     {
-        'python "%{LuminaEngineDirectory}/Scripts/RunReflection.py" "%{wks.location}\\Lumina.sln"'
+        'python "%{LuminaEngineDirectory}/Scripts/RunReflection.py" "%{wks.location}/Lumina.sln"'
     }
+    prebuildmessage "======== Running Lumina Reflection Tool ========"
+
+
 
     postbuildcommands
     {
         '{COPYFILE} "%{LuminaEngineDirectory}/External/RenderDoc/renderdoc.dll" "%{cfg.targetdir}"',
     }
-
-    cleancommands 
-    {
-      "make clean %{cfg.buildcfg}"
-    }
-
 
     files
     {
@@ -99,12 +94,12 @@ project "Lumina"
         links { "shaderc_combinedd" }
 
         
-filter "files:Engine/ThirdParty/**.cpp"
-    flags { "NoPCH" }
-filter {} -- reset
+    filter "files:Engine/ThirdParty/**.cpp"
+        flags { "NoPCH" }
+    filter {} -- reset
 
--- Disable PCH and force C language for third-party C files
-filter "files:Engine/ThirdParty/**.c"
-    flags { "NoPCH" }
-    language "C"
-filter {} -- reset
+    -- Disable PCH and force C language for third-party C files
+    filter "files:Engine/ThirdParty/**.c"
+        flags { "NoPCH" }
+        language "C"
+    filter {} -- reset

@@ -14,6 +14,7 @@ namespace Lumina
         bool HasAccessors() override;
         bool DeclareAccessors(eastl::string& Stream, const eastl::string& FileID) override;
         bool DefineAccessors(eastl::string& Stream, Reflection::FReflectedType* ReflectedType) override;
+        bool GenerateLuaBinding(eastl::string& Stream) override;
 
         eastl::string ElementTypeName;
     };

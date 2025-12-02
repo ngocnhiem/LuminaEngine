@@ -142,7 +142,7 @@ namespace Lumina
         {
             const FPassResourceAccess& CurrentPass = PassAccess[Index];
 
-            for (int j = 0; j < Index; ++j)
+            for (int j = 0; j < (int)Index; ++j)
             {
                 const FPassResourceAccess& PreviousPass = PassAccess[j];
 

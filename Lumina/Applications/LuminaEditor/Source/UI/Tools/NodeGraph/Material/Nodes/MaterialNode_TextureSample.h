@@ -10,7 +10,7 @@ namespace Lumina
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_TextureSample : public CMaterialExpression
     {
         GENERATED_BODY()
@@ -27,7 +27,7 @@ namespace Lumina
         void SetNodeValue(void* Value) override;
         void DrawNodeBody() override;
 
-        LUM_PROPERTY(Editable, Category = "Texture")
+        PROPERTY(Editable, Category = "Texture")
         TObjectPtr<CTexture> Texture;
 
         CMaterialInput* UV = nullptr;

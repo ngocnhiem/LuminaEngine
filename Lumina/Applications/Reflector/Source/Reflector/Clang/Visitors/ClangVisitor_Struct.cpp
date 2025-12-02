@@ -5,6 +5,7 @@
 #include "Reflector/Clang/Utils.h"
 #include "Reflector/ReflectionCore/ReflectionMacro.h"
 #include "Reflector/Types/FieldInfo.h"
+#include "Reflector/Types/Functions/ReflectedFunction.h"
 #include "Reflector/Types/Properties/ReflectedArrayProperty.h"
 #include "Reflector/Types/Properties/ReflectedEnumProperty.h"
 #include "Reflector/Types/Properties/ReflectedNumericProperty.h"
@@ -280,76 +281,43 @@ namespace Lumina::Reflection::Visitor
         return NewProperty != nullptr;
         
     }
-    
-    static CXChildVisitResult VisitStructureContents(CXCursor Cursor, CXCursor parent, CXClientData pClientData)
+
+
+    static bool CreateFunctionForType(const CXCursor& Cursor, FClangParserContext* Context, FReflectedStruct* Struct, eastl::shared_ptr<FReflectedFunction>& NewFunction)
     {
-        FClangParserContext* Context = (FClangParserContext*)pClientData;
-        eastl::string CursorName = ClangUtils::GetCursorDisplayName(Cursor);
-        eastl::string ParentCursorName = ClangUtils::GetCursorDisplayName(parent);
+        NewFunction = eastl::make_shared<FReflectedFunction>();
+        NewFunction->Outer = Struct->DisplayName;
+        NewFunction->Name = ClangUtils::GetCursorSpelling(Cursor);
+        Struct->PushFunction(NewFunction);
 
-        CXCursorKind Kind = clang_getCursorKind(Cursor);
-
-        FReflectedStruct* Struct = Context->GetParentReflectedType<FReflectedStruct>();
-
-        switch (Kind)
-        {
-        case(CXCursor_CXXBaseSpecifier):
-            {
-                Struct->Parent = CursorName;
-            }
-            break;
-        case(CXCursor_FieldDecl):
-            {
-                FReflectionMacro Macro;
-                if(!Context->TryFindMacroForCursor(Context->ReflectedHeader->HeaderPath, Cursor, Macro))
-                {
-                    return CXChildVisit_Continue;
-                }
-
-                FFieldInfo FieldInfo = CreateFieldInfo(Context, Cursor);
-                if (!FieldInfo.Validate(Context))
-                {
-                    return CXChildVisit_Continue;
-                }
-                
-                eastl::shared_ptr<FReflectedProperty> NewProperty;
-                CreatePropertyForType(Context, Struct, NewProperty, FieldInfo);
-                NewProperty->GenerateMetadata(Macro.MacroContents);
-                
-            }
-            break;
-        }
-        
-        return CXChildVisit_Continue;
-
+        return NewFunction != nullptr;
     }
 
-    static CXChildVisitResult VisitClassContents(CXCursor Cursor, CXCursor parent, CXClientData pClientData)
+    template<typename TVisitType>
+    static CXChildVisitResult VisitContents(CXCursor Cursor, CXCursor parent, CXClientData pClientData)
     {
         FClangParserContext* Context = (FClangParserContext*)pClientData;
         eastl::string CursorName = ClangUtils::GetCursorDisplayName(Cursor);
-        eastl::string ParentCursorName = ClangUtils::GetCursorDisplayName(parent);
-
         CXCursorKind Kind = clang_getCursorKind(Cursor);
+        TVisitType* Type = Context->GetParentReflectedType<TVisitType>();
 
-        FReflectedClass* Class = Context->GetParentReflectedType<FReflectedClass>();
+        
 
         switch (Kind)
         {
         case(CXCursor_CXXBaseSpecifier):
             {
-                Class->Parent = CursorName;
+                Type->Parent = CursorName;
             }
             break;
         case(CXCursor_FieldDecl):
             {
-                
                 FReflectionMacro Macro;
                 if(!Context->TryFindMacroForCursor(Context->ReflectedHeader->HeaderPath, Cursor, Macro))
                 {
                     return CXChildVisit_Continue;
                 }
-                
+
                 FFieldInfo FieldInfo = CreateFieldInfo(Context, Cursor);
                 if (!FieldInfo.Validate(Context))
                 {
@@ -357,14 +325,28 @@ namespace Lumina::Reflection::Visitor
                 }
                 
                 eastl::shared_ptr<FReflectedProperty> NewProperty;
-                CreatePropertyForType(Context, Class, NewProperty, FieldInfo);
+                CreatePropertyForType(Context, Type, NewProperty, FieldInfo);
                 NewProperty->GenerateMetadata(Macro.MacroContents);
+                
+            }
+            break;
+        case(CXCursor_CXXMethod):
+            {
+                FReflectionMacro Macro;
+                if(!Context->TryFindMacroForCursor(Context->ReflectedHeader->HeaderPath, Cursor, Macro))
+                {
+                    return CXChildVisit_Continue;
+                }
 
+                eastl::shared_ptr<FReflectedFunction> NewFunction;
+                CreateFunctionForType(Cursor, Context, Type, NewFunction);
+                NewFunction->GenerateMetadata(Macro.MacroContents);
             }
             break;
         }
         
         return CXChildVisit_Continue;
+
     }
     
     CXChildVisitResult VisitStructure(CXCursor Cursor, CXCursor Parent, FClangParserContext* Context)
@@ -414,7 +396,7 @@ namespace Lumina::Reflection::Visitor
 
         if (!Context->bInitialPass)
         {
-            clang_visitChildren(Cursor, VisitStructureContents, Context);
+            clang_visitChildren(Cursor, VisitContents<FReflectedStruct>, Context);
         }
         
         Context->ParentReflectedType = PreviousType;
@@ -469,7 +451,7 @@ namespace Lumina::Reflection::Visitor
 
         if (!Context->bInitialPass)
         {
-            clang_visitChildren(Cursor, VisitClassContents, Context);
+            clang_visitChildren(Cursor, VisitContents<FReflectedClass>, Context);
         }
         
         Context->ParentReflectedType = PreviousType;

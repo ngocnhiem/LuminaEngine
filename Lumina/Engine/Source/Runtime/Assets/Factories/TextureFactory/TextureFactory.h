@@ -8,7 +8,7 @@
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class CTextureFactory : public CFactory
     {
         GENERATED_BODY()

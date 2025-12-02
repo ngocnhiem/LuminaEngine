@@ -17,7 +17,6 @@ void main()
     float Distance = length(inWorldPos - inLightPos);
 
     uint LightNum = PC.Mask >> 16;
-    uint FaceIndex = PC.Mask & 0xFFFF;
     
     FLight Light = GetLightAt(LightNum);
 

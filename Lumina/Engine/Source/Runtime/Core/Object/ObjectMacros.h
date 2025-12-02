@@ -8,15 +8,9 @@ enum EInternal { EC_InternalUseOnlyConstructor };
 
 #define NO_API
 
-
-
-#define LUM_CLASS(...)
-#define LUM_STRUCT(...)
-#define LUM_ENUM(...)
-#define LUM_FUNCTION(...)
-
-// Define property flags for reflected properties. See ObjectMacros.h for a list.
-#define LUM_PROPERTY(...)
+#define REFLECT(...)
+#define FUNCTION(...)
+#define PROPERTY(...)
 
 namespace PF
 {
@@ -85,11 +79,9 @@ namespace PF
 #if defined(REFLECTION_PARSER)
 
     #define GENERATED_BODY(...)
-    #define LUM_CLASS(...)
-    #define LUM_STRUCT(...)
-    #define LUM_ENUM(...)
-    #define LUM_PROPERTY(...)
-    #define LUM_FUNCTION(...)
+    #define REFLECT(...)
+    #define PROPERTY(...)
+    #define FUNCTION(...)
 
 #else
 
@@ -156,23 +148,22 @@ public: \
 #define DEFINE_DEFAULT_CONSTRUCTOR_CALL(TClass) \
     static void __DefaultConstructor(const Lumina::FObjectInitializer& OI) { new ((EInternal*)OI.GetObj())TClass; }
 
-
 #define IMPLEMENT_CLASS(TNamespace, TClass) \
-    Lumina::FClassRegistrationInfo CONCAT3(Registration_Info_CClass_, TNamespace, _##TClass); \
+    Lumina::FClassRegistrationInfo CONCAT4(Registration_Info_CClass_, TNamespace, _, TClass); \
     NO_API Lumina::CClass* TNamespace::TClass::GetPrivateStaticClass() \
     { \
-        if (CONCAT3(Registration_Info_CClass_, TNamespace, _##TClass).InnerSingleton == nullptr) \
+        if (CONCAT4(Registration_Info_CClass_, TNamespace, _, TClass).InnerSingleton == nullptr) \
         { \
             Lumina::AllocateStaticClass( \
                 TNamespace::TClass::StaticPackage(), \
                 TEXT(#TClass), \
-                &CONCAT3(Registration_Info_CClass_, TNamespace, _##TClass).InnerSingleton, \
+                &CONCAT4(Registration_Info_CClass_, TNamespace, _, TClass).InnerSingleton, \
                 sizeof(TNamespace::TClass), \
                 alignof(TNamespace::TClass), \
                 &TNamespace::TClass::Super::StaticClass, \
                 (Lumina::CClass::ClassConstructorType)Lumina::InternalConstructor<TNamespace::TClass>); \
         } \
-        return CONCAT4(Registration_Info_CClass_, TNamespace, _, ##TClass).InnerSingleton; \
+        return CONCAT4(Registration_Info_CClass_, TNamespace, _, TClass).InnerSingleton; \
     }
 
 

@@ -60,6 +60,14 @@ namespace Lumina::ClangUtils
         return str;
     }
 
+    inline eastl::string GetCursorSpelling(const CXCursor& Cr)
+    {
+        CXString Spelling = clang_getCursorSpelling(Cr);
+        eastl::string Result = clang_getCString(Spelling);
+        clang_disposeString(Spelling);
+        return Result;
+    }
+
     inline eastl::string GetHeaderPathForCursor(CXCursor cr)
     {
         CXFile pFile;

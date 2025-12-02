@@ -26,22 +26,3 @@ project "EA"
 		"EABase/include/Common",
 		"EASTL/include/",
 	}
-
-	filter "system:windows"
-		systemversion "latest"
-		cppdialect "C++17"
-
-	filter "system:linux"
-		pic "On"
-		systemversion "latest"
-		cppdialect "C++17"
-
-	filter "configurations:Debug"
-	defines "LE_DEBUG"
-	buildoptions "/MDd"
-	symbols "On"
-	
-	filter "configurations:Release"
-	defines "LE_RELEASE"
-	buildoptions "/MD"
-	optimize "On"

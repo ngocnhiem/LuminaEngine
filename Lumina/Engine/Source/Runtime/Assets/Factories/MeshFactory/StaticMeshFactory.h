@@ -8,7 +8,7 @@
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class CStaticMeshFactory : public CFactory
     {
         GENERATED_BODY()

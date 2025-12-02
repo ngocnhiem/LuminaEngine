@@ -20,7 +20,6 @@ namespace Lumina
         
         TFixedVector<FElement, 1>   Elements;
         
-        FDeferredRenderScene*               Scene;
         CMaterialInterface*         Material;
         
         FRHIBuffer*                 VertexBuffer;

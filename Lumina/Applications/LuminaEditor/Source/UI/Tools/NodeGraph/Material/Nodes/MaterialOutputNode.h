@@ -5,7 +5,7 @@
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class CMaterialOutputNode : public CMaterialGraphNode
     {
         GENERATED_BODY()

@@ -11,7 +11,7 @@
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class CScriptEntitySystem : public CEntitySystem
     {
         GENERATED_BODY()

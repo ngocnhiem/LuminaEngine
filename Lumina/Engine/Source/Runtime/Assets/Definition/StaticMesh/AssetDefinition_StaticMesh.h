@@ -6,7 +6,7 @@
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class CAssetDefinition_StaticMesh : public CAssetDefinition
     {
         GENERATED_BODY()

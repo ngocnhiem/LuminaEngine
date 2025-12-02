@@ -10,7 +10,7 @@
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class CEdNodeGraphPin : public CObject
     {
         GENERATED_BODY()

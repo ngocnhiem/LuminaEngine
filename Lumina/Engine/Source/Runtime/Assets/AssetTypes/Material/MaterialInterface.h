@@ -14,7 +14,7 @@ namespace Lumina
 namespace Lumina
 {
 
-    LUM_ENUM()
+    REFLECT()
     enum class EMaterialType : uint8
     {
         None,
@@ -23,7 +23,7 @@ namespace Lumina
         UI,
     };
     
-    LUM_CLASS()
+    REFLECT()
     class LUMINA_API CMaterialInterface : public CObject
     {
         GENERATED_BODY()

@@ -24,9 +24,9 @@ namespace Lumina::Reflection
         void AddReflectedMacro(FReflectionMacro&& Macro);
         void AddGeneratedBodyMacro(FReflectionMacro&& Macro);
         
-        bool TryFindMacroForCursor(eastl::string HeaderID, const CXCursor& Cursor, FReflectionMacro& Macro);
+        bool TryFindMacroForCursor(const eastl::string& HeaderID, const CXCursor& Cursor, FReflectionMacro& Macro);
 
-        bool TryFindGeneratedBodyMacro(eastl::string HeaderID, const CXCursor& Cursor, FReflectionMacro& Macro);
+        bool TryFindGeneratedBodyMacro(const eastl::string& HeaderID, const CXCursor& Cursor, FReflectionMacro& Macro);
 
         void LogError(char const* ErrorFormat, ...) const;
         void LogWarning(char const* ErrorFormat, ...) const;

@@ -7,7 +7,7 @@
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression : public CMaterialGraphNode
     {
         GENERATED_BODY()
@@ -18,12 +18,12 @@ namespace Lumina
         
         CMaterialOutput* Output;
 
-        LUM_PROPERTY(Editable, Category = "Dynamic")
+        PROPERTY(Editable, Category = "Dynamic")
         bool bDynamic = false;
         
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Math : public CMaterialExpression
     {
         GENERATED_BODY()
@@ -36,14 +36,14 @@ namespace Lumina
         CMaterialInput* A = nullptr;
         CMaterialInput* B = nullptr;
 
-        LUM_PROPERTY(Editable, Category = "Value")
+        PROPERTY(Editable, Category = "Value")
         float ConstA = 0;
 
-        LUM_PROPERTY(Editable, Category = "Value")
+        PROPERTY(Editable, Category = "Value")
         float ConstB = 0;
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Addition : public CMaterialExpression_Math
     {
         GENERATED_BODY()
@@ -60,7 +60,7 @@ namespace Lumina
         
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Clamp : public CMaterialExpression_Math
     {
         GENERATED_BODY()
@@ -79,7 +79,7 @@ namespace Lumina
         
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Saturate : public CMaterialExpression_Math
     {
         GENERATED_BODY()
@@ -96,7 +96,7 @@ namespace Lumina
         
     };
     
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Normalize : public CMaterialExpression_Math
     {
         GENERATED_BODY()
@@ -113,7 +113,7 @@ namespace Lumina
         
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Distance : public CMaterialExpression_Math
     {
         GENERATED_BODY()
@@ -130,7 +130,7 @@ namespace Lumina
         
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Abs : public CMaterialExpression_Math
     {
         GENERATED_BODY()
@@ -147,7 +147,7 @@ namespace Lumina
         
     };
     
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_SmoothStep : public CMaterialExpression_Math
     {
         GENERATED_BODY()
@@ -165,12 +165,12 @@ namespace Lumina
         CMaterialInput* C = nullptr;
 
         
-        LUM_PROPERTY(Editable, Category = "Value")
+        PROPERTY(Editable, Category = "Value")
         float X = 0.5f;
         
     };
     
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Subtraction : public CMaterialExpression_Math
     {
         GENERATED_BODY()
@@ -186,7 +186,7 @@ namespace Lumina
         void GenerateDefinition(FMaterialCompiler& Compiler) override;
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Multiplication : public CMaterialExpression_Math
     {
         GENERATED_BODY()
@@ -202,7 +202,7 @@ namespace Lumina
     };
     
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Sin : public CMaterialExpression_Math
     {
         GENERATED_BODY()
@@ -218,7 +218,7 @@ namespace Lumina
 
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Cosin : public CMaterialExpression_Math
     {
         GENERATED_BODY()
@@ -234,7 +234,7 @@ namespace Lumina
 
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Floor : public CMaterialExpression_Math
     {
         GENERATED_BODY()
@@ -250,7 +250,7 @@ namespace Lumina
 
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Ceil : public CMaterialExpression_Math
     {
         GENERATED_BODY()
@@ -266,7 +266,7 @@ namespace Lumina
 
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Power : public CMaterialExpression_Math
     {
         GENERATED_BODY()
@@ -282,7 +282,7 @@ namespace Lumina
 
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Mod : public CMaterialExpression_Math
     {
         GENERATED_BODY()
@@ -298,7 +298,7 @@ namespace Lumina
 
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Min : public CMaterialExpression_Math
     {
         GENERATED_BODY()
@@ -314,7 +314,7 @@ namespace Lumina
 
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Max : public CMaterialExpression_Math
     {
         GENERATED_BODY()
@@ -330,7 +330,7 @@ namespace Lumina
 
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Step : public CMaterialExpression_Math
     {
         GENERATED_BODY()
@@ -346,7 +346,7 @@ namespace Lumina
         
     };
     
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Lerp : public CMaterialExpression_Math
     {
         GENERATED_BODY()
@@ -359,7 +359,7 @@ namespace Lumina
         uint32 GenerateExpression(FMaterialCompiler& Compiler) override { return 0; }
         void GenerateDefinition(FMaterialCompiler& Compiler) override;
 
-        LUM_PROPERTY(Editable, Category = "Value")
+        PROPERTY(Editable, Category = "Value")
         float Alpha = 0;
 
         
@@ -367,7 +367,7 @@ namespace Lumina
     };
     
     
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Division : public CMaterialExpression_Math
     {
         GENERATED_BODY()
@@ -385,7 +385,7 @@ namespace Lumina
 
     //============================================================================================
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_ComponentMask : public CMaterialExpression
     {
         GENERATED_BODY()
@@ -408,21 +408,21 @@ namespace Lumina
 
         CMaterialInput* InputPin = nullptr;
         
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         bool R = true;
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         bool G = true;
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         bool B = true;
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         bool A = true;
         
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Append : public CMaterialExpression
     {
         GENERATED_BODY()
@@ -441,7 +441,7 @@ namespace Lumina
         CMaterialInput* InputB = nullptr;        
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_WorldPos : public CMaterialExpression
     {
         GENERATED_BODY()
@@ -456,7 +456,7 @@ namespace Lumina
         void GenerateDefinition(FMaterialCompiler& Compiler) override;
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_CameraPos : public CMaterialExpression
     {
         GENERATED_BODY()
@@ -471,7 +471,7 @@ namespace Lumina
         void GenerateDefinition(FMaterialCompiler& Compiler) override;
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_EntityID : public CMaterialExpression
     {
         GENERATED_BODY()
@@ -486,7 +486,7 @@ namespace Lumina
         void GenerateDefinition(FMaterialCompiler& Compiler) override;
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_VertexNormal : public CMaterialExpression
     {
         GENERATED_BODY()
@@ -501,7 +501,7 @@ namespace Lumina
         void GenerateDefinition(FMaterialCompiler& Compiler) override;
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_TexCoords : public CMaterialExpression
     {
         GENERATED_BODY()
@@ -519,7 +519,7 @@ namespace Lumina
     //============================================================================================
 
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_Constant : public CMaterialExpression
     {
         GENERATED_BODY()
@@ -533,16 +533,16 @@ namespace Lumina
         
         void* GetNodeDefaultValue() override { return &Value.r; }
 
-        LUM_PROPERTY(Editable, Category = "Parameter")
+        PROPERTY(Editable, Category = "Parameter")
         FName               ParameterName;
 
-        LUM_PROPERTY(Editable, Color, Category = "Value")
+        PROPERTY(Editable, Color, Category = "Value")
         glm::vec4           Value = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
         
         EMaterialInputType  ValueType = EMaterialInputType::Wildcard;
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_ConstantFloat : public CMaterialExpression_Constant
     {
         GENERATED_BODY()
@@ -561,7 +561,7 @@ namespace Lumina
         
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_ConstantFloat2 : public CMaterialExpression_Constant
     {
         GENERATED_BODY()
@@ -579,7 +579,7 @@ namespace Lumina
         void DrawNodeBody() override;
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_ConstantFloat3 : public CMaterialExpression_Constant
     {
         GENERATED_BODY()
@@ -599,7 +599,7 @@ namespace Lumina
         
     };
 
-    LUM_CLASS()
+    REFLECT()
     class CMaterialExpression_ConstantFloat4 : public CMaterialExpression_Constant
     {
         GENERATED_BODY()

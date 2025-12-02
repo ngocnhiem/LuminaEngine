@@ -19,6 +19,8 @@ workspace "Lumina"
 	{
 		"EASTL_USER_DEFINED_ALLOCATOR=1",
 		"_CRT_SECURE_NO_WARNINGS",
+        "_SILENCE_CXX23_ALIGNED_UNION_DEPRECATION_WARNING",
+        "_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING",
 		"GLM_FORCE_DEPTH_ZERO_TO_ONE",
 		"GLM_FORCE_LEFT_HANDED",
         "GLM_ENABLE_EXPERIMENTAL",
@@ -50,6 +52,8 @@ workspace "Lumina"
     {
         "4251", -- DLL-interface warning
         "4275", -- Non-DLL-interface base class
+        "4244", -- "Precision loss warnings"
+        "4267", -- "Precision loss warnings"
 	}
 
     warnings "Default"

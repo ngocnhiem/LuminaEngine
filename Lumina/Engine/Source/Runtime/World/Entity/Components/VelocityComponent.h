@@ -7,16 +7,16 @@
 
 namespace Lumina
 {
-    LUM_STRUCT()
+    REFLECT()
     struct LUMINA_API SVelocityComponent
     {
         GENERATED_BODY()
         ENTITY_COMPONENT(SVelocityComponent);
 
-        LUM_PROPERTY(ReadOnly)
+        PROPERTY(ReadOnly)
         glm::vec3 Velocity;
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         float Speed;
     };
     

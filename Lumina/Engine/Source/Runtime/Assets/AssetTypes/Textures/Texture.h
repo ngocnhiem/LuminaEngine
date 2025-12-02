@@ -10,7 +10,7 @@
 namespace Lumina
 {
 
-    LUM_CLASS()
+    REFLECT()
     class LUMINA_API CTexture : public CObject
     {
         GENERATED_BODY()

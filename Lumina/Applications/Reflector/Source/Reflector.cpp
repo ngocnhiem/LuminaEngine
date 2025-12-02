@@ -1,7 +1,6 @@
 
 
 #include <chrono>
-#include <cstdlib>
 #include <filesystem>
 #include <iostream>
 
@@ -243,13 +242,4 @@ int main(int argc, char* argv[])
     Lumina::FStringHash::Shutdown();
     
     return 0;
-}
-
-namespace eastl
-{
-    [[noreturn]] void AssertionFailure(const char* expression)
-    {
-        std::fprintf(stderr, "EASTL Assertion Failure: %s\n", expression);
-        std::abort();
-    }
 }

@@ -1,9 +1,6 @@
 ﻿#include "ReflectedHeader.h"
-
 #include <filesystem>
 #include <fstream>
-#include <iostream>
-
 #include "Reflector/ReflectionConfig.h"
 
 namespace Lumina::Reflection
@@ -41,7 +38,7 @@ namespace Lumina::Reflection
         // Search for any of the macro strings directly in the buffer
         for (uint32_t i = 0; i < (uint32_t)EReflectionMacro::Size; ++i)
         {
-            if (FileData.find(ReflectionEnumToString(EReflectionMacro(i))) != eastl::string::npos)
+            if (FileData.find(ReflectionEnumToString(static_cast<EReflectionMacro>(i))) != eastl::string::npos)
             {
                 return true;
             }

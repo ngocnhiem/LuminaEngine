@@ -6,7 +6,7 @@
 #include "AssetDefinition_MaterialInstance.generated.h"
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class CAssetDefinition_MaterialInstance : public CAssetDefinition
     {
         GENERATED_BODY()

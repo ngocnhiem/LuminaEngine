@@ -7,7 +7,7 @@
 
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class CMaterialNodeGetTime : public CMaterialExpression
     {
         GENERATED_BODY()

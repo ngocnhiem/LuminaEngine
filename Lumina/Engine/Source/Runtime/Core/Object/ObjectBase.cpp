@@ -63,7 +63,7 @@ namespace Lumina
         ClassPrivate = const_cast<CClass*>(Initializer->Params.Class);
         PackagePrivate = Initializer->Package;
 
-        uint32 Index = GObjectArray.AllocateObject(this).Index;
+        int32 Index = GObjectArray.AllocateObject(this).Index;
         AddObject(NamePrivate, Index);
 
     }
@@ -93,7 +93,7 @@ namespace Lumina
 
     void CObjectBase::BeginRegister()
     {
-        FPendingRegistrant* PendingRegistrant = new FPendingRegistrant(this);
+        FPendingRegistrant* PendingRegistrant = new FPendingRegistrant{this, nullptr };
         FPendingRegistrantInfo::Get().push_back(this);
 
         if (GLastPendingRegistrant)
@@ -114,7 +114,7 @@ namespace Lumina
         Assert(ClassPrivate == nullptr)
         ClassPrivate = InClass;
 
-        uint32 Index = GObjectArray.AllocateObject(this).Index;
+        int32 Index = GObjectArray.AllocateObject(this).Index;
         AddObject(NamePrivate, Index);
         AddToRoot();
     }
@@ -330,17 +330,17 @@ namespace Lumina
     }
 
 
-    void RegisterCompiledInInfo(CClass* (*RegisterFn)(), const TCHAR* Package, const TCHAR* Name)
+    void RegisterCompiledInInfo(CClass*(*RegisterFn)(), const TCHAR* Package, const TCHAR* Name)
     {
         FClassDeferredRegistry::Get().AddRegistration(RegisterFn);
     }
 
-    void RegisterCompiledInInfo(CEnum*(* RegisterFn)(), const FEnumRegisterCompiledInInfo& Info)
+    void RegisterCompiledInInfo(CEnum*(*RegisterFn)(), const FEnumRegisterCompiledInInfo& Info)
     {
         FEnumDeferredRegistry::Get().AddRegistration(RegisterFn);
     }
 
-    void RegisterCompiledInInfo(CStruct*(* RegisterFn)(), const FStructRegisterCompiledInInfo& Info)
+    void RegisterCompiledInInfo(CStruct*(*RegisterFn)(), const FStructRegisterCompiledInInfo& Info)
     {
         FStructDeferredRegistry::Get().AddRegistration(RegisterFn);
     }

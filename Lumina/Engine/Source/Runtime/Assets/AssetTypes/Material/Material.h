@@ -16,7 +16,7 @@ namespace Lumina
 }
 namespace Lumina
 {
-    LUM_CLASS()
+    REFLECT()
     class LUMINA_API CMaterial : public CMaterialInterface
     {
         GENERATED_BODY()
@@ -48,20 +48,20 @@ namespace Lumina
         bool IsTwoSided() const override { return bTwoSided; }
         bool IsTranslucent() override { return bTranslucent; }
         
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         EMaterialType MaterialType;
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         bool bCastShadows = true;
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         bool bTwoSided = false;
 
-        LUM_PROPERTY(Editable)
+        PROPERTY(Editable)
         bool bTranslucent = false;
 
         
-        LUM_PROPERTY()
+        PROPERTY()
         TVector<TObjectPtr<CTexture>>           Textures;
         
         TVector<uint32>                         VertexShaderBinaries;

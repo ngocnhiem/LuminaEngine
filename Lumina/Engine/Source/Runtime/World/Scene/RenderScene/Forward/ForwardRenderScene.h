@@ -11,9 +11,7 @@ namespace Lumina
     class CWorld;
     class FForwardRenderScene : public IRenderScene
     {
-
-        static constexpr int NumCascades = 4;
-
+    
     public:
         FForwardRenderScene(CWorld* InWorld);
         

@@ -10,7 +10,6 @@
 #include "Core/Profiler/Profile.h"
 #include "Core/Windows/Window.h"
 #include "Renderer/RHIIncl.h"
-#define GLM_ENABLE_EXPERIMENTAL
 #include "glm/gtc/packing.hpp"
 #include "glm/gtx/quaternion.hpp"
 #include "Paths/Paths.h"
