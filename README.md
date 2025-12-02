@@ -98,7 +98,7 @@ Performance profiling - Built-in Lua script profiling with Tracy
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -123,13 +123,10 @@ cd lumina
 # 2. Run setup (downloads dependencies automatically)
 python Setup.py
 
-# 3. Run Reflector in Shipping (MUST BE SHIPPING)
-This is a temporary step, but it must be built prior to attempting to build anything else, and only in shipping.
+# 3. Build and run the Editor
+Set Editor as startup project → Build → Run (Prefer Development configuration)
 
-# 4. Build and run the Editor
-Set Editor as startup project → Build → Run
-
-# 5. Select a project
+# 4. Select a project
 Open the Sandbox project to play around
 or..
 Open Tools/ProjectConfigurator.py to create a new project.
@@ -146,31 +143,14 @@ setx LUMINA_DIR "C:\path\to\lumina"
 
 ---
 
-## Project Structure
 
-```
-Lumina/
-├── Editor/          # Main editor application
-├── Sandbox/         # Testing and experimentation playground
-├── Reflector/       # Reflection metadata generator
-├── Engine/          # Core engine modules
-│   ├── Renderer/    # Vulkan rendering system
-│   ├── ECS/         # Entity Component System
-│   ├── Core/        # Foundation systems
-│   └── ...
-├── Scripts/         # Build and automation scripts
-└── External/        # Third-party dependencies
-```
-
----
-
-## 🎮 Supported Asset Formats
+## Supported Asset Formats
 
 | Format | Support | Notes |
 |--------|---------|-------|
-| **GLTF** | ✅ Full | Recommended format |
-| **GLB** | ✅ Full | Binary GLTF |
-| **PNG/JPG** | ✅ Full | Textures via STB_Image |
+| **GLTF** | Full | Recommended format |
+| **GLB** | Full | Binary GLTF |
+| **PNG/JPG** | Full | Textures via STB_Image |
 
 ### Free Asset Resources
 
