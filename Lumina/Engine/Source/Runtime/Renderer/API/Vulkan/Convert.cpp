@@ -8,8 +8,8 @@ namespace Lumina::Vk
     struct FResourceStateMappingInternal
     {
         EResourceStates State;
-        VkPipelineStageFlags2 stageFlags;
-        VkAccessFlags2 accessMask;
+        VkPipelineStageFlags2 StageFlags;
+        VkAccessFlags2 AccessMask;
         VkImageLayout ImageLayout;
 
         FResourceStateMapping AsResourceStateMapping() const 
@@ -17,18 +17,18 @@ namespace Lumina::Vk
             // It's safe to cast vk::AccessFlags2 -> vk::AccessFlags and vk::PipelineStageFlags2 -> vk::PipelineStageFlags (as long as the enum exist in both versions!),
             // synchronization2 spec says: "The new flags are identical to the old values within the 32-bit range, with new stages and bits beyond that."
             // The below stages are exclusive to synchronization2
-            assert((stageFlags & VK_PIPELINE_STAGE_2_MICROMAP_BUILD_BIT_EXT) != VK_PIPELINE_STAGE_2_MICROMAP_BUILD_BIT_EXT);
-            assert((accessMask & VK_ACCESS_2_MICROMAP_WRITE_BIT_EXT) != VK_ACCESS_2_MICROMAP_WRITE_BIT_EXT);
-            return FResourceStateMapping(State, stageFlags, accessMask, ImageLayout);
+            LUM_ASSERT((StageFlags & VK_PIPELINE_STAGE_2_MICROMAP_BUILD_BIT_EXT) != VK_PIPELINE_STAGE_2_MICROMAP_BUILD_BIT_EXT)
+            LUM_ASSERT((AccessMask & VK_ACCESS_2_MICROMAP_WRITE_BIT_EXT) != VK_ACCESS_2_MICROMAP_WRITE_BIT_EXT)
+            return FResourceStateMapping(State, static_cast<VkPipelineStageFlags>(StageFlags), static_cast<VkAccessFlags>(AccessMask), ImageLayout);
         }
 
         FResourceStateMapping2 AsResourceStateMapping2() const
         {
-            return FResourceStateMapping2(State, stageFlags, accessMask, ImageLayout);
+            return FResourceStateMapping2(State, StageFlags, AccessMask, ImageLayout);
         }
     };
 
-    static const FResourceStateMappingInternal g_ResourceStateMap[] =
+    static const FResourceStateMappingInternal GResourceStateMap[] =
     {
         { EResourceStates::Common,
             VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
@@ -126,44 +126,52 @@ namespace Lumina::Vk
 
     FResourceStateMappingInternal ConvertResourceStateInternal(EResourceStates state)
     {
-        FResourceStateMappingInternal result = {};
+        FResourceStateMappingInternal Result = {};
 
-        constexpr uint32 numStateBits = std::size(g_ResourceStateMap);
+        constexpr uint32 NumStateBits = std::size(GResourceStateMap);
 
-        uint32 stateTmp = uint32(state);
-        uint32 bitIndex = 0;
+        uint32 StateTmp = uint32(state);
+        uint32 BitIndex = 0;
 
-        while (stateTmp != 0 && bitIndex < numStateBits)
+        while (StateTmp != 0 && BitIndex < NumStateBits)
         {
-            uint32 bit = (1 << bitIndex);
+            uint32 Bit = (1 << BitIndex);
 
-            if (stateTmp & bit)
+            if (StateTmp & Bit)
             {
-                const FResourceStateMappingInternal& mapping = g_ResourceStateMap[bitIndex];
+                const FResourceStateMappingInternal& Mapping = GResourceStateMap[BitIndex];
 
-                Assert(uint32(mapping.State) == bit)
-                Assert(result.ImageLayout == VK_IMAGE_LAYOUT_UNDEFINED || mapping.ImageLayout == VK_IMAGE_LAYOUT_UNDEFINED || result.ImageLayout == mapping.ImageLayout)
+                Assert(uint32(Mapping.State) == Bit)
+                Assert(Result.ImageLayout == VK_IMAGE_LAYOUT_UNDEFINED || Mapping.ImageLayout == VK_IMAGE_LAYOUT_UNDEFINED || Result.ImageLayout == Mapping.ImageLayout)
 
-                result.State = EResourceStates(result.State | mapping.State);
-                result.accessMask |= mapping.accessMask;
-                result.stageFlags |= mapping.stageFlags;
-                if (mapping.ImageLayout != VK_IMAGE_LAYOUT_UNDEFINED)
-                    result.ImageLayout = mapping.ImageLayout;
+                Result.State = EResourceStates(Result.State | Mapping.State);
+                Result.AccessMask |= Mapping.AccessMask;
+                Result.StageFlags |= Mapping.StageFlags;
+                if (Mapping.ImageLayout != VK_IMAGE_LAYOUT_UNDEFINED)
+                {
+                    Result.ImageLayout = Mapping.ImageLayout;
+                }
 
-                stateTmp &= ~bit;
+                StateTmp &= ~Bit;
             }
 
-            bitIndex++;
+            BitIndex++;
         }
 
-        Assert(result.State == state);
+        Assert(Result.State == state)
 
-        return result;
+        return Result;
+    }
+
+    FResourceStateMapping2 ConvertResourceState2(EResourceStates State)
+    {
+        const FResourceStateMappingInternal Mapping = ConvertResourceStateInternal(State);
+        return Mapping.AsResourceStateMapping2();
     }
     
     FResourceStateMapping ConvertResourceState(EResourceStates State)
     {
-        const FResourceStateMappingInternal mapping = ConvertResourceStateInternal(State);
-        return mapping.AsResourceStateMapping();
+        const FResourceStateMappingInternal Mapping = ConvertResourceStateInternal(State);
+        return Mapping.AsResourceStateMapping();
     }
 }

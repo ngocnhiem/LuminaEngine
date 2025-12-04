@@ -3,8 +3,8 @@
 #include "Core/Object/ObjectHandleTyped.h"
 #include "MaterialInterface.h"
 #include "Renderer/MaterialTypes.h"
+#include "Renderer/RenderResource.h"
 #include "MaterialInstance.generated.h"
-#include "Renderer/RHIFwd.h"
 
 namespace Lumina { class CMaterial; };
 
@@ -25,10 +25,10 @@ namespace Lumina
         bool SetVectorValue(const FName& Name, const glm::vec4& Value) override;
         bool GetParameterValue(EMaterialParameterType Type, const FName& Name, FMaterialParameter& Param) override;
         
-        FRHIBindingSetRef GetBindingSet() const override;
-        FRHIBindingLayoutRef GetBindingLayout() const override;
-        FRHIVertexShaderRef GetVertexShader() const override;
-        FRHIPixelShaderRef GetPixelShader() const override;
+        FRHIBindingSet* GetBindingSet() const override;
+        FRHIBindingLayout* GetBindingLayout() const override;
+        FRHIVertexShader* GetVertexShader() const override;
+        FRHIPixelShader* GetPixelShader() const override;
 
         void PostLoad() override;
 

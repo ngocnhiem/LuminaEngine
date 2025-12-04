@@ -7,6 +7,7 @@
 
 namespace Lumina
 {
+    struct FTextureStateExtension;
     class FQueue;
     class IRenderContext;
 }
@@ -191,6 +192,11 @@ namespace Lumina
          * @param CopySize Number of bytes to copy
          */
         virtual void CopyBuffer(FRHIBuffer* RESTRICT Source, uint64 SrcOffset, FRHIBuffer* RESTRICT Destination, uint64 DstOffset, uint64 CopySize) = 0;
+
+
+        virtual void SetEnableUavBarriersForImage(FRHIImage* Image, bool bEnableBarriers) = 0;
+        virtual void SetEnableUavBarriersForBuffer(FRHIBuffer* Buffer, bool bEnableBarriers) = 0;
+
         
         /**
          * Sets a fixed resource state that won't be automatically tracked

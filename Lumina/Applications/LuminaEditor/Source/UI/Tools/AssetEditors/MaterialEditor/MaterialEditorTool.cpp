@@ -3,7 +3,7 @@
 #include "Assets/AssetTypes/Textures/Texture.h"
 #include "Core/Engine/Engine.h"
 #include "Core/Object/Cast.h"
-#include "Renderer/RHIIncl.h"
+
 #include "Core/Object/Class.h"
 #include "Core/Object/Package/Package.h"
 #include "Paths/Paths.h"

@@ -296,13 +296,12 @@ namespace Lumina
                         return A->AssetName.ToString() > B->AssetName.ToString();
                     });
 
-                    Task::ParallelFor(Assets.size(), Assets.size(), [&](uint32 Index)
+                    for (FAssetData* Asset : Assets)
                     {
-                        FAssetData* Asset = Assets[Index];
                         FString PackageFullPath = Paths::ResolveVirtualPath(Asset->PackageName.ToString());
                         CThumbnailManager::Get().TryLoadThumbnailsForPackage(PackageFullPath);
-                    });
-                
+                    }
+
                     for (FAssetData* Asset : Assets)
                     {
                         FName ShortClassName = Paths::GetExtension(Asset->AssetClass.ToString());

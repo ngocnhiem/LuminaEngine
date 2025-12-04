@@ -9,7 +9,7 @@
 #include "Module/API.h"
 #include "Platform/Platform.h"
 #include "Renderer/Format.h"
-#include "Renderer/RHIFwd.h"
+#include "Renderer/RenderResource.h"
 
 namespace Lumina
 {

@@ -2,7 +2,7 @@
 #include "StaticMeshComponent.h"
 
 #include "assets/assettypes/material/MaterialInterface.h"
-#include "Renderer/RHIIncl.h"
+
 
 
 namespace Lumina

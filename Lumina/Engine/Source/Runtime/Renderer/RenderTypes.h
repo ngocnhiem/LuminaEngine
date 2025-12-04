@@ -1,13 +1,8 @@
 ﻿#pragma once
 
-#include <glm/glm.hpp>
-#include "Lumina.h"
-
 #include "Format.h"
 #include "RHIFwd.h"
-#include "Vertex.h"
 #include "Core/LuminaMacros.h"
-#include "Core/Math/Color.h"
 #include "Core/Math/Hash/Hash.h"
 
 #define FRAMES_IN_FLIGHT 2

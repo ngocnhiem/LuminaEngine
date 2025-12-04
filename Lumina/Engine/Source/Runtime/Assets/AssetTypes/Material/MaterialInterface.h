@@ -34,10 +34,10 @@ namespace Lumina
         virtual bool SetScalarValue(const FName& Name, const float Value) { LUMINA_NO_ENTRY() }
         virtual bool GetParameterValue(EMaterialParameterType Type, const FName& Name, FMaterialParameter& Param) { LUMINA_NO_ENTRY() }
         
-        virtual FRHIBindingSetRef GetBindingSet() const { LUMINA_NO_ENTRY() }
-        virtual FRHIBindingLayoutRef GetBindingLayout() const { LUMINA_NO_ENTRY() }
-        virtual FRHIVertexShaderRef GetVertexShader() const { LUMINA_NO_ENTRY() }
-        virtual FRHIPixelShaderRef GetPixelShader() const { LUMINA_NO_ENTRY() }
+        virtual FRHIBindingSet* GetBindingSet() const { LUMINA_NO_ENTRY() }
+        virtual FRHIBindingLayout* GetBindingLayout() const { LUMINA_NO_ENTRY() }
+        virtual FRHIVertexShader* GetVertexShader() const { LUMINA_NO_ENTRY() }
+        virtual FRHIPixelShader* GetPixelShader() const { LUMINA_NO_ENTRY() }
 
         virtual EMaterialType GetMaterialType() const { return EMaterialType::None; };
 

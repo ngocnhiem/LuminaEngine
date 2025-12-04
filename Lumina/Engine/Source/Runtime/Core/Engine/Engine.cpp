@@ -23,6 +23,10 @@
 namespace Lumina
 {
     LUMINA_API FEngine* GEngine;
+
+    // We put this here so we don't need to include render resources in engine.h
+    FRHIViewportRef EngineViewport;
+
     
     bool FEngine::Init(FApplication* App)
     {
@@ -251,7 +255,12 @@ namespace Lumina
     {
         return entt::locator<entt::meta_ctx>::handle();
     }
-    
+
+    FRHIViewport* FEngine::GetEngineViewport()
+    {
+        return EngineViewport;
+    }
+
     void FEngine::SetEngineViewportSize(const glm::uvec2& InSize)
     {
         EngineViewport = GRenderContext->CreateViewport(InSize, "Engine Viewport");

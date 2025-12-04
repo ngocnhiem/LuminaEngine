@@ -3,7 +3,6 @@
 #include "Assets/AssetRegistry/AssetRegistry.h"
 #include "Containers/Array.h"
 #include "Containers/Function.h"
-#include "Core/Engine/Engine.h"
 #include "Core/Object/Class.h"
 #include "glm/glm.hpp"
 #include "Module/API.h"
@@ -13,6 +12,7 @@ struct ImGuiWindow;
 
 namespace Lumina
 {
+    class FRHIImage;
     struct FARFilter;
     class CClass;
 }

@@ -70,7 +70,7 @@ namespace Lumina
         {
             return;
         }
-        
+
         ResetPass(RenderGraph);
         CompileDrawCommands(RenderGraph);
         CullPass(RenderGraph, SceneViewport->GetViewVolume());
@@ -567,15 +567,15 @@ namespace Lumina
 
     void FForwardRenderScene::CullPass(FRenderGraph& RenderGraph, const FViewVolume& View)
     {
+        if (DrawCommands.empty())
+        {
+            return;
+        }
+        
         FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
         RenderGraph.AddPass(RG_Compute, FRGEvent("Cull Pass"), Descriptor, [&] (ICommandList& CmdList)
         {
             LUMINA_PROFILE_SECTION_COLORED("Cull Pass", tracy::Color::Pink2);
-
-            if (IndirectDrawArguments.empty())
-            {
-                return;
-            }
                 
             FRHIComputeShaderRef ComputeShader = FShaderLibrary::GetComputeShader("MeshCull.comp");
 
@@ -605,7 +605,6 @@ namespace Lumina
             State.AddBindingSet(MeshCullSet);
             CmdList.SetComputeState(State);
             
-            
             uint32 Num = (uint32)InstanceData.size();
             uint32 NumWorkGroups = (Num + 255) / 256;
                 
@@ -616,21 +615,17 @@ namespace Lumina
 
     void FForwardRenderScene::DepthPrePass(FRenderGraph& RenderGraph, const FViewVolume& View)
     {
+        if (DrawCommands.empty())
+        {
+            return;
+        }
+        
         FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
         RenderGraph.AddPass(RG_Raster, FRGEvent("Pre-Depth Pass"), Descriptor, [&] (ICommandList& CmdList)
         {
             LUMINA_PROFILE_SECTION_COLORED("Pre-Depth Pass", tracy::Color::Orange);
             
-            if (DrawCommands.empty())
-            {
-                return;
-            }
-            
             FRHIVertexShaderRef VertexShader = FShaderLibrary::GetVertexShader("DepthPrePass.vert");
-            if (!VertexShader)
-            {
-                return;
-            }
         
             FRenderPassDesc::FAttachment Depth; Depth
                 .SetImage(DepthAttachment)
@@ -681,8 +676,10 @@ namespace Lumina
             LUMINA_PROFILE_SECTION_COLORED("Depth Pyramid Pass", tracy::Color::Orange);
 
             FRHIComputeShaderRef ComputeShader = FShaderLibrary::GetComputeShader("DepthPyramidMips.comp");
-
             int MipCount = DepthPyramid->GetDescription().NumMips;
+
+            CmdList.SetEnableUavBarriersForImage(DepthPyramid, false);
+
             for (int i = 0; i < MipCount; ++i)
             {
                 LUMINA_PROFILE_SECTION_COLORED("Process Mip", tracy::Color::Yellow4);
@@ -720,7 +717,7 @@ namespace Lumina
                 FComputeState State;
                 State.AddBindingSet(Set);
                 State.SetPipeline(Pipeline);
-                
+
                 CmdList.SetComputeState(State);
 
                 uint32 LevelWidth = DepthPyramid->GetSizeX() >> i;
@@ -738,6 +735,9 @@ namespace Lumina
                 
                 CmdList.Dispatch(GroupsX, GroupsY, 1);
             }
+
+            CmdList.SetEnableUavBarriersForImage(DepthPyramid, true);
+
         });
     }
 
@@ -903,6 +903,8 @@ namespace Lumina
                     CmdList.DrawIndexedIndirect(1, Batch.IndirectDrawOffset * sizeof(FDrawIndexedIndirectArguments));
                 }
             }
+
+            CmdList.EndRenderPass();
         });
     }
 
@@ -1006,6 +1008,9 @@ namespace Lumina
                     CmdList.DrawIndexedIndirect(1, Batch.IndirectDrawOffset * sizeof(FDrawIndexedIndirectArguments));
                 }
             }
+
+            CmdList.EndRenderPass();
+
         });
     }
 
@@ -1441,13 +1446,15 @@ namespace Lumina
             ImageDesc.Extent = Extent;
             ImageDesc.Flags.SetMultipleFlags(EImageCreateFlags::DepthAttachment, EImageCreateFlags::ShaderResource);
             ImageDesc.Format = EFormat::D32;
-            ImageDesc.InitialState = EResourceStates::DepthWrite;
+            ImageDesc.InitialState = EResourceStates::DepthRead;
             ImageDesc.bKeepInitialState = true;
             ImageDesc.Dimension = EImageDimension::Texture2D;
             ImageDesc.DebugName = "Depth Attachment";
         
             DepthAttachment = GRenderContext->CreateImage(ImageDesc);
         }
+
+        //==================================================================================================
 
         {
             uint32 Width = PreviousPow2(Extent.x);
@@ -1465,9 +1472,11 @@ namespace Lumina
             
             DepthPyramid                = GRenderContext->CreateImage(ImageDesc);
         }
+
+        //==================================================================================================
         
         {
-            FRHIImageDesc ImageDesc = {};
+            FRHIImageDesc ImageDesc;
             ImageDesc.Extent = Extent;
             ImageDesc.Format = EFormat::R32_UINT;
             ImageDesc.Dimension = EImageDimension::Texture2D;

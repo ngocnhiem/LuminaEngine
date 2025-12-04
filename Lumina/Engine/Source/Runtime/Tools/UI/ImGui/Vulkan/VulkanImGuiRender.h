@@ -2,7 +2,6 @@
 
 #include <volk/volk.h>
 #include <vk_mem_alloc.h>
-
 #include "Memory/SmartPtr.h"
 #include "Tools/UI/ImGui/ImGuiRenderer.h"
 

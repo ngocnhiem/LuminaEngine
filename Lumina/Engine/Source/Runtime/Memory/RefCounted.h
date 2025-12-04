@@ -59,11 +59,18 @@ namespace Lumina
 
 	};
 
+
+	template<typename T>
+	concept ValidRefCountPtr = requires(T t)
+	{
+		{ t.Release() } -> std::same_as<uint32>;
+	};
+	
 	/**
 	 * A smart pointer to an object which implements AddRef/Release.
 	 */
 	template<typename ReferencedType>
-	class LUMINA_API TRefCountPtr
+	class TRefCountPtr
 	{
 		typedef ReferencedType* ReferenceType;
 	
@@ -92,7 +99,7 @@ namespace Lumina
 		}
 
 		template<typename CopyReferencedType>
-		requires std::is_base_of_v<ReferencedType, CopyReferencedType>
+		requires eastl::is_base_of_v<ReferencedType, CopyReferencedType>
 		TRefCountPtr(const TRefCountPtr<CopyReferencedType>& Copy)
 		{
 			Reference = static_cast<ReferencedType*>(Copy.GetReference());
@@ -109,7 +116,7 @@ namespace Lumina
 		}
 
 		template<typename MoveReferencedType>
-		requires std::is_base_of_v<ReferencedType, MoveReferencedType>
+		requires eastl::is_base_of_v<ReferencedType, MoveReferencedType>
 		TRefCountPtr(TRefCountPtr<MoveReferencedType>&& Move)
 		{
 			Reference = static_cast<ReferencedType*>(Move.GetReference());
@@ -152,12 +159,14 @@ namespace Lumina
 		}
 		
 		template<typename T>
+		requires eastl::is_base_of_v<ReferencedType, T>
 		TRefCountPtr<T> As()
 		{
 			return TRefCountPtr<T>(static_cast<T*>(Reference));
 		}
 
 		template<typename T>
+		requires eastl::is_base_of_v<ReferencedType, T>
 		TRefCountPtr<T> As() const
 		{
 			return TRefCountPtr<T>(static_cast<T*>(Reference));

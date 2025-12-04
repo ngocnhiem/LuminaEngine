@@ -2,13 +2,14 @@
 
 
 #include "TrackedCommandBuffer.h"
-#include "VulkanPipelineStates.h"
 #include "Memory/SmartPtr.h"
 #include "Renderer/CommandList.h"
+#include "Renderer/StateTracking.h"
 
 
 namespace Lumina
 {
+    class FUploadManager;
 
     VkImageLayout ConvertRHIAccessToVkImageLayout(ERHIAccess Access);
 
@@ -18,8 +19,8 @@ namespace Lumina
         VkPipelineStageFlags StageFlags;
         VkAccessFlags AccessMask;
         VkImageLayout ImageLayout;
-        FResourceStateMapping(EResourceStates InState, VkPipelineStageFlags InStageFlags, VkAccessFlags InAccessMask, VkImageLayout InImageLayout):
-            State(InState), StageFlags(InStageFlags), AccessMask(InAccessMask), ImageLayout(InImageLayout)
+        FResourceStateMapping(EResourceStates InState, VkPipelineStageFlags InStageFlags, VkAccessFlags InAccessMask, VkImageLayout InImageLayout)
+            : State(InState), StageFlags(InStageFlags), AccessMask(InAccessMask), ImageLayout(InImageLayout)
         {}
         
     };
@@ -27,11 +28,12 @@ namespace Lumina
     struct FResourceStateMapping2 // for use with KHR_synchronization2
     {
          EResourceStates State;
-         VkPipelineStageFlags2 stageFlags;
-         VkAccessFlags2 accessMask;
-         VkImageLayout imageLayout;
-         FResourceStateMapping2(EResourceStates InState, VkPipelineStageFlags2 InStageFlags, VkAccessFlags2 InAccessMask, VkImageLayout ImageLayout) :
-             State(InState), stageFlags(InStageFlags), accessMask(InAccessMask), imageLayout(ImageLayout)
+         VkPipelineStageFlags2 StageFlags;
+         VkAccessFlags2 AccessMask;
+         VkImageLayout ImageLayout;
+        
+         FResourceStateMapping2(EResourceStates InState, VkPipelineStageFlags2 InStageFlags, VkAccessFlags2 InAccessMask, VkImageLayout ImageLayout)
+            : State(InState), StageFlags(InStageFlags), AccessMask(InAccessMask), ImageLayout(ImageLayout)
         {}
     };
     
@@ -65,6 +67,9 @@ namespace Lumina
 
         void UpdateComputeDynamicBuffers();
         void UpdateGraphicsDynamicBuffers();
+
+        void SetEnableUavBarriersForImage(FRHIImage* Image, bool bEnableBarriers) override;
+        void SetEnableUavBarriersForBuffer(FRHIBuffer* Buffer, bool bEnableBarriers) override;
         
         void SetPermanentImageState(FRHIImage* Image,EResourceStates StateBits) override;
         void SetPermanentBufferState(FRHIBuffer* Buffer, EResourceStates StateBits) override;

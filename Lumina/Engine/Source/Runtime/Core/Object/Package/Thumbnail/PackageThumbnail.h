@@ -1,8 +1,8 @@
 ﻿#pragma once
 #include "Containers/Array.h"
 #include "Core/Serialization/Archiver.h"
+#include "Renderer/RenderResource.h"
 #include "Platform/GenericPlatform.h"
-#include "Renderer/RHIFwd.h"
 
 namespace Lumina
 {

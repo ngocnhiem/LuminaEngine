@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "MaterialInstance.h"
-#include "Renderer/RHIIncl.h"
 #include "Material.h"
 #include "Assets/AssetTypes/Textures/Texture.h"
 #include "Core/Engine/Engine.h"
@@ -89,22 +88,22 @@ namespace Lumina
         return false;
     }
 
-    FRHIBindingSetRef CMaterialInstance::GetBindingSet() const
+    FRHIBindingSet* CMaterialInstance::GetBindingSet() const
     {
         return BindingSet;
     }
 
-    FRHIBindingLayoutRef CMaterialInstance::GetBindingLayout() const
+    FRHIBindingLayout* CMaterialInstance::GetBindingLayout() const
     {
         return Material->GetBindingLayout();
     }
 
-    FRHIVertexShaderRef CMaterialInstance::GetVertexShader() const
+    FRHIVertexShader* CMaterialInstance::GetVertexShader() const
     {
         return Material->GetVertexShader();
     }
 
-    FRHIPixelShaderRef CMaterialInstance::GetPixelShader() const
+    FRHIPixelShader* CMaterialInstance::GetPixelShader() const
     {
         return Material->GetPixelShader();
     }

@@ -625,7 +625,7 @@ namespace Lumina
         FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
         RenderGraph.AddPass(RG_Raster, FRGEvent("Swapchain Copy"), Descriptor, [&](ICommandList& CmdList)
         {
-            CmdList.CopyImage(GEngine->GetEngineViewport()->GetRenderTarget(), FTextureSlice(), Swapchain->GetCurrentImage(), FTextureSlice());
+            CmdList.CopyImage(FEngine::GetEngineViewport()->GetRenderTarget(), FTextureSlice(), Swapchain->GetCurrentImage(), FTextureSlice());
         });
 
         RenderGraph.Execute();
@@ -673,7 +673,7 @@ namespace Lumina
         }
         else
         {
-            for (int i = 0; i < NumCommandLists; ++i)
+            for (uint32 i = 0; i < NumCommandLists; ++i)
             {
                 FVulkanCommandList* CommandList = static_cast<FVulkanCommandList*>(CommandLists[i]);
                 CommandList->Executed(Queue.get(), SubmissionID);   

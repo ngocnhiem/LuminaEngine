@@ -5,7 +5,7 @@
 #include "Paths/Paths.h"
 #include "Renderer/RenderContext.h"
 #include "Renderer/RHIGlobals.h"
-#include "Renderer/RHIIncl.h"
+
 #include "TaskSystem/TaskSystem.h"
 #include "World/Scene/RenderScene/SceneMeshes.h"
 
@@ -107,7 +107,7 @@ namespace Lumina
         
             FRHICommandListRef CommandList = GRenderContext->CreateCommandList(FCommandListInfo::Compute());
             CommandList->Open();
-            CommandList->BeginTrackingImageState(Image, AllSubresources, EResourceStates::Common);
+            CommandList->BeginTrackingImageState(Image, AllSubresources, EResourceStates::CopyDest);
             
             const uint8 BytesPerPixel = RHI::Format::BytesPerBlock(ImageDesc.Format);
             const uint32 RowBytes = ImageDesc.Extent.y * BytesPerPixel;

@@ -3,7 +3,7 @@
 #include "Core/Object/Class.h"
 #include "Core/Object/Cast.h"
 #include "glm/gtc/type_ptr.hpp"
-#include "Renderer/RHIIncl.h"
+
 #include "UI/Tools/NodeGraph/Material/MaterialOutput.h"
 #include "UI/Tools/NodeGraph/Material/MaterialCompiler.h"
 

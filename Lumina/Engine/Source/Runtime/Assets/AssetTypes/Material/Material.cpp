@@ -7,7 +7,7 @@
 #include "Platform/Filesystem/FileHelper.h"
 #include "Renderer/RenderContext.h"
 #include "Renderer/RHIGlobals.h"
-#include "Renderer/RHIIncl.h"
+
 #include "Renderer/ShaderCompiler.h"
 
 namespace Lumina
@@ -161,22 +161,22 @@ namespace Lumina
         return const_cast<CMaterial*>(this);
     }
 
-    FRHIBindingSetRef CMaterial::GetBindingSet() const
+    FRHIBindingSet* CMaterial::GetBindingSet() const
     {
         return BindingSet;
     }
 
-    FRHIBindingLayoutRef CMaterial::GetBindingLayout() const
+    FRHIBindingLayout* CMaterial::GetBindingLayout() const
     {
         return BindingLayout; 
     }
 
-    FRHIVertexShaderRef CMaterial::GetVertexShader() const
+    FRHIVertexShader* CMaterial::GetVertexShader() const
     {
         return VertexShader;
     }
 
-    FRHIPixelShaderRef CMaterial::GetPixelShader() const
+    FRHIPixelShader* CMaterial::GetPixelShader() const
     {
         return PixelShader;
     }

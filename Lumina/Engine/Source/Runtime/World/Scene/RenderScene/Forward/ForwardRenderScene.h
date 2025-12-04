@@ -2,6 +2,7 @@
 #include "Core/Delegates/Delegate.h"
 #include "Renderer/BindingCache.h"
 #include "Renderer/TypedBuffer.h"
+#include "Renderer/Vertex.h"
 #include "World/Scene/RenderScene/MeshDrawCommand.h"
 #include "World/Scene/RenderScene/RenderScene.h"
 
@@ -26,6 +27,7 @@ namespace Lumina
         void SwapchainResized(glm::vec2 NewSize);
         
         void CompileDrawCommands(FRenderGraph& RenderGraph) override;
+                
 
         //~ Begin Render Passes
         void ResetPass(FRenderGraph& RenderGraph);

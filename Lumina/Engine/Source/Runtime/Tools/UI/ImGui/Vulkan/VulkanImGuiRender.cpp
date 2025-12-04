@@ -218,27 +218,39 @@ namespace Lumina
 		RenderGraph.AddPass(RG_Raster, FRGEvent("ImGui Render"), Descriptor, [&] (ICommandList& CmdList)
 		{
 			LUMINA_PROFILE_SECTION_COLORED("ImGui Render", tracy::Color::Aquamarine3);
+
+			FRHIImage* EngineViewport = FEngine::GetEngineViewport()->GetRenderTarget();
+			CmdList.SetImageState(EngineViewport, AllSubresources, EResourceStates::RenderTarget);
+			CmdList.CommitBarriers();
+			
 			if (ImDrawData* DrawData = ImGui::GetDrawData())
 			{
+				CmdList.DisableAutomaticBarriers();
+
 				FRenderPassDesc::FAttachment Attachment; Attachment
-					.SetImage(GEngine->GetEngineViewport()->GetRenderTarget());
+					.SetImage(EngineViewport);
 				
 				for (FRHIImage* Image : ReferencedImages)
 				{
+					if (Image == EngineViewport)
+					{
+						continue;
+					}
+					
 					CmdList.SetImageState(Image, AllSubresources, EResourceStates::ShaderResource);
 				}
 			
 				CmdList.CommitBarriers();
-
-				glm::uvec2 RenderArea = GEngine->GetEngineViewport()->GetRenderTarget()->GetExtent();
 				
 				FRenderPassDesc RenderPass; RenderPass
 				.AddColorAttachment(Attachment)
-				.SetRenderArea(RenderArea);
+				.SetRenderArea(EngineViewport->GetExtent());
 		
 				CmdList.BeginRenderPass(RenderPass);
 				ImGui_ImplVulkan_RenderDrawData(DrawData, CmdList.GetAPI<VkCommandBuffer>());
 				CmdList.EndRenderPass();
+
+				CmdList.EnableAutomaticBarriers();
 			}
 		});
 

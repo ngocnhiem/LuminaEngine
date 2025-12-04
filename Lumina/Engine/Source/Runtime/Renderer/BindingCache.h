@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "RHIFwd.h"
+#include "RenderResource.h"
 #include "Containers/Array.h"
 #include "Core/Threading/Thread.h"
 

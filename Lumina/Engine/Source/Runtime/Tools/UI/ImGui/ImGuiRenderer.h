@@ -2,7 +2,7 @@
 
 #include "imgui.h"
 #include "ImGuiX.h"
-#include "Renderer/RHIFwd.h"
+#include "Renderer/RenderResource.h"
 #include "Subsystems/Subsystem.h"
 
 namespace Lumina

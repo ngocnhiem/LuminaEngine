@@ -96,7 +96,7 @@ namespace Lumina
     {
         FBufferState* tracking = GetBufferStateTracking(buffer, true);
 
-        tracking->state = stateBits;
+        tracking->State = stateBits;
     }
 
     void FCommandListResourceStateTracker::SetPermanentTextureState(FTextureStateExtension* texture, FTextureSubresourceSet subresources, EResourceStates stateBits)
@@ -155,7 +155,7 @@ namespace Lumina
             return EResourceStates::Unknown;
         }
 
-        return tracking->state;
+        return tracking->State;
     }
 
     void FCommandListResourceStateTracker::RequireTextureState(FTextureStateExtension* texture, FTextureSubresourceSet subresources, EResourceStates state)
@@ -170,25 +170,25 @@ namespace Lumina
 
         subresources = subresources.Resolve(texture->DescRef, false);
 
-        FTextureState* tracking = GetTextureStateTracking(texture, true);
+        FTextureState* Tracking = GetTextureStateTracking(texture, true);
         
-        if (subresources.IsEntireTexture(texture->DescRef) && tracking->SubresourceStates.empty())
+        if (subresources.IsEntireTexture(texture->DescRef) && Tracking->SubresourceStates.empty())
         {
             // We're requiring state for the entire texture, and it's been tracked as entire texture too
 
-            bool transitionNecessary = tracking->State != state;
-            bool uavNecessary = ((state & EResourceStates::UnorderedAccess) != EResourceStates::Unknown) && (tracking->bEnableUavBarriers || !tracking->bFirstUavBarrierPlaced);
+            bool bTransitionNecessary = Tracking->State != state;
+            bool bUAVNecessary = ((state & EResourceStates::UnorderedAccess) != EResourceStates::Unknown) && (Tracking->bEnableUavBarriers || !Tracking->bFirstUavBarrierPlaced);
 
-            if (transitionNecessary || uavNecessary)
+            if (bTransitionNecessary || bUAVNecessary)
             {
-                TextureBarriers.emplace_back(texture, 0, 0, true, tracking->State, state);
+                TextureBarriers.emplace_back(FTextureBarrier{texture, 0, 0, true, Tracking->State, state});
             }
 
-            tracking->State = state;
+            Tracking->State = state;
 
-            if (uavNecessary && !transitionNecessary)
+            if (bUAVNecessary && !bTransitionNecessary)
             {
-                tracking->bFirstUavBarrierPlaced = true;
+                Tracking->bFirstUavBarrierPlaced = true;
             }
         }
         else
@@ -196,21 +196,21 @@ namespace Lumina
             // Transition individual subresources
 
             // Make sure that we're tracking the texture on subresource level
-            bool stateExpanded = false;
-            if (tracking->SubresourceStates.empty())
+            bool bStateExpanded = false;
+            if (Tracking->SubresourceStates.empty())
             {
-                if (tracking->State == EResourceStates::Unknown)
+                if (Tracking->State == EResourceStates::Unknown)
                 {
                     LOG_ERROR("Unknown prior state of texture {0}. Call CommandList::BeginTrackingTextureState(...) before using the texture or use the KeepInitialState and InitialState members of FRHIImageDesc.",
                         texture->DescRef.DebugName);
                 }
 
-                tracking->SubresourceStates.resize(texture->DescRef.NumMips * texture->DescRef.ArraySize, tracking->State);
-                tracking->State = EResourceStates::Unknown;
-                stateExpanded = true;
+                Tracking->SubresourceStates.resize(texture->DescRef.NumMips * texture->DescRef.ArraySize, Tracking->State);
+                Tracking->State = EResourceStates::Unknown;
+                bStateExpanded = true;
             }
             
-            bool anyUavBarrier = false;
+            bool bAnyUavBarrier = false;
 
             for (uint32 arraySlice = subresources.BaseArraySlice; arraySlice < subresources.BaseArraySlice + subresources.NumArraySlices; arraySlice++)
             {
@@ -218,37 +218,36 @@ namespace Lumina
                 {
                     uint32 subresourceIndex = CalcSubresource(mipLevel, arraySlice, texture->DescRef);
 
-                    auto priorState = tracking->SubresourceStates[subresourceIndex];
+                    EResourceStates PriorState = Tracking->SubresourceStates[subresourceIndex];
 
-                    if (priorState == EResourceStates::Unknown && !stateExpanded)
+                    if (PriorState == EResourceStates::Unknown && !bStateExpanded)
                     {
                         LOG_ERROR("Unknown prior state of texture \"{0}\" subresource (MipLevel = {1}, ArraySlice = {2}). Call CommandList::BeginTrackingTextureState(...) before using the texture or use the keepInitialState and initialState members of TextureDesc.",
                                   texture->DescRef.DebugName, mipLevel, arraySlice);
                     }
                     
-                    bool transitionNecessary = priorState != state;
-                    bool uavNecessary = ((state & EResourceStates::UnorderedAccess) != EResourceStates::Unknown)
-                        && !anyUavBarrier && (tracking->bEnableUavBarriers || !tracking->bFirstUavBarrierPlaced);
+                    bool bTransitionNecessary = PriorState != state;
+                    bool bUAVNecessary = ((state & EResourceStates::UnorderedAccess) != EResourceStates::Unknown) && !bAnyUavBarrier && (Tracking->bEnableUavBarriers || !Tracking->bFirstUavBarrierPlaced);
 
-                    if (transitionNecessary || uavNecessary)
+                    if (bTransitionNecessary || bUAVNecessary)
                     {
                         TextureBarriers.emplace_back(FTextureBarrier
                         {
-                            .Texture = texture,
-                            .MipLevel = mipLevel,
-                            .ArraySlice = arraySlice,
+                            .Texture        = texture,
+                            .MipLevel       = mipLevel,
+                            .ArraySlice     = arraySlice,
                             .bEntireTexture = false,
-                            .StateBefore = priorState,
-                            .StateAfter = state
+                            .StateBefore    = PriorState,
+                            .StateAfter     = state
                         });
                     }
 
-                    tracking->SubresourceStates[subresourceIndex] = state;
+                    Tracking->SubresourceStates[subresourceIndex] = state;
 
-                    if (uavNecessary && !transitionNecessary)
+                    if (bUAVNecessary && !bTransitionNecessary)
                     {
-                        anyUavBarrier = true;
-                        tracking->bFirstUavBarrierPlaced = true;
+                        bAnyUavBarrier = true;
+                        Tracking->bFirstUavBarrierPlaced = true;
                     }
                 }
             }
@@ -276,9 +275,9 @@ namespace Lumina
             return;
         }
 
-        FBufferState* tracking = GetBufferStateTracking(buffer, true);
+        FBufferState* Tracking = GetBufferStateTracking(buffer, true);
 
-        if (tracking->state == EResourceStates::Unknown)
+        if (Tracking->State == EResourceStates::Unknown)
         {
             LOG_ERROR("Unknown prior state of buffer \"{0}\". "
                       "Call CommandList::BeginTrackingBufferState(...) before using the buffer or use the "
@@ -286,41 +285,42 @@ namespace Lumina
                       buffer->DescRef.DebugName);
         }
 
-        bool transitionNecessary = tracking->state != state;
-        bool UAVNecessary = ((state & EResourceStates::UnorderedAccess) != EResourceStates::Unknown) && (tracking->bEnableUavBarriers || !tracking->bFirstUavBarrierPlaced);
+        bool bTransitionNecessary = Tracking->State != state;
+        bool bUAVNecessary = ((state & EResourceStates::UnorderedAccess) != EResourceStates::Unknown) && (Tracking->bEnableUavBarriers || !Tracking->bFirstUavBarrierPlaced);
 
-        if (transitionNecessary)
+        if (bTransitionNecessary)
         {
             // See if this buffer is already used for a different purpose in this batch.
             // If it is, combine the state bits.
             // Example: same buffer used as index and vertex buffer, or as SRV and indirect arguments.
+            // @TODO Avoid this iteration.
             for (FBufferBarrier& barrier : BufferBarriers)
             {
                 if (barrier.Buffer == buffer)
                 {
                     barrier.StateAfter = EResourceStates(barrier.StateAfter | state);
-                    tracking->state = barrier.StateAfter;
+                    Tracking->State = barrier.StateAfter;
                     return;
                 }
             }
         }
 
-        if (transitionNecessary || UAVNecessary)
+        if (bTransitionNecessary || bUAVNecessary)
         {
             BufferBarriers.emplace_back(FBufferBarrier
             {
                 .Buffer = buffer,
-                .StateBefore = tracking->state,
+                .StateBefore = Tracking->State,
                 .StateAfter = state,
             });
         }
 
-        if (UAVNecessary && !transitionNecessary)
+        if (bUAVNecessary && !bTransitionNecessary)
         {
-            tracking->bFirstUavBarrierPlaced = true;
+            Tracking->bFirstUavBarrierPlaced = true;
         }
     
-        tracking->state = state;
+        Tracking->State = state;
     }
 
     void FCommandListResourceStateTracker::KeepBufferInitialStates()
@@ -440,7 +440,7 @@ namespace Lumina
         
         if (Buffer->DescRef.bKeepInitialState)
         {
-            TrackingRef->state = Buffer->DescRef.InitialState;
+            TrackingRef->State = Buffer->DescRef.InitialState;
         }
 
         return TrackingRef;

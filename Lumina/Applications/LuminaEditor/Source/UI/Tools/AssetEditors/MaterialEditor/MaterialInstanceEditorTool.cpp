@@ -1,6 +1,6 @@
 ﻿#include "MaterialInstanceEditorTool.h"
 
-#include "Renderer/RHIIncl.h"
+
 #include "Assets/AssetTypes/Material/Material.h"
 #include "Assets/AssetTypes/Material/MaterialInstance.h"
 #include "Core/Engine/Engine.h"

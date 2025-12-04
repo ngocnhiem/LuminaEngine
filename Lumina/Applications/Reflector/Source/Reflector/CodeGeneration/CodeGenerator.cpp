@@ -214,7 +214,6 @@ namespace Lumina::Reflection
         Stream += "#include \"";
         Stream += Header.HeaderPath + "\"\n";
         Stream += "#include \"Runtime/Core/Object/Class.h\"\n";
-        Stream += "#include \"Renderer/RHIIncl.h\" //@TODO REMOVE THIS CRAP \n";
         Stream += "\n\n";
 
         eastl::string ProjectAPI = CurrentProject.Name + "_api";

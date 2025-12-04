@@ -3,14 +3,13 @@
 #include "Lumina.h"
 #include "Core/UpdateContext.h"
 #include "Module/API.h"
-#include "entt/entt.hpp"
-#include "Renderer/RHIFwd.h"
-#include "Renderer/RHIIncl.h"
+#include <entt/entt.hpp>
 #include "Subsystems/Subsystem.h"
 
 
 namespace Lumina
 {
+    class FRHIViewport;
     class FWorldManager;
     class FAssetRegistry;
     class FRenderManager;
@@ -36,7 +35,7 @@ namespace Lumina
         LUMINA_API bool Update(bool bApplicationWantsExit);
         LUMINA_API virtual void OnUpdateStage(const FUpdateContext& Context) { }
 
-        LUMINA_API FRHIViewport* GetEngineViewport() const { return EngineViewport; }
+        LUMINA_API static FRHIViewport* GetEngineViewport();
         
         LUMINA_API void SetEngineViewportSize(const glm::uvec2& InSize);
 
@@ -61,8 +60,6 @@ namespace Lumina
 
         LUMINA_API void SetEngineReadyToClose(bool bReady) { bEngineReadyToClose = bReady; }
         LUMINA_API FORCEINLINE bool IsCloseRequested() const { return bCloseRequested; }
-        
-    private:
     
     protected:
         
@@ -79,8 +76,6 @@ namespace Lumina
         FWorldManager*          WorldManager =          nullptr;
         FRenderManager*         RenderManager =         nullptr;
         
-        FRHIViewportRef         EngineViewport;
-
 
         bool                    bCloseRequested = false;
         bool                    bEngineReadyToClose = false;

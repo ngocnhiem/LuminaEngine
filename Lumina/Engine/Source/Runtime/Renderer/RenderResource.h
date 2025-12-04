@@ -2,14 +2,15 @@
 
 #include "Format.h"
 #include "RenderTypes.h"
-#include "StateTracking.h"
 #include "ViewVolume.h"
 #include "Containers/String.h"
 #include "Core/LuminaMacros.h"
+#include "Core/Math/Color.h"
+#include "Core/Math/Hash/CoreHashTypes.h"
+#include "Core/Serialization/Archiver.h"
 #include "Core/Threading/Thread.h"
 #include "Memory/RefCounted.h"
 #include "Types/BitFlags.h"
-#include "Core/Math/Hash/CoreHashTypes.h"
 
 
 namespace Lumina
@@ -354,6 +355,27 @@ namespace Lumina
 	//-------------------------------------------------------------------------------------------------------------------
 
 	class IEventQuery : public IRHIResource { };
+
+	using FRHIEventQueryRef         = TRefCountPtr<IEventQuery>;
+	using FRHIResourceRef           = TRefCountPtr<IRHIResource>;
+	using FRHIBufferRef             = TRefCountPtr<FRHIBuffer>;
+	using FRHIImageRef              = TRefCountPtr<FRHIImage>;
+	using FRHIStagingImageRef       = TRefCountPtr<FRHIStagingImage>;
+	using FRHISamplerRef            = TRefCountPtr<FRHISampler>;
+	using FRHIShaderRef             = TRefCountPtr<FRHIShader>;
+	using FRHIVertexShaderRef       = TRefCountPtr<FRHIVertexShader>;
+	using FRHIPixelShaderRef        = TRefCountPtr<FRHIPixelShader>;
+	using FRHIComputeShaderRef      = TRefCountPtr<FRHIComputeShader>;
+	using FRHIGeometryShaderRef     = TRefCountPtr<FRHIGeometryShader>;
+	using FRHICommandListRef        = TRefCountPtr<ICommandList>;
+	using FRHIViewportRef           = TRefCountPtr<FRHIViewport>;
+	using FRHIGraphicsPipelineRef   = TRefCountPtr<FRHIGraphicsPipeline>;
+	using FRHIComputePipelineRef    = TRefCountPtr<FRHIComputePipeline>;
+	using FRHIBindingLayoutRef      = TRefCountPtr<FRHIBindingLayout>;
+	using FRHIBindingSetRef         = TRefCountPtr<FRHIBindingSet>;
+	using FRHIInputLayoutRef        = TRefCountPtr<IRHIInputLayout>;
+	using FRHIShaderLibraryRef      = TRefCountPtr<FShaderLibrary>;
+	using FRHIDescriptorTableRef    = TRefCountPtr<FRHIDescriptorTable>;
 	
 
 	class LUMINA_API FRHIViewport : public IRHIResource

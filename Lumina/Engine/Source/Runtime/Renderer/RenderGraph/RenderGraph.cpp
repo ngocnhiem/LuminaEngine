@@ -61,7 +61,7 @@ namespace Lumina
                 {
                     Pass->Execute(*CommandList);
                 }
-            };
+            }
         }
 
         CommandList->Close();

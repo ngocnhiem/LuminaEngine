@@ -1,20 +1,10 @@
 ﻿#pragma once
 
-#include "Memory/RefCounted.h"
-
 
 namespace Lumina
 {
     class FRHIGeometryShader;
-}
-
-namespace Lumina
-{
     class FRHIStagingImage;
-}
-
-namespace Lumina
-{
     class FRHIDescriptorTable;
     class IEventQuery;
     class FRHISampler;
@@ -35,26 +25,5 @@ namespace Lumina
     class FRHIImage;
     
     //----------------------------------------------------------------------------
-
-    using FRHIEventQueryRef         = TRefCountPtr<IEventQuery>;
-    using FRHIResourceRef           = TRefCountPtr<IRHIResource>;
-    using FRHIBufferRef             = TRefCountPtr<FRHIBuffer>;
-    using FRHIImageRef              = TRefCountPtr<FRHIImage>;
-    using FRHIStagingImageRef       = TRefCountPtr<FRHIStagingImage>;
-    using FRHISamplerRef            = TRefCountPtr<FRHISampler>;
-    using FRHIShaderRef             = TRefCountPtr<FRHIShader>;
-    using FRHIVertexShaderRef       = TRefCountPtr<FRHIVertexShader>;
-    using FRHIPixelShaderRef        = TRefCountPtr<FRHIPixelShader>;
-    using FRHIComputeShaderRef      = TRefCountPtr<FRHIComputeShader>;
-    using FRHIGeometryShaderRef     = TRefCountPtr<FRHIGeometryShader>;
-    using FRHICommandListRef        = TRefCountPtr<ICommandList>;
-    using FRHIViewportRef           = TRefCountPtr<FRHIViewport>;
-    using FRHIGraphicsPipelineRef   = TRefCountPtr<FRHIGraphicsPipeline>;
-    using FRHIComputePipelineRef    = TRefCountPtr<FRHIComputePipeline>;
-    using FRHIBindingLayoutRef      = TRefCountPtr<FRHIBindingLayout>;
-    using FRHIBindingSetRef         = TRefCountPtr<FRHIBindingSet>;
-    using FRHIInputLayoutRef        = TRefCountPtr<IRHIInputLayout>;
-    using FRHIShaderLibraryRef      = TRefCountPtr<FShaderLibrary>;
-    using FRHIDescriptorTableRef    = TRefCountPtr<FRHIDescriptorTable>;
 
 }

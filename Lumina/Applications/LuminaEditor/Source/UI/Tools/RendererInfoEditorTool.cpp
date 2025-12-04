@@ -1,6 +1,6 @@
 ﻿#include "RendererInfoEditorTool.h"
 
-#include "Renderer/RHIIncl.h"
+
 
 namespace Lumina
 {

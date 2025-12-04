@@ -7,7 +7,7 @@
 namespace Lumina
 {
 
-    FRHIGraphicsPipelineRef FVulkanPipelineCache::GetOrCreateGraphicsPipeline(FVulkanDevice* Device, const FGraphicsPipelineDesc& InDesc, const FRenderPassDesc& RenderPassDesc)
+    FRHIGraphicsPipeline* FVulkanPipelineCache::GetOrCreateGraphicsPipeline(FVulkanDevice* Device, const FGraphicsPipelineDesc& InDesc, const FRenderPassDesc& RenderPassDesc)
     {
         LUMINA_PROFILE_SCOPE();
 
@@ -27,7 +27,7 @@ namespace Lumina
         return NewPipeline;
     }
 
-    FRHIComputePipelineRef FVulkanPipelineCache::GetOrCreateComputePipeline(FVulkanDevice* Device, const FComputePipelineDesc& InDesc)
+    FRHIComputePipeline* FVulkanPipelineCache::GetOrCreateComputePipeline(FVulkanDevice* Device, const FComputePipelineDesc& InDesc)
     {
         LUMINA_PROFILE_SCOPE();
 

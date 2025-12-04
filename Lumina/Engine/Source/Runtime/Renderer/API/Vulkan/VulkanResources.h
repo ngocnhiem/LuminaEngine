@@ -7,6 +7,7 @@
 #include "Memory/SmartPtr.h"
 #include "Renderer/RenderResource.h"
 #include "Renderer/Shader.h"
+#include "Renderer/StateTracking.h"
 
 namespace Lumina
 {

@@ -2,7 +2,7 @@
 #include "Containers/Array.h"
 #include "Containers/Name.h"
 #include "Core/Threading/Thread.h"
-#include "Renderer/RHIFwd.h"
+#include "Renderer/RenderResource.h"
 
 
 namespace Lumina
@@ -27,8 +27,8 @@ namespace Lumina
             TVector<FName> Shaders;
         };
 
-        FRHIGraphicsPipelineRef GetOrCreateGraphicsPipeline(FVulkanDevice* Device, const FGraphicsPipelineDesc& InDesc, const FRenderPassDesc& RenderPassDesc);
-        FRHIComputePipelineRef GetOrCreateComputePipeline(FVulkanDevice* Device, const FComputePipelineDesc& InDesc);
+        FRHIGraphicsPipeline* GetOrCreateGraphicsPipeline(FVulkanDevice* Device, const FGraphicsPipelineDesc& InDesc, const FRenderPassDesc& RenderPassDesc);
+        FRHIComputePipeline* GetOrCreateComputePipeline(FVulkanDevice* Device, const FComputePipelineDesc& InDesc);
 
         void PostShaderRecompiled(const FRHIShader* Shader);
         void ReleasePipelines();

@@ -1099,7 +1099,8 @@ namespace Lumina
             
             STransformComponent TransformCopy = World->GetEntityRegistry().get<STransformComponent>(EditorEntity);
             SCameraComponent CameraCopy =  World->GetEntityRegistry().get<SCameraComponent>(EditorEntity);
-            
+
+            World->SetActive(false);
             WorldState = World;
             World = CWorld::DuplicateWorld(WorldState);
             World->SetSimulating(true);
@@ -1140,6 +1141,7 @@ namespace Lumina
             entt::entity PreviousSelectedEntity = SelectedEntity;
 
             SetWorld(WorldState);
+            WorldState->SetActive(true);
             
             SetSelectedEntity(PreviousSelectedEntity);
 

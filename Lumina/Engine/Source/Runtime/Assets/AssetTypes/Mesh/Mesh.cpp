@@ -7,6 +7,7 @@
 #include "Core/Object/Cast.h"
 #include "Renderer/RHIGlobals.h"
 #include "Renderer/TypedBuffer.h"
+#include "Renderer/Vertex.h"
 
 
 namespace Lumina

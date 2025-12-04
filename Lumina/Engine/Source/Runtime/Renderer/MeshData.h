@@ -1,13 +1,13 @@
 #pragma once
 
+#include "RenderResource.h"
 #include "Containers/Array.h"
+#include "Core/Serialization/Archiver.h"
 #include "Core/Utils/NonCopyable.h"
-#include "Renderer/RenderTypes.h"
+#include "Renderer/Vertex.h"
 
 namespace Lumina
 {
-    struct FVertex;
-
     struct FGeometrySurface final
     {
         FName   ID;

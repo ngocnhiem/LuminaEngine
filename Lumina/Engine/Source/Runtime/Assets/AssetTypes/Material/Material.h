@@ -3,10 +3,10 @@
 #include "Containers/Array.h"
 #include "Core/Object/Object.h"
 #include "Core/Object/ObjectMacros.h"
-#include "Renderer/RHIFwd.h"
 #include "Core/Object/ObjectHandleTyped.h"
 #include "MaterialInterface.h"
 #include "Renderer/MaterialTypes.h"
+#include "Renderer/RenderResource.h"
 #include "Material.generated.h"
 
 
@@ -35,10 +35,10 @@ namespace Lumina
         bool SetVectorValue(const FName& Name, const glm::vec4& Value) override;
         bool GetParameterValue(EMaterialParameterType Type, const FName& Name, FMaterialParameter& Param) override;
         CMaterial* GetMaterial() const override;
-        FRHIBindingSetRef GetBindingSet() const override;
-        FRHIBindingLayoutRef GetBindingLayout() const override;
-        FRHIVertexShaderRef GetVertexShader() const override;
-        FRHIPixelShaderRef GetPixelShader() const override;
+        FRHIBindingSet* GetBindingSet() const override;
+        FRHIBindingLayout* GetBindingLayout() const override;
+        FRHIVertexShader* GetVertexShader() const override;
+        FRHIPixelShader* GetPixelShader() const override;
         static CMaterial* GetDefaultMaterial();
 
         static void CreateDefaultMaterial();
@@ -76,8 +76,6 @@ namespace Lumina
         FRHIBufferRef                           UniformBuffer;
         FRHIBindingLayoutRef                    BindingLayout;
         FRHIBindingSetRef                       BindingSet;
-
-
 
         static CMaterial* DefaultMaterial;
     };

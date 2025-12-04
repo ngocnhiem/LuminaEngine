@@ -7,7 +7,7 @@
 #include "Core/Object/Cast.h"
 #include "Core/Object/Package/Package.h"
 #include "Paths/Paths.h"
-#include "Renderer/RHIIncl.h"
+
 #include "TaskSystem/TaskSystem.h"
 #include "Tools/Import/ImportHelpers.h"
 #include "Tools/UI/ImGui/ImGuiDesignIcons.h"

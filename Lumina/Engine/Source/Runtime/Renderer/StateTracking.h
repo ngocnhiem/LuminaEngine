@@ -61,7 +61,7 @@ namespace Lumina
 
     struct FBufferState
     {
-        EResourceStates state = EResourceStates::Unknown;
+        EResourceStates State = EResourceStates::Unknown;
         uint32 bEnableUavBarriers:1 = true;
         uint32 bFirstUavBarrierPlaced:1 = false;
         uint32 bPermanentTransition:1 = false;

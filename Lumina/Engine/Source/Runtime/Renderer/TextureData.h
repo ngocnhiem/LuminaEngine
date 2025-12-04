@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "RenderResource.h"
-#include "RHIFwd.h"
 #include "Containers/Array.h"
 
 namespace Lumina

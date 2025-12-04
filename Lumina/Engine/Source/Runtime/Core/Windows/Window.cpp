@@ -8,7 +8,7 @@
 #include "Core/Application/Application.h"
 #include "Paths/Paths.h"
 #include "Platform/Platform.h"
-#include "Renderer/RHIIncl.h"
+
 
 
 namespace

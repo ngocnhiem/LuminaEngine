@@ -1,13 +1,14 @@
 ﻿#pragma once
-#include "Renderer/RHIFwd.h"
+#include "Module/API.h"
 
 namespace Lumina
 {
+    class FRHIImage;
     class CObject;
 }
 
 namespace Lumina::ThumbnailGenerator
 {
-    LUMINA_API FRHIImageRef GenerateImageForObject(CObject* Object);
+    LUMINA_API FRHIImage* GenerateImageForObject(CObject* Object);
  
 }
