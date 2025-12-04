@@ -1,4 +1,5 @@
 #include "pch.h"
+#if 0
 #include "DeferredRenderScene.h"
 #include <execution>
 #include <variant>
@@ -1096,12 +1097,7 @@ namespace Lumina
         void FDeferredRenderScene::SpotShadowPass(FRenderGraph& RenderGraph)
         {
             FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
-            Descriptor->AddBinding(BindingSet);
-            Descriptor->AddBinding(ShadowPassSet);
-            Descriptor->AddRawWrite(ShadowAtlas.GetImage());
-            Descriptor->AddRawRead(IndirectDrawBuffer);
 
-            
             RenderGraph.AddPass<RG_Raster>(FRGEvent("Spot Shadow Pass"), Descriptor, [&](ICommandList& CmdList)
             {
                 LUMINA_PROFILE_SECTION_COLORED("Spot Shadow Pass", tracy::Color::DeepPink4);
@@ -1199,11 +1195,7 @@ namespace Lumina
         void FDeferredRenderScene::DirectionalShowPass(FRenderGraph& RenderGraph)
         {
             FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
-            Descriptor->AddBinding(BindingSet);
-            Descriptor->AddBinding(ShadowPassSet);
-            Descriptor->AddRawRead(IndirectDrawBuffer);
-            
-            
+
             RenderGraph.AddPass<RG_Raster>(FRGEvent("Cascaded Shadow Map Pass"), Descriptor, [&](ICommandList& CmdList)
             {
                 LUMINA_PROFILE_SECTION_COLORED("Cascaded Shadow Map Pass", tracy::Color::DeepPink2);
@@ -1677,14 +1669,14 @@ namespace Lumina
 
                     if (SpotLightComponent.bCastShadows)
                     {
-                        int32 TileIndex = ShadowAtlas.AllocateTile();
-                        if (TileIndex != INDEX_NONE)
-                        {
-                            const FShadowTile& Tile = ShadowAtlas.GetTile(TileIndex);
-                            Light.Shadow[0].ShadowMapIndex = TileIndex;
-                            Light.Shadow[0].AtlasUVOffset = Tile.UVOffset;
-                            Light.Shadow[0].AtlasUVScale = Tile.UVScale;
-                        }
+                        //int32 TileIndex = ShadowAtlas.AllocateTile();
+                       // if (TileIndex != INDEX_NONE)
+                       // {
+                       //     const FShadowTile& Tile = ShadowAtlas.GetTile(TileIndex);
+                       //     Light.Shadow[0].ShadowMapIndex = TileIndex;
+                       //     Light.Shadow[0].AtlasUVOffset = Tile.UVOffset;
+                       //     Light.Shadow[0].AtlasUVScale = Tile.UVScale;
+                       // }
                     }
                     else
                     {
@@ -1723,11 +1715,6 @@ namespace Lumina
 
             {
                 FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
-                Descriptor->AddRawWrite(SceneDataBuffer);
-                Descriptor->AddRawWrite(InstanceDataBuffer);
-                Descriptor->AddRawWrite(IndirectDrawBuffer);
-                Descriptor->AddRawWrite(SimpleVertexBuffer);
-                Descriptor->AddRawWrite(LightDataBuffer);
                 
                 RenderGraph.AddPass<RG_Raster>(FRGEvent("Write Scene Buffers"), Descriptor, [&](ICommandList& CmdList)
                 {
@@ -2221,7 +2208,7 @@ namespace Lumina
                 //ImageDesc.Extent = {GShadowCubemapResolution, GShadowCubemapResolution};
                 ImageDesc.Flags.SetMultipleFlags(EImageCreateFlags::DepthAttachment, EImageCreateFlags::ShaderResource, EImageCreateFlags::CubeCompatible);
                 ImageDesc.Dimension = EImageDimension::TextureCubeArray;
-                ImageDesc.ArraySize = 6 * GMaxPointLightShadows;
+                //ImageDesc.ArraySize = 6 * GMaxPointLightShadows;
                 ImageDesc.Format = EFormat::D16;
                 ImageDesc.bKeepInitialState = true;
                 ImageDesc.InitialState = EResourceStates::DepthWrite;
@@ -2231,3 +2218,4 @@ namespace Lumina
             }
         }
     }
+#endif

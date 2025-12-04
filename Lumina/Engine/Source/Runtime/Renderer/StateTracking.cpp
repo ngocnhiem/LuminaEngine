@@ -177,8 +177,7 @@ namespace Lumina
             // We're requiring state for the entire texture, and it's been tracked as entire texture too
 
             bool transitionNecessary = tracking->State != state;
-            bool uavNecessary = ((state & EResourceStates::UnorderedAccess) != EResourceStates::Unknown)
-                && (tracking->bEnableUavBarriers || !tracking->bFirstUavBarrierPlaced);
+            bool uavNecessary = ((state & EResourceStates::UnorderedAccess) != EResourceStates::Unknown) && (tracking->bEnableUavBarriers || !tracking->bFirstUavBarrierPlaced);
 
             if (transitionNecessary || uavNecessary)
             {

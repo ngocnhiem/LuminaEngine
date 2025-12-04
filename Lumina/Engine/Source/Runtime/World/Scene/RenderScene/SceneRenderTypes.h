@@ -34,9 +34,8 @@ constexpr int ClusterGridSizeZ = 24;
 
 constexpr int NumClusters = ClusterGridSizeX * ClusterGridSizeY * ClusterGridSizeZ;
 
-constexpr int GCSMResolution            = 2048;
+constexpr int GCSMResolution            = 4096;
 constexpr int GShadowAtlasResolution    = 4096;
-constexpr int GMaxPointLightShadows     = 100;
 
 namespace Lumina
 {
@@ -96,7 +95,7 @@ namespace Lumina
 
     struct FShadowAtlasConfig
     {
-        uint32 AtlasResolution = 4096;
+        uint32 AtlasResolution = GShadowAtlasResolution;
         uint32 TileResolution = 512;
         uint32 NumLayers = 7;
 
@@ -121,7 +120,7 @@ namespace Lumina
             ImageDesc.Extent            = glm::uvec2(InConfig.AtlasResolution);
             ImageDesc.Format            = EFormat::D32;
             ImageDesc.bKeepInitialState = true;
-            ImageDesc.InitialState      = EResourceStates::ShaderResource;
+            ImageDesc.InitialState      = EResourceStates::DepthWrite;
             ImageDesc.Dimension         = EImageDimension::Texture2DArray;
             ImageDesc.ArraySize         = (uint16)Config.NumLayers;
             ImageDesc.Flags.SetMultipleFlags(EImageCreateFlags::DepthAttachment, EImageCreateFlags::ShaderResource);
@@ -139,7 +138,7 @@ namespace Lumina
                     uint32 Index = y * Config.TilesPerRow() + x;
                     Tiles[Index].UVOffset = glm::vec2(x * Scale, y * Scale);
                     Tiles[Index].UVScale = glm::vec2(Scale, Scale);
-                    Free.push(Index);
+                    Free.push((int32)Index);
                 }
             }
         }

@@ -112,8 +112,9 @@ namespace Lumina
         
         (void)WorldEditorTool->GetOnPreviewStartRequestedDelegate().AddLambda([this]
         {
-            if (CWorld* PreviewWorld = CWorld::DuplicateWorldForPIE(WorldEditorTool->GetWorld()))
+            if (CWorld* PreviewWorld = CWorld::DuplicateWorld(WorldEditorTool->GetWorld()))
             {
+                PreviewWorld->SetIsPlayWorld(true);
                 PreviewWorld->SetPaused(false);
                 GamePreviewTool = CreateTool<FGamePreviewTool>(this, PreviewWorld);
                 WorldEditorTool->NotifyPlayInEditorStart();

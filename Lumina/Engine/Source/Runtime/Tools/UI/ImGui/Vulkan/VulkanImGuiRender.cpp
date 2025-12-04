@@ -215,13 +215,7 @@ namespace Lumina
     	LUMINA_PROFILE_SCOPE();
 		
 		FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
-		Descriptor->AddRawWrite(GEngine->GetEngineViewport()->GetRenderTarget());
-		for (FRHIImage* Image : ReferencedImages)
-		{
-			Descriptor->AddRawRead(Image);
-		}
-		
-		RenderGraph.AddPass<RG_Raster>(FRGEvent("ImGui Render"), Descriptor, [&] (ICommandList& CmdList)
+		RenderGraph.AddPass(RG_Raster, FRGEvent("ImGui Render"), Descriptor, [&] (ICommandList& CmdList)
 		{
 			LUMINA_PROFILE_SECTION_COLORED("ImGui Render", tracy::Color::Aquamarine3);
 			if (ImDrawData* DrawData = ImGui::GetDrawData())
@@ -310,13 +304,16 @@ namespace Lumina
 
 		VkPhysicalDevice physicalDevice = VulkanRenderContext->GetDevice()->GetPhysicalDevice();
 		VkPhysicalDeviceFeatures Features;
+		
 		vkGetPhysicalDeviceFeatures(physicalDevice, &Features);
 		VkPhysicalDeviceProperties props{};
+		
 		vkGetPhysicalDeviceProperties(physicalDevice, &props);
 		VkPhysicalDeviceMemoryProperties memProps{};
+		
 		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProps);
 		VmaAllocator Allocator = VulkanRenderContext->GetDevice()->GetAllocator()->GetVMA();
-
+		
 		ImGui::BeginChild("ContentArea");
 		
 

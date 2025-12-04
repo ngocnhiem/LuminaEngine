@@ -22,7 +22,7 @@ namespace Lumina
     FForwardRenderScene::FForwardRenderScene(CWorld* InWorld)
         : World(InWorld)
         , LightData(), SceneGlobalData()
-        , ShadowAtlas(FShadowAtlasConfig{GShadowAtlasResolution})
+        , ShadowAtlas(FShadowAtlasConfig())
         , DebugVisualizationMode()
         , ShadowCascades()
         , DepthMeshPass()
@@ -78,7 +78,6 @@ namespace Lumina
         DepthPyramidPass(RenderGraph);
         ClusterBuildPass(RenderGraph, SceneViewport->GetViewVolume());
         LightCullPass(RenderGraph, SceneViewport->GetViewVolume());
-        ClearShadowPass(RenderGraph);
         PointShadowPass(RenderGraph);
         SpotShadowPass(RenderGraph);
         DirectionalShowPass(RenderGraph);
@@ -402,22 +401,25 @@ namespace Lumina
 
                 if (PointLightComponent.bCastShadows)
                 {
-                    for (int Face = 0; Face < 6; ++Face)
+                    int32 TileIndex = ShadowAtlas.AllocateTile();
+                    
+                    if (TileIndex != INDEX_NONE)
                     {
-                        SetView(LightView, Face);
-                        Light.ViewProjection[Face] = LightView.ToReverseDepthViewProjectionMatrix();
-                        int32 TileIndex = ShadowAtlas.AllocateTile();
-                        if (TileIndex != INDEX_NONE)
+                        const FShadowTile& Tile = ShadowAtlas.GetTile(TileIndex);
+
+                        for (int Face = 0; Face < 6; ++Face)
                         {
-                            const FShadowTile& Tile                 = ShadowAtlas.GetTile(TileIndex);
+                            SetView(LightView, Face);
+                            
+                            Light.ViewProjection[Face]              = LightView.ToReverseDepthViewProjectionMatrix();
                             Light.Shadow[Face].ShadowMapIndex       = TileIndex;
-                            Light.Shadow[Face].ShadowMapLayer       = Face + 1;
+                            Light.Shadow[Face].ShadowMapLayer       = Face;
                             Light.Shadow[Face].AtlasUVOffset        = Tile.UVOffset;
                             Light.Shadow[Face].AtlasUVScale         = Tile.UVScale;
                             Light.Shadow[Face].LightIndex           = (int32)LightData.NumLights;
-                            
-                            PackedShadows[(uint32)ELightType::Point].push_back(Light.Shadow[Face]);
                         }
+                        
+                        PackedShadows[(uint32)ELightType::Point].push_back(Light.Shadow[0]);
                     }
                 }
                 else
@@ -469,13 +471,14 @@ namespace Lumina
                     {
                         const FShadowTile& Tile             = ShadowAtlas.GetTile(TileIndex);
                         Light.Shadow[0].ShadowMapIndex      = TileIndex;
-                        Light.Shadow[0].ShadowMapLayer      = 0;
+                        Light.Shadow[0].ShadowMapLayer      = 6;
                         Light.Shadow[0].AtlasUVOffset       = Tile.UVOffset;
                         Light.Shadow[0].AtlasUVScale        = Tile.UVScale;
                         Light.Shadow[0].LightIndex          = (int32)LightData.NumLights;
 
-                        PackedShadows[(uint32)ELightType::Spot].push_back(Light.Shadow[0]);
                     }
+                    
+                    PackedShadows[(uint32)ELightType::Spot].push_back(Light.Shadow[0]);
                 }
                 else
                 {
@@ -514,13 +517,7 @@ namespace Lumina
         
         {
             FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
-            Descriptor->AddRawWrite(SceneDataBuffer);
-            Descriptor->AddRawWrite(InstanceDataBuffer);
-            Descriptor->AddRawWrite(IndirectDrawBuffer);
-            Descriptor->AddRawWrite(SimpleVertexBuffer);
-            Descriptor->AddRawWrite(LightDataBuffer);
-            
-            RenderGraph.AddPass<RG_Raster>(FRGEvent("Write Scene Buffers"), Descriptor, [this](ICommandList& CmdList)
+            RenderGraph.AddPass(RG_Raster, FRGEvent("Write Scene Buffers"), Descriptor, [this](ICommandList& CmdList)
             {
                 LUMINA_PROFILE_SECTION_COLORED("Write Scene Buffers", tracy::Color::OrangeRed3);
         
@@ -571,9 +568,7 @@ namespace Lumina
     void FForwardRenderScene::CullPass(FRenderGraph& RenderGraph, const FViewVolume& View)
     {
         FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
-        Descriptor->AddBinding(MeshCullSet);
-
-        RenderGraph.AddPass<RG_Compute>(FRGEvent("Cull Pass"), Descriptor, [&] (ICommandList& CmdList)
+        RenderGraph.AddPass(RG_Compute, FRGEvent("Cull Pass"), Descriptor, [&] (ICommandList& CmdList)
         {
             LUMINA_PROFILE_SECTION_COLORED("Cull Pass", tracy::Color::Pink2);
 
@@ -622,11 +617,7 @@ namespace Lumina
     void FForwardRenderScene::DepthPrePass(FRenderGraph& RenderGraph, const FViewVolume& View)
     {
         FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
-        Descriptor->AddBinding(BindingSet);
-        Descriptor->AddRawWrite(DepthAttachment);
-        Descriptor->AddRawRead(IndirectDrawBuffer);
-        
-        RenderGraph.AddPass<RG_Raster>(FRGEvent("Pre-Depth Pass"), Descriptor, [&] (ICommandList& CmdList)
+        RenderGraph.AddPass(RG_Raster, FRGEvent("Pre-Depth Pass"), Descriptor, [&] (ICommandList& CmdList)
         {
             LUMINA_PROFILE_SECTION_COLORED("Pre-Depth Pass", tracy::Color::Orange);
             
@@ -685,10 +676,7 @@ namespace Lumina
     {
         FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
         Descriptor->SetFlag(ERGExecutionFlags::Async);
-        Descriptor->AddRawRead(DepthAttachment);
-        Descriptor->AddRawWrite(DepthPyramid);
-        
-        RenderGraph.AddPass<RG_Compute>(FRGEvent("Depth Pyramid Pass"), Descriptor, [&](ICommandList& CmdList)
+        RenderGraph.AddPass(RG_Compute, FRGEvent("Depth Pyramid Pass"), Descriptor, [&](ICommandList& CmdList)
         {
             LUMINA_PROFILE_SECTION_COLORED("Depth Pyramid Pass", tracy::Color::Orange);
 
@@ -740,20 +728,15 @@ namespace Lumina
 
                 LevelWidth = std::max(LevelWidth, 1u);
                 LevelHeight = std::max(LevelHeight, 1u);
-
-                auto GetGroupCount = [](uint32 ThreadCount, uint32 LocalSize)
-                {
-                    return (ThreadCount + LocalSize - 1) / LocalSize;
-                };
+                
 
                 glm::vec2 Data = glm::vec2(LevelWidth,LevelHeight);
-
-                uint32_t GroupsX = GetGroupCount(LevelWidth, 32);
-                uint32_t GroupsY = GetGroupCount(LevelHeight, 32);
-                uint32_t GroupsZ = 1;
-
                 CmdList.SetPushConstants(&Data, sizeof(glm::vec2));
-                CmdList.Dispatch(GroupsX, GroupsY, GroupsZ);
+
+                uint32 GroupsX = RenderUtils::GetGroupCount(LevelWidth, 32);
+                uint32 GroupsY = RenderUtils::GetGroupCount(LevelHeight, 32);
+                
+                CmdList.Dispatch(GroupsX, GroupsY, 1);
             }
         });
     }
@@ -761,9 +744,7 @@ namespace Lumina
     void FForwardRenderScene::ClusterBuildPass(FRenderGraph& RenderGraph, const FViewVolume& View)
     {
         FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
-        Descriptor->AddBinding(ClusterBuildSet);
-            
-        RenderGraph.AddPass<RG_Compute>(FRGEvent("Cluster Build Pass"), Descriptor, [&] (ICommandList& CmdList)
+        RenderGraph.AddPass(RG_Compute, FRGEvent("Cluster Build Pass"), Descriptor, [&] (ICommandList& CmdList)
         {
             LUMINA_PROFILE_SECTION_COLORED("Cluster Build Pass", tracy::Color::Pink2);
                 
@@ -796,9 +777,7 @@ namespace Lumina
     void FForwardRenderScene::LightCullPass(FRenderGraph& RenderGraph, const FViewVolume& View)
     {
         FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
-        Descriptor->AddBinding(LightCullSet);
-            
-        RenderGraph.AddPass<RG_Compute>(FRGEvent("Light Cull Pass"), Descriptor, [&] (ICommandList& CmdList)
+        RenderGraph.AddPass(RG_Compute, FRGEvent("Light Cull Pass"), Descriptor, [&] (ICommandList& CmdList)
         {
             LUMINA_PROFILE_SECTION_COLORED("Light Cull Pass", tracy::Color::Pink2);
                 
@@ -824,17 +803,6 @@ namespace Lumina
         });
     }
 
-    void FForwardRenderScene::ClearShadowPass(FRenderGraph& RenderGraph)
-    {
-        FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
-        Descriptor->AddRawWrite(ShadowAtlas.GetImage());
-        
-        RenderGraph.AddPass<RG_Raster>(FRGEvent("Clear Shadow Pass"), Descriptor, [&](ICommandList& CmdList)
-        {
-            CmdList.ClearImageUInt(ShadowAtlas.GetImage(), AllSubresources, 1);
-        });
-    }
-
     void FForwardRenderScene::PointShadowPass(FRenderGraph& RenderGraph)
     {
         if (PackedShadows[(uint32)ELightType::Point].empty())
@@ -842,24 +810,21 @@ namespace Lumina
             return;
         }
         
-        
         FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
-        Descriptor->AddBinding(BindingSet);
-        Descriptor->AddBinding(ShadowPassSet);
-        Descriptor->AddRawRead(IndirectDrawBuffer);
-        
-        RenderGraph.AddPass<RG_Raster>(FRGEvent("Point Light Shadow Pass"), Descriptor, [&](ICommandList& CmdList)
+        RenderGraph.AddPass(RG_Raster, FRGEvent("Point Light Shadow Pass"), Descriptor, [&](ICommandList& CmdList)
         {
             LUMINA_PROFILE_SECTION_COLORED("Point Light Shadow Pass", tracy::Color::DeepPink2);
             
-        
             FRHIVertexShaderRef VertexShader = FShaderLibrary::GetVertexShader("ShadowMapping.vert");
             FRHIPixelShaderRef PixelShader = FShaderLibrary::GetPixelShader("ShadowMapping.frag");
             
             FRenderState RenderState; RenderState
                 .SetDepthStencilState(FDepthStencilState()
                     .SetDepthFunc(EComparisonFunc::LessOrEqual))
-                    .SetRasterState(FRasterState().SetSlopeScaleDepthBias(1.75f).SetDepthBias(100).SetCullFront());
+                    .SetRasterState(FRasterState()
+                        .SetSlopeScaleDepthBias(1.75f)
+                        .SetDepthBias(100)
+                        .SetCullFront());
             
             FGraphicsPipelineDesc Desc; Desc
                 .SetDebugName("Point Light Shadow Pass")
@@ -869,67 +834,61 @@ namespace Lumina
                 .AddBindingLayout(ShadowPassLayout)
                 .SetVertexShader(VertexShader)
                 .SetPixelShader(PixelShader);
+
+            FRenderPassDesc::FAttachment Depth; Depth
+                .SetLoadOp(ERenderLoadOp::Clear)
+                .SetDepthClearValue(1.0)
+                .SetImage(ShadowAtlas.GetImage())
+                    .SetNumSlices(6);
+            
+            FRenderPassDesc RenderPass; RenderPass
+                .SetDepthAttachment(Depth)
+                .SetViewMask(RenderUtils::CreateViewMask<0u, 1u, 2u, 3u, 4u, 5u>())
+                .SetRenderArea(glm::uvec2(GShadowAtlasResolution, GShadowAtlasResolution));
+            
+            FRHIGraphicsPipelineRef Pipeline = GRenderContext->CreateGraphicsPipeline(Desc, RenderPass);
+            
+            FGraphicsState GraphicsState; GraphicsState
+                .SetRenderPass(Move(RenderPass))
+                .AddBindingSet(BindingSet)
+                .AddBindingSet(ShadowPassSet)
+                .SetIndirectParams(IndirectDrawBuffer)
+                .SetPipeline(Pipeline);
+
+            const TVector<FLightShadow>& PointShadows = PackedShadows[(uint32)ELightType::Point];
             
 
-            TVector<FLightShadow>& PointShadows = PackedShadows[(uint32)ELightType::Point];
-
-            LUM_ASSERT(PointShadows.size() % 6 == 0)
-            for (size_t Shadow = 0; Shadow < PointShadows.size(); Shadow += 6)
+            for (size_t Shadow = 0; Shadow < PointShadows.size(); Shadow++)
             {
                 LUMINA_PROFILE_SECTION_COLORED("Process Point Light", tracy::Color::DeepPink2);
 
                 const FLightShadow& LightShadow = PointShadows[Shadow];
                 
-                FRenderPassDesc::FAttachment Depth; Depth
-                    .SetLoadOp(ERenderLoadOp::Load)
-                    .SetImage(ShadowAtlas.GetImage())
-                        .SetArraySliceRange(1, 1);
+                const FShadowTile& Tile = ShadowAtlas.GetTile(LightShadow.ShadowMapIndex);
+                uint32 TilePixelX       = static_cast<uint32>(Tile.UVOffset.x * GShadowAtlasResolution);
+                uint32 TilePixelY       = static_cast<uint32>(Tile.UVOffset.y * GShadowAtlasResolution);
+                uint32 TileSize         = static_cast<uint32>(Tile.UVScale.x * GShadowAtlasResolution);
                 
-                FRenderPassDesc RenderPass; RenderPass
-                    .SetDepthAttachment(Depth)
-                    .SetRenderArea(glm::uvec2(GShadowAtlasResolution, GShadowAtlasResolution));
+                FViewport Viewport
+                (
+                    (float)TilePixelX,
+                    (float)TilePixelX + TileSize,
+                    (float)TilePixelY,
+                    (float)TilePixelY + TileSize,
+                    0.0f,
+                    1.0f 
+                );
                 
-                
-                FRHIGraphicsPipelineRef Pipeline = GRenderContext->CreateGraphicsPipeline(Desc, RenderPass);
-            
-                FGraphicsState GraphicsState; GraphicsState
-                    .SetRenderPass(Move(RenderPass))
-                    .AddBindingSet(BindingSet)
-                    .AddBindingSet(ShadowPassSet)
-                    .SetIndirectParams(IndirectDrawBuffer)
-                    .SetPipeline(Pipeline);
+                // FRect(minX, maxX, minY, maxY)
+                FRect Scissor
+                (
+                    (int)TilePixelX,
+                    (int)TilePixelX + TileSize,
+                    (int)TilePixelY,
+                    (int)TilePixelY + TileSize
+                );
 
-                for (size_t Face = Shadow; Face < Shadow + 6; ++Face)
-                {
-                    const FLightShadow& FaceShadow = PointShadows[Face];
-                
-                    const FShadowTile& Tile = ShadowAtlas.GetTile(FaceShadow.ShadowMapIndex);
-                    uint32 TilePixelX       = static_cast<uint32>(Tile.UVOffset.x * GShadowAtlasResolution);
-                    uint32 TilePixelY       = static_cast<uint32>(Tile.UVOffset.y * GShadowAtlasResolution);
-                    uint32 TileSize         = static_cast<uint32>(Tile.UVScale.x * GShadowAtlasResolution);
-                
-                    FViewport Viewport
-                    (
-                        (float)TilePixelX,
-                        (float)TilePixelX + TileSize,
-                        (float)TilePixelY,
-                        (float)TilePixelY + TileSize,
-                        0.0f,
-                        1.0f 
-                    );
-                
-                    // FRect(minX, maxX, minY, maxY)
-                    FRect Scissor
-                    (
-                        (int)TilePixelX,
-                        (int)TilePixelX + TileSize,
-                        (int)TilePixelY,
-                        (int)TilePixelY + TileSize
-                    );
-
-                    GraphicsState.AddViewport(Viewport);
-                    GraphicsState.AddScissor(Scissor);
-                }
+                GraphicsState.SetViewportState(FViewportState(Viewport, Scissor));
                 
                 for (SIZE_T CurrentDraw = 0; CurrentDraw < DrawCommands.size(); ++CurrentDraw)
                 {
@@ -940,10 +899,7 @@ namespace Lumina
                     
                     CmdList.SetGraphicsState(GraphicsState);
                     
-                    uint32 Face = 0;
-                    uint32 PCMask = (LightShadow.LightIndex << 16) | (Face & 0xFFFF);
-                    
-                    CmdList.SetPushConstants(&PCMask, sizeof(uint32));
+                    CmdList.SetPushConstants(&LightShadow.LightIndex, sizeof(uint32));
                     CmdList.DrawIndexedIndirect(1, Batch.IndirectDrawOffset * sizeof(FDrawIndexedIndirectArguments));
                 }
             }
@@ -958,13 +914,7 @@ namespace Lumina
         }
         
         FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
-        Descriptor->AddBinding(BindingSet);
-        Descriptor->AddBinding(ShadowPassSet);
-        Descriptor->AddRawWrite(ShadowAtlas.GetImage());
-        Descriptor->AddRawRead(IndirectDrawBuffer);
-        
-        
-        RenderGraph.AddPass<RG_Raster>(FRGEvent("Spot Shadow Pass"), Descriptor, [&](ICommandList& CmdList)
+        RenderGraph.AddPass(RG_Raster, FRGEvent("Spot Shadow Pass"), Descriptor, [&](ICommandList& CmdList)
         {
             LUMINA_PROFILE_SECTION_COLORED("Spot Shadow Pass", tracy::Color::DeepPink4);
             
@@ -974,7 +924,10 @@ namespace Lumina
             FRenderState RenderState; RenderState
                 .SetDepthStencilState(FDepthStencilState()
                     .SetDepthFunc(EComparisonFunc::LessOrEqual))
-                    .SetRasterState(FRasterState().SetSlopeScaleDepthBias(1.75f).SetDepthBias(100).SetCullFront());
+                    .SetRasterState(FRasterState()
+                        .SetSlopeScaleDepthBias(1.75f)
+                        .SetDepthBias(100)
+                        .SetCullFront());
             
             
             FGraphicsPipelineDesc Desc; Desc
@@ -986,10 +939,12 @@ namespace Lumina
                 .SetVertexShader(VertexShader)
                 .SetPixelShader(PixelShader);
             
-            TVector<FLightShadow>& SpotShadows = PackedShadows[(uint32)ELightType::Spot];
+            const TVector<FLightShadow>& SpotShadows = PackedShadows[(uint32)ELightType::Spot];
 
-            for (int i = 0; i < SpotShadows.size(); ++i)
+            for (int i = 0; i < (int)SpotShadows.size(); ++i)
             {
+                LUMINA_PROFILE_SECTION_COLORED("Process Spot Light", tracy::Color::DeepPink);
+
                 const FLightShadow& Shadow = SpotShadows[i];
                 const FShadowTile& Tile = ShadowAtlas.GetTile(Shadow.ShadowMapIndex);
                 uint32 TilePixelX = static_cast<uint32>(Tile.UVOffset.x * GShadowAtlasResolution);
@@ -997,9 +952,10 @@ namespace Lumina
                 uint32 TileSize = static_cast<uint32>(Tile.UVScale.x * GShadowAtlasResolution);
                 
                 FRenderPassDesc::FAttachment Depth; Depth
-                    .SetLoadOp(ERenderLoadOp::Load)
+                    .SetLoadOp(ERenderLoadOp::Clear)
+                    .SetDepthClearValue(1.0f)
                     .SetImage(ShadowAtlas.GetImage())
-                        .SetArraySlice(0);
+                        .SetArraySlice(6);
                 
                 FRenderPassDesc RenderPass; RenderPass
                     .SetDepthAttachment(Depth)
@@ -1009,6 +965,7 @@ namespace Lumina
         
                 
                 FViewportState ViewportState;
+                
                 ViewportState.Viewports.emplace_back(FViewport
                 (
                     (float)TilePixelX,
@@ -1035,8 +992,7 @@ namespace Lumina
                     .AddBindingSet(BindingSet)
                     .AddBindingSet(ShadowPassSet)
                     .SetIndirectParams(IndirectDrawBuffer);                    
-        
-        
+                
                 
                 for (SIZE_T CurrentDraw = 0; CurrentDraw < DrawCommands.size(); ++CurrentDraw)
                 {
@@ -1046,8 +1002,7 @@ namespace Lumina
                     GraphicsState.SetIndexBuffer({Batch.IndexBuffer});
                     CmdList.SetGraphicsState(GraphicsState);
                     
-                    uint32 PCMask = (Shadow.LightIndex << 16) | (0 & 0xFFFF);
-                    CmdList.SetPushConstants(&PCMask, sizeof(uint32));
+                    CmdList.SetPushConstants(&Shadow.LightIndex, sizeof(uint32));
                     CmdList.DrawIndexedIndirect(1, Batch.IndirectDrawOffset * sizeof(FDrawIndexedIndirectArguments));
                 }
             }
@@ -1062,12 +1017,7 @@ namespace Lumina
         }
         
         FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
-        Descriptor->AddBinding(BindingSet);
-        Descriptor->AddBinding(ShadowPassSet);
-        Descriptor->AddRawRead(IndirectDrawBuffer);
-        
-        
-        RenderGraph.AddPass<RG_Raster>(FRGEvent("Cascaded Shadow Map Pass"), Descriptor, [&](ICommandList& CmdList)
+        RenderGraph.AddPass(RG_Raster, FRGEvent("Cascaded Shadow Map Pass"), Descriptor, [&](ICommandList& CmdList)
         {
             LUMINA_PROFILE_SECTION_COLORED("Cascaded Shadow Map Pass", tracy::Color::DeepPink2);
         
@@ -1129,21 +1079,15 @@ namespace Lumina
 
     void FForwardRenderScene::BasePass(FRenderGraph& RenderGraph, const FViewVolume& View)
     {
-        FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
-        Descriptor->AddRawWrite(HDRRenderTarget);
-        Descriptor->AddBinding(BindingSet);
-        Descriptor->AddBinding(BasePassSet);
-        Descriptor->AddRawRead(DepthAttachment);
-        Descriptor->AddRawRead(IndirectDrawBuffer);
+        if (DrawCommands.empty())
+        {
+            return;
+        }
         
-        RenderGraph.AddPass<RG_Raster>(FRGEvent("Forward Base Pass"), Descriptor, [&](ICommandList& CmdList)
+        FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
+        RenderGraph.AddPass(RG_Raster, FRGEvent("Forward Base Pass"), Descriptor, [&](ICommandList& CmdList)
         {
             LUMINA_PROFILE_SECTION_COLORED("Forward Base Pass", tracy::Color::Red);
-            
-            if (DrawCommands.empty())
-            {
-                return;
-            }
             
             FRenderPassDesc::FAttachment RenderTarget;
             RenderTarget.SetImage(HDRRenderTarget);
@@ -1172,6 +1116,7 @@ namespace Lumina
             FDepthStencilState DepthState; DepthState
                 .SetDepthFunc(EComparisonFunc::Equal)
                 .DisableDepthWrite();
+
             
             FRenderState RenderState;
             RenderState.SetRasterState(RasterState);
@@ -1204,8 +1149,6 @@ namespace Lumina
                     .AddBindingSet(Mat->GetBindingSet());
                 
                 CmdList.SetGraphicsState(GraphicsState);
-                
-                
                 CmdList.DrawIndexedIndirect(1, Batch.IndirectDrawOffset * sizeof(FDrawIndexedIndirectArguments));
             }
         });
@@ -1221,10 +1164,7 @@ namespace Lumina
         if (RenderSettings.bHasEnvironment)
         {
             FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
-            Descriptor->AddBinding(BindingSet);
-            Descriptor->AddRawWrite(HDRRenderTarget);
-        
-            RenderGraph.AddPass<RG_Raster>(FRGEvent("Environment Pass"), Descriptor, [&](ICommandList& CmdList)
+            RenderGraph.AddPass(RG_Raster, FRGEvent("Environment Pass"), Descriptor, [&](ICommandList& CmdList)
             {
                 LUMINA_PROFILE_SECTION_COLORED("Environment Pass", tracy::Color::Green3);
         
@@ -1278,10 +1218,7 @@ namespace Lumina
     void FForwardRenderScene::ToneMappingPass(FRenderGraph& RenderGraph)
     {
         FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
-        Descriptor->AddRawWrite(GetRenderTarget());
-        Descriptor->AddBinding(ToneMappingPassSet);
-        
-        RenderGraph.AddPass<RG_Raster>(FRGEvent("Tone Mapping Pass"), Descriptor, [&](ICommandList& CmdList)
+        RenderGraph.AddPass(RG_Raster, FRGEvent("Tone Mapping Pass"), Descriptor, [&](ICommandList& CmdList)
         {
             LUMINA_PROFILE_SECTION_COLORED("Tone Mapping Pass", tracy::Color::Red2);
             
@@ -1341,12 +1278,7 @@ namespace Lumina
         if (DebugVisualizationMode != ERenderSceneDebugFlags::None)
         {
             FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
-            Descriptor->AddBinding(BindingSet);
-            Descriptor->AddBinding(DebugPassSet);
-            Descriptor->AddRawWrite(GetRenderTarget());
-        
-        
-            RenderGraph.AddPass<RG_Raster>(FRGEvent("Debug Draw Pass"), Descriptor, [&](ICommandList& CmdList)
+            RenderGraph.AddPass(RG_Raster, FRGEvent("Debug Draw Pass"), Descriptor, [&](ICommandList& CmdList)
             {
                 LUMINA_PROFILE_SECTION_COLORED("Debug Draw Pass", tracy::Color::Red2);
             

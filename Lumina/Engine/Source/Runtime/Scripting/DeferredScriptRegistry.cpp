@@ -15,7 +15,6 @@ namespace Lumina::Scripting
     {
         for (auto Fn : PendingRegistrations)
         {
-            LOG_INFO("Foobar!");
             Fn(State);
         }
 

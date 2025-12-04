@@ -16,11 +16,7 @@ namespace Lumina
     {
         GRenderContext = Memory::New<FVulkanRenderContext>();
         
-        #if defined(LE_DEBUG)
         GRenderContext->Initialize(FRenderContextDesc{true});
-        #else
-        GRenderContext->Initialize(FRenderContextDesc{true});
-        #endif
         
         #if WITH_DEVELOPMENT_TOOLS
         ImGuiRenderer = Memory::New<FVulkanImGuiRender>();

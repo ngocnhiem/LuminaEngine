@@ -49,11 +49,29 @@ void main()
         return;
     }
 
-    if(Debug.DebugFlags == DEBUG_SHADOW_ATLAS)
+    if (Debug.DebugFlags == DEBUG_SHADOW_ATLAS)
     {
-        float Shadow = texture(uShadowAtlas, vec3(vUV, 1.0)).r;
-        Shadow *= 1.5;
-        OutFragColor = vec4(vec3(Shadow), 1.0);
+        int layerCount = 7;
+
+        float fCount = float(layerCount);
+        int cols = int(ceil(sqrt(fCount)));
+        int rows = int(ceil(fCount / float(cols)));
+
+        vec2 gridUV = vUV * vec2(cols, rows);
+        ivec2 cell = ivec2(gridUV);
+        vec2 cellUV = fract(gridUV);
+
+        int layer = cell.y * cols + cell.x;
+
+        if (layer < layerCount)
+        {
+            float s = texture(uShadowAtlas, vec3(cellUV, float(layer))).r;
+            OutFragColor = vec4(vec3(s), 1.0);
+        }
+        else
+        {
+            OutFragColor = vec4(0.0);
+        }
         return;
     }
 

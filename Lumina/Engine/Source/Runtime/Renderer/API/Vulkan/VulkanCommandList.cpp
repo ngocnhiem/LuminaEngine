@@ -1052,7 +1052,7 @@ namespace Lumina
             
         }
     }
-
+    
     void FVulkanCommandList::BeginRenderPass(const FRenderPassDesc& PassInfo)
     {
         LUMINA_PROFILE_SCOPE();
@@ -1155,7 +1155,6 @@ namespace Lumina
                 NumArraySlices = Subresource.NumArraySlices;
             }
         }
-
         
         VkRenderingInfo RenderInfo          = {};
         RenderInfo.sType                    = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -1164,20 +1163,20 @@ namespace Lumina
         RenderInfo.pDepthAttachment         = (DepthAttachment.imageView != VK_NULL_HANDLE) ? &DepthAttachment : nullptr;
         RenderInfo.renderArea.extent.width  = PassInfo.RenderArea.x;
         RenderInfo.renderArea.extent.height = PassInfo.RenderArea.y;
-        RenderInfo.layerCount               = NumArraySlices;
-        RenderInfo.viewMask                 = (NumArraySlices > 1) ? ((1u << NumArraySlices) - 1u) : 0u;
+        RenderInfo.layerCount               = 1;//NumArraySlices;
+        RenderInfo.viewMask                 = PassInfo.ViewMask;
 
         TracyVkZone(CurrentCommandBuffer->TracyContext, CurrentCommandBuffer->CommandBuffer, "vkCmdBeginRendering")        
         vkCmdBeginRendering(CurrentCommandBuffer->CommandBuffer, &RenderInfo);
         CurrentGraphicsState.RenderPass = PassInfo;
+        
     }
-
+    
     void FVulkanCommandList::EndRenderPass()
     {
         if (CurrentGraphicsState.RenderPass.IsValid())
         {
             LUMINA_PROFILE_SCOPE();
-
             TracyVkZone(CurrentCommandBuffer->TracyContext, CurrentCommandBuffer->CommandBuffer, "vkCmdEndRendering")        
             vkCmdEndRendering(CurrentCommandBuffer->CommandBuffer);
             CurrentGraphicsState.RenderPass = {};
@@ -1574,6 +1573,7 @@ namespace Lumina
         };
         
         TFixedVector<FBarrierBatch, 4> Batches;
+        Batches.reserve(StateTracker.GetTextureBarriers().size() + StateTracker.GetBufferBarriers().size());
         
         {
             LUMINA_PROFILE_SECTION("Texture Barriers");
@@ -1582,20 +1582,21 @@ namespace Lumina
                 FResourceStateMapping before = Vk::ConvertResourceState(barrier.StateBefore);
                 FResourceStateMapping after = Vk::ConvertResourceState(barrier.StateAfter);
                 
-                FBarrierBatch* batch = nullptr;
-                for (auto& b : Batches)
+                FBarrierBatch* Batch = nullptr;
+                for (FBarrierBatch& BarrierBatch : Batches)
                 {
-                    if (b.BeforeStage == before.StageFlags && b.AfterStage == after.StageFlags)
+                    if (BarrierBatch.BeforeStage == before.StageFlags && BarrierBatch.AfterStage == after.StageFlags)
                     {
-                        batch = &b;
+                        Batch = &BarrierBatch;
                         break;
                     }
                 }
                 
-                if (!batch)
+                if (!Batch)
                 {
-                    Batches.push_back({before.StageFlags, after.StageFlags, {}, {}});
-                    batch = &Batches.back();
+                    Batches.emplace_back(FBarrierBatch{before.StageFlags, after.StageFlags, {}, {}});
+                    Batch = &Batches.back();
+                    Batch->ImageBarriers.reserve(StateTracker.GetTextureBarriers().size());
                 }
                 
                 Assert(after.ImageLayout != VK_IMAGE_LAYOUT_UNDEFINED)
@@ -1617,25 +1618,25 @@ namespace Lumina
                     aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                 }
 
-                VkImageSubresourceRange subresourceRange = {};
-                subresourceRange.baseArrayLayer = barrier.bEntireTexture ? 0 : barrier.ArraySlice;
-                subresourceRange.layerCount     = barrier.bEntireTexture ? texture->GetDescription().ArraySize : 1;
-                subresourceRange.baseMipLevel   = barrier.bEntireTexture ? 0 : barrier.MipLevel;
-                subresourceRange.levelCount     = barrier.bEntireTexture ? texture->GetDescription().NumMips : 1;
-                subresourceRange.aspectMask     = aspectMask;
+                VkImageSubresourceRange SubresourceRange = {};
+                SubresourceRange.baseArrayLayer = barrier.bEntireTexture ? 0 : barrier.ArraySlice;
+                SubresourceRange.layerCount     = barrier.bEntireTexture ? texture->GetDescription().ArraySize : 1;
+                SubresourceRange.baseMipLevel   = barrier.bEntireTexture ? 0 : barrier.MipLevel;
+                SubresourceRange.levelCount     = barrier.bEntireTexture ? texture->GetDescription().NumMips : 1;
+                SubresourceRange.aspectMask     = aspectMask;
                 
-                VkImageMemoryBarrier imgBarrier = {};
-                imgBarrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                imgBarrier.srcAccessMask        = before.AccessMask;
-                imgBarrier.dstAccessMask        = after.AccessMask;
-                imgBarrier.oldLayout            = before.ImageLayout;
-                imgBarrier.newLayout            = after.ImageLayout;
-                imgBarrier.srcQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
-                imgBarrier.dstQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
-                imgBarrier.image                = texture->GetAPI<VkImage, EAPIResourceType::Image>();
-                imgBarrier.subresourceRange     = subresourceRange;
+                VkImageMemoryBarrier ImgBarrier = {};
+                ImgBarrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                ImgBarrier.srcAccessMask        = before.AccessMask;
+                ImgBarrier.dstAccessMask        = after.AccessMask;
+                ImgBarrier.oldLayout            = before.ImageLayout;
+                ImgBarrier.newLayout            = after.ImageLayout;
+                ImgBarrier.srcQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+                ImgBarrier.dstQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+                ImgBarrier.image                = texture->GetAPI<VkImage, EAPIResourceType::Image>();
+                ImgBarrier.subresourceRange     = SubresourceRange;
                 
-                batch->ImageBarriers.push_back(imgBarrier);
+                Batch->ImageBarriers.push_back(ImgBarrier);
             }
         }
         
@@ -1646,59 +1647,56 @@ namespace Lumina
                 FResourceStateMapping before = Vk::ConvertResourceState(barrier.StateBefore);
                 FResourceStateMapping after = Vk::ConvertResourceState(barrier.StateAfter);
                 
-                FBarrierBatch* batch = nullptr;
-                for (auto& b : Batches)
+                FBarrierBatch* Batch = nullptr;
+                for (FBarrierBatch& BarrierBatch : Batches)
                 {
-                    if (b.BeforeStage == before.StageFlags && b.AfterStage == after.StageFlags)
+                    if (BarrierBatch.BeforeStage == before.StageFlags && BarrierBatch.AfterStage == after.StageFlags)
                     {
-                        batch = &b;
+                        Batch = &BarrierBatch;
                         break;
                     }
                 }
                 
-                if (!batch)
+                if (!Batch)
                 {
-                    Batches.push_back({before.StageFlags, after.StageFlags, {}, {}});
-                    batch = &Batches.back();
+                    Batches.emplace_back(FBarrierBatch{before.StageFlags, after.StageFlags, {}, {}});
+                    Batch = &Batches.back();
+                    Batch->BufferBarriers.reserve(StateTracker.GetBufferBarriers().size());
                 }
                 
                 FVulkanBuffer* buffer = static_cast<FVulkanBuffer*>(barrier.Buffer);
                 
-                VkBufferMemoryBarrier bufBarrier    = {};
-                bufBarrier.sType                    = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-                bufBarrier.srcAccessMask            = before.AccessMask;
-                bufBarrier.dstAccessMask            = after.AccessMask;
-                bufBarrier.srcQueueFamilyIndex      = VK_QUEUE_FAMILY_IGNORED;
-                bufBarrier.dstQueueFamilyIndex      = VK_QUEUE_FAMILY_IGNORED;
-                bufBarrier.buffer                   = buffer->Buffer;
-                bufBarrier.offset                   = 0;
-                bufBarrier.size                     = buffer->GetDescription().Size;
+                VkBufferMemoryBarrier BufBarrier    = {};
+                BufBarrier.sType                    = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+                BufBarrier.srcAccessMask            = before.AccessMask;
+                BufBarrier.dstAccessMask            = after.AccessMask;
+                BufBarrier.srcQueueFamilyIndex      = VK_QUEUE_FAMILY_IGNORED;
+                BufBarrier.dstQueueFamilyIndex      = VK_QUEUE_FAMILY_IGNORED;
+                BufBarrier.buffer                   = buffer->Buffer;
+                BufBarrier.offset                   = 0;
+                BufBarrier.size                     = buffer->GetDescription().Size;
                 
-                batch->BufferBarriers.push_back(bufBarrier);
+                Batch->BufferBarriers.push_back(BufBarrier);
             }
 
         }
 
         {
             LUMINA_PROFILE_SECTION("vkCmdPipelineBarrier");
-            for (const auto& batch : Batches)
+            for (const FBarrierBatch& Batch : Batches)
             {
-                CommandListStats.NumBarriers += (batch.BufferBarriers.size() + batch.ImageBarriers.size());
+                CommandListStats.NumBarriers += (Batch.BufferBarriers.size() + Batch.ImageBarriers.size());
                 
-                if (!batch.ImageBarriers.empty() || !batch.BufferBarriers.empty())
+                if (!Batch.ImageBarriers.empty() || !Batch.BufferBarriers.empty())
                 {
                     if (Info.CommandQueue != ECommandQueue::Transfer)
                     {
                         TracyVkZone(CurrentCommandBuffer->TracyContext, CurrentCommandBuffer->CommandBuffer, "vkCmdPipelineBarrier")
                     }
                     
-                    vkCmdPipelineBarrier(
-                        CurrentCommandBuffer->CommandBuffer,
-                        batch.BeforeStage, batch.AfterStage,
-                        0, // dependencyFlags
-                        0, nullptr, // memory barriers
-                        static_cast<uint32>(batch.BufferBarriers.size()), batch.BufferBarriers.empty() ? nullptr : batch.BufferBarriers.data(),
-                        static_cast<uint32>(batch.ImageBarriers.size()), batch.ImageBarriers.empty() ? nullptr : batch.ImageBarriers.data()
+                    vkCmdPipelineBarrier(CurrentCommandBuffer->CommandBuffer, Batch.BeforeStage, Batch.AfterStage, 0, 0, nullptr,
+                        (uint32)Batch.BufferBarriers.size(), Batch.BufferBarriers.data(),
+                        (uint32)Batch.ImageBarriers.size(), Batch.ImageBarriers.data()
                     );
                 }
             }

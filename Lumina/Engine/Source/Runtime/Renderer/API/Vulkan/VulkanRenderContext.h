@@ -22,17 +22,12 @@ namespace Lumina
     enum class ECommandQueue : uint8;
 }
 
-#define USE_VK_ALLOC_CALLBACK 1
 
 namespace Lumina
 {
     extern VkAllocationCallbacks GVulkanAllocationCallbacks;
-
-#if USE_VK_ALLOC_CALLBACK
     #define VK_ALLOC_CALLBACK &GVulkanAllocationCallbacks
-#else
-    #define VK_ALLOC_CALLBACK nullptr
-#endif
+
     
     struct FVulkanRenderContextFunctions
     {
@@ -97,7 +92,7 @@ namespace Lumina
         uint32                      QueueFamilyIndex = 0;
         VkSemaphore                 TimelineSemaphore = VK_NULL_HANDLE;
 
-        TFixedVector<TRefCountPtr<FTrackedCommandBuffer>, 4> CommandBuffersInFlight;
+        TList<TRefCountPtr<FTrackedCommandBuffer>> CommandBuffersInFlight;
         TConcurrentQueue<TRefCountPtr<FTrackedCommandBuffer>> CommandBufferPool;
     };
 

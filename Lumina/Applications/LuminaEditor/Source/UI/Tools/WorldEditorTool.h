@@ -138,6 +138,8 @@ namespace Lumina
         
     protected:
 
+        void SetWorldNewSimulate(bool bShouldSimulate);
+
         void DrawCreateEntityMenu();
         void DrawFilterOptions();
         void SetSelectedEntity(entt::entity Entity);
@@ -170,6 +172,8 @@ namespace Lumina
 
     private:
 
+        TObjectPtr<CWorld>                      WorldState;
+        
         ImGuiTextFilter                         AddEntityComponentFilter;
         FEntityListFilterState                  EntityFilterState;
         FOnGamePreview                          OnGamePreviewStartRequested;
@@ -193,6 +197,7 @@ namespace Lumina
         TVector<TUniquePtr<FPropertyTable>>     PropertyTables;
 
         bool                                    bGamePreviewRunning = false;
+        bool                                    bSimulatingWorld = false;
 
         /** IDK, this thing will return IsUsing = true always if it's never been used */
         bool                                    bImGuizmoUsedOnce = false;

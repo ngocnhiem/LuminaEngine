@@ -233,22 +233,22 @@ namespace Lumina
 
         struct Hash
         {
-            std::size_t operator()(const FSubresourceViewKey& s) const noexcept
+            std::size_t operator()(const FSubresourceViewKey& TupleKey) const noexcept
             {
-                const auto& [subresources, viewType, dimension, format, usage] = s;
+                const auto& [Subresources, ViewType, Dimension, Format, Usage] = TupleKey;
 
-                size_t hash = 0;
+                size_t Hash = 0;
 
-                Lumina::Hash::HashCombine(hash, subresources.BaseMipLevel);
-                Lumina::Hash::HashCombine(hash, subresources.NumMipLevels);
-                Lumina::Hash::HashCombine(hash, subresources.BaseArraySlice);
-                Lumina::Hash::HashCombine(hash, subresources.NumArraySlices);
-                Lumina::Hash::HashCombine(hash, viewType);
-                Lumina::Hash::HashCombine(hash, dimension);
-                Lumina::Hash::HashCombine(hash, format);
-                Lumina::Hash::HashCombine(hash, static_cast<uint32>(usage));
+                Lumina::Hash::HashCombine(Hash, Subresources.BaseMipLevel);
+                Lumina::Hash::HashCombine(Hash, Subresources.NumMipLevels);
+                Lumina::Hash::HashCombine(Hash, Subresources.BaseArraySlice);
+                Lumina::Hash::HashCombine(Hash, Subresources.NumArraySlices);
+                Lumina::Hash::HashCombine(Hash, ViewType);
+                Lumina::Hash::HashCombine(Hash, Dimension);
+                Lumina::Hash::HashCombine(Hash, Format);
+                Lumina::Hash::HashCombine(Hash, static_cast<uint32>(Usage));
 
-                return hash;
+                return Hash;
             }
         };
 
@@ -582,7 +582,7 @@ namespace Lumina
         {
         }
         
-        void CreatePipelineLayout(FString DebugName, const TFixedVector<FRHIBindingLayoutRef, 1>& BindingLayouts, VkShaderStageFlags& OutStageFlags);
+        void CreatePipelineLayout(const FString& DebugName, const TFixedVector<FRHIBindingLayoutRef, 1>& BindingLayouts, VkShaderStageFlags& OutStageFlags);
         
         VkPipelineLayout            PipelineLayout;
         VkPipeline                  Pipeline;

@@ -47,12 +47,32 @@ namespace Lumina
 
         CreateToolWindow(SystemOutlinerName, [this] (const FUpdateContext& Context, bool bisFocused)
         {
+            if (World->IsSimulating())
+            {
+                ImGui::BeginDisabled();
+            }
+            
             DrawSystems(Context, bisFocused);
+
+            if (World->IsSimulating())
+            {
+                ImGui::EndDisabled();
+            }
         });
         
         CreateToolWindow("Details", [this] (const FUpdateContext& Context, bool bisFocused)
         {
+            if (World->IsSimulating())
+            {
+                ImGui::BeginDisabled();
+            }
+            
             DrawObjectEditor(Context, bisFocused);
+
+            if (World->IsSimulating())
+            {
+                ImGui::EndDisabled();
+            }
         });
 
 
@@ -692,26 +712,38 @@ namespace Lumina
 
     void FWorldEditorTool::DrawViewportToolbar(const FUpdateContext& UpdateContext)
     {
-        Super::DrawViewportToolbar(UpdateContext);
-
-        if (World->GetPackage() != nullptr)
+        ImGui::SameLine();
+        constexpr float ButtonWidth = 120;
+        
+        if (!bGamePreviewRunning)
         {
-            ImGui::SameLine();
-            constexpr float ButtonWidth = 120;
-
-            if (!bGamePreviewRunning)
+            if (!bSimulatingWorld)
             {
-                if (ImGuiX::IconButton(LE_ICON_PLAY, "Play Map", 4278255360, ImVec2(ButtonWidth, 0)))
+                if (ImGuiX::IconButton(LE_ICON_PLAY, "Play World", 4278255360, ImVec2(ButtonWidth, 0)))
                 {
                     OnGamePreviewStartRequested.Broadcast();
+                }
+        
+                ImGui::SameLine();
+                
+                if (ImGuiX::IconButton(LE_ICON_COG_BOX, "Simulate World", 4278255360, ImVec2(ButtonWidth + 12.0f, 0)))
+                {
+                    SetWorldNewSimulate(true);
                 }
             }
             else
             {
-                if (ImGuiX::IconButton(LE_ICON_STOP, "Stop Playing", 4278190335, ImVec2(ButtonWidth, 0)))
+                if (ImGuiX::IconButton(LE_ICON_COG_BOX, "Stop Simulating World", 4278190335, ImVec2(ButtonWidth + 64.0f, 0)))
                 {
-                    OnGamePreviewStopRequested.Broadcast();
+                    SetWorldNewSimulate(false);
                 }
+            }
+        }
+        else
+        {
+            if (ImGuiX::IconButton(LE_ICON_STOP, "Stop Playing", 4278190335, ImVec2(ButtonWidth, 0)))
+            {
+                OnGamePreviewStopRequested.Broadcast();
             }
         }
     }
@@ -1057,6 +1089,73 @@ namespace Lumina
         
         SystemsListView.MarkTreeDirty();
         OutlinerListView.MarkTreeDirty();
+    }
+
+    void FWorldEditorTool::SetWorldNewSimulate(bool bShouldSimulate)
+    {
+        if (bShouldSimulate != bSimulatingWorld && bShouldSimulate == true)
+        {
+            bSimulatingWorld = true;
+            
+            STransformComponent TransformCopy = World->GetEntityRegistry().get<STransformComponent>(EditorEntity);
+            SCameraComponent CameraCopy =  World->GetEntityRegistry().get<SCameraComponent>(EditorEntity);
+            
+            WorldState = World;
+            World = CWorld::DuplicateWorld(WorldState);
+            World->SetSimulating(true);
+
+            entt::entity PreviousSelectedEntity = SelectedEntity;
+            SetSelectedEntity(entt::null);
+            SelectedSystem = nullptr;
+            
+            SystemsListView.MarkTreeDirty();
+            OutlinerListView.MarkTreeDirty();
+
+            
+            SetupWorldForTool();
+
+            SetSelectedEntity(PreviousSelectedEntity);
+
+            
+            World->GetEntityRegistry().patch<STransformComponent>(EditorEntity, [TransformCopy](STransformComponent& Patch)
+            {
+                Patch = TransformCopy;
+            });
+
+            World->GetEntityRegistry().patch<SCameraComponent>(EditorEntity, [CameraCopy](SCameraComponent& Patch)
+            {
+                Patch = CameraCopy;
+            });
+
+            
+        }
+        else if (bShouldSimulate != bSimulatingWorld && bShouldSimulate == false)
+        {
+            World->SetSimulating(false);
+            bSimulatingWorld = false;
+
+            STransformComponent TransformCopy = World->GetEntityRegistry().get<STransformComponent>(EditorEntity);
+            SCameraComponent CameraCopy =  World->GetEntityRegistry().get<SCameraComponent>(EditorEntity);
+
+            entt::entity PreviousSelectedEntity = SelectedEntity;
+
+            SetWorld(WorldState);
+            
+            SetSelectedEntity(PreviousSelectedEntity);
+
+            
+            World->GetEntityRegistry().patch<STransformComponent>(EditorEntity, [TransformCopy](STransformComponent& Patch)
+            {
+                Patch = TransformCopy;
+            });
+
+            World->GetEntityRegistry().patch<SCameraComponent>(EditorEntity, [CameraCopy](SCameraComponent& Patch)
+            {
+                Patch = CameraCopy;
+            });
+            
+            WorldState = nullptr;
+        }
     }
 
     void FWorldEditorTool::DrawCreateEntityMenu()

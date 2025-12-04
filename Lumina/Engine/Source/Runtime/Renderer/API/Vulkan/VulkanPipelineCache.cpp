@@ -11,7 +11,10 @@ namespace Lumina
     {
         LUMINA_PROFILE_SCOPE();
 
-        SIZE_T Hash = Hash::GetHash(InDesc);
+        SIZE_T Hash;
+        Hash::HashCombine(Hash, InDesc);
+        Hash::HashCombine(Hash, RenderPassDesc);
+        
         if (GraphicsPipelines.find(Hash) != GraphicsPipelines.end())
         {
             return GraphicsPipelines.at(Hash);

@@ -151,17 +151,17 @@ namespace Lumina
 
     FTextureSubresourceSet FTextureSubresourceSet::Resolve(const FRHIImageDesc& Desc, bool bSingleMipLevel) const
     {
-        FTextureSubresourceSet ret;
-        ret.BaseMipLevel = BaseMipLevel;
+        FTextureSubresourceSet Subresource;
+        Subresource.BaseMipLevel = BaseMipLevel;
 
         if (bSingleMipLevel)
         {
-            ret.NumMipLevels = 1;
+            Subresource.NumMipLevels = 1;
         }
         else
         {
             uint32 LastMipLevelPlusOne = std::min<uint32>(BaseMipLevel + NumMipLevels, Desc.NumMips);
-            ret.NumMipLevels = std::max<uint32>(0u, LastMipLevelPlusOne - BaseMipLevel);
+            Subresource.NumMipLevels = std::max<uint32>(0u, LastMipLevelPlusOne - BaseMipLevel);
         }
 
         switch (Desc.Dimension)  // NOLINT(clang-diagnostic-switch-enum)
@@ -172,19 +172,19 @@ namespace Lumina
         case EImageDimension::TextureCube:
         case EImageDimension::TextureCubeArray:
             {
-                ret.BaseArraySlice = BaseArraySlice;
-                uint32 lastArraySlicePlusOne = std::min<uint32>(BaseArraySlice + NumArraySlices, Desc.ArraySize);
-                ret.NumArraySlices = std::max<uint32>(0u, lastArraySlicePlusOne - BaseArraySlice);
+                Subresource.BaseArraySlice = BaseArraySlice;
+                uint32 LastArraySlicePlusOne = std::min<uint32>(BaseArraySlice + NumArraySlices, Desc.ArraySize);
+                Subresource.NumArraySlices = std::max<uint32>(0u, LastArraySlicePlusOne - BaseArraySlice);
                 break;
             }
         default:
             
-            ret.BaseArraySlice = 0;
-            ret.NumArraySlices = 1;
+            Subresource.BaseArraySlice = 0;
+            Subresource.NumArraySlices = 1;
             break;
         }
 
-        return ret;
+        return Subresource;
     }
 
     bool FTextureSubresourceSet::IsEntireTexture(const FRHIImageDesc& Desc) const
@@ -193,7 +193,20 @@ namespace Lumina
         {
             return false;
         }
-        return true;
+
+        switch (Desc.Dimension)
+        {
+            case EImageDimension::Texture2D:
+            case EImageDimension::Texture2DArray:
+            case EImageDimension::Texture3D:
+            case EImageDimension::TextureCube:
+            case EImageDimension::TextureCubeArray:
+            if (BaseArraySlice > 0u || BaseArraySlice + NumArraySlices < Desc.ArraySize)
+            {
+                return false;
+            }
+            default: return true;
+        }
     }
 
     FBufferRange FBufferRange::Resolve(const FRHIBufferDesc& Desc) const

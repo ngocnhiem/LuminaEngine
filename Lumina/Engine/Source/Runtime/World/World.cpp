@@ -456,7 +456,7 @@ namespace Lumina
         PhysicsScene->OnWorldStopSimulate();
     }
 
-    CWorld* CWorld::DuplicateWorldForPIE(CWorld* OwningWorld)
+    CWorld* CWorld::DuplicateWorld(CWorld* OwningWorld)
     {
         CPackage* OuterPackage = OwningWorld->GetPackage();
         if (OuterPackage == nullptr)
@@ -473,8 +473,6 @@ namespace Lumina
         FObjectProxyArchiver ReaderProxy(Reader, true);
         
         CWorld* PIEWorld = NewObject<CWorld>(nullptr, NAME_None, OF_Transient);
-        PIEWorld->SetIsPlayWorld(true);
-        
         PIEWorld->InitializeWorld();
 
         

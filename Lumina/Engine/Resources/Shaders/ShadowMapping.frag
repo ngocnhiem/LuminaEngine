@@ -9,16 +9,14 @@ layout(location = 1) in vec3 inLightPos;
 
 layout(push_constant) uniform PushConstants
 {
-    uint Mask;
-} PC;
+    uint LightIndex;
+};
 
 void main()
 {
     float Distance = length(inWorldPos - inLightPos);
-
-    uint LightNum = PC.Mask >> 16;
     
-    FLight Light = GetLightAt(LightNum);
+    FLight Light = GetLightAt(LightIndex);
 
     // Normalize to 0-1 and give linear depth.
     gl_FragDepth = Distance / Light.Radius;

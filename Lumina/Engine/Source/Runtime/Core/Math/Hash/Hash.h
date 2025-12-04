@@ -146,20 +146,27 @@ namespace Lumina::Hash
     template<ContiguousContainer T>
     FORCEINLINE uint64 GetHash64(const T& Array)
     {
-        return XXHash::GetHash64(Array.data(), Array.size() * sizeof(typename T::value_type));
+        return XXHash::GetHash64(Array.data(), Array.size() * sizeof(T::value_type));
     }
 
     template <typename T>
-    requires requires { eastl::hash<T>(); }
+    requires eastl::is_enum_v<T>
+    SIZE_T GetHash(const T& value)
+    {
+        using UnderlyingType = eastl::underlying_type_t<T>;
+        return eastl::hash<UnderlyingType>()(static_cast<UnderlyingType>(value));
+    }
+
+    template <typename T>
+    requires requires { eastl::hash<T>(); } && (!eastl::is_enum_v<T>)
     SIZE_T GetHash(const T& value)
     {
         return eastl::hash<T>()(value);
     }
-    
+
     template <class T>
     void HashCombine(SIZE_T& seed, const T& v)
     {
-        eastl::hash<T> hasher;
-        seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= GetHash(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     }
 }

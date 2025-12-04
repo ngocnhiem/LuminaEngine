@@ -35,12 +35,7 @@ layout(set = 2, binding = 0) uniform FMaterialUniforms
 } MaterialUniforms;
 
 
-
-
-
 #define PCF_SAMPLES_DIV_2 2
-
-
 
 
 float GetMaterialScalar(uint Index)

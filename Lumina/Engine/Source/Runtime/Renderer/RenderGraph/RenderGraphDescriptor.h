@@ -32,10 +32,6 @@ namespace Lumina
         
     public:
         
-        void AddBinding(FRHIBindingSet* Binding);
-        void AddRawWrite(const IRHIResource* InResource);
-        void AddRawRead(const IRHIResource* InResource);
-
         void SetFlag(ERGExecutionFlags Flag) { EnumAddFlags(ExecutionFlags, Flag); }
         bool HasAnyFlag(ERGExecutionFlags Flag) const { return EnumHasAnyFlags(ExecutionFlags, Flag); }
         bool HasAllFlags(ERGExecutionFlags Flags) const { return EnumHasAllFlags(ExecutionFlags, Flags); }
@@ -43,9 +39,6 @@ namespace Lumina
     private:
 
         ERGExecutionFlags ExecutionFlags = ERGExecutionFlags::None;
-        TFixedVector<FRHIBindingSet*, 2> Bindings;
-        TFixedVector<const IRHIResource*, 4> RawWrites;
-        TFixedVector<const IRHIResource*, 4> RawReads;
 
     };
 }

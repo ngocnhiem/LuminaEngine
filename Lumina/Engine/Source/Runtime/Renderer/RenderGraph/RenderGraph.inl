@@ -5,19 +5,29 @@
 
 namespace Lumina
 {
-    template <ERGPassFlags PassFlags, ExecutorConcept ExecutorType>
-    FRGPassHandle FRenderGraph::AddPass(FRGEvent&& Event, const FRGPassDescriptor* Parameters, ExecutorType&& Executor)
+    template <ExecutorConcept ExecutorType>
+    FRGPassHandle FRenderGraph::AddPass(ERGPassFlags PassFlags, FRGEvent&& Event, const FRGPassDescriptor* Parameters, ExecutorType&& Executor)
     {
-        return AddPassInternal(std::move(Event), Parameters, PassFlags, std::forward<ExecutorType>(Executor));
+        FRGPassHandle Pass =  GraphAllocator.TAlloc<TRGPass<ExecutorType>>(std::move(Event), PassFlags, Parameters, std::forward<ExecutorType>(Executor));
+        PassGroups.emplace_back().push_back(Pass);
+
+        return Pass;
     }
 
-    template<typename ExecutorType>
-    FRGPassHandle FRenderGraph::AddPassInternal(FRGEvent&& Event, const FRGPassDescriptor* Parameters, ERGPassFlags Flags, ExecutorType&& Executor)
+    template <ExecutorConcept ExecutorType>
+    FRGPassHandle FRenderGraph::AddPassToGroup(TVector<FRGPassHandle>& Group, ERGPassFlags PassFlags, FRGEvent&& Event, const FRGPassDescriptor* Parameters, ExecutorType&& Executor)
     {
-        FRGPassHandle Pass =  GraphAllocator.TAlloc<TRGPass<ExecutorType>>(std::move(Event), Flags, Parameters, std::forward<ExecutorType>(Executor));
+        FRGPassHandle Pass =  GraphAllocator.TAlloc<TRGPass<ExecutorType>>(std::move(Event), PassFlags, Parameters, std::forward<ExecutorType>(Executor));
+        Group.push_back(Pass);
 
-        Passes.push_back(Pass);
-        
         return Pass;
+    }
+
+    template<typename ... TSpecs>
+    void FRenderGraph::AddParallelPasses(TSpecs&&... Specs)
+    {
+        auto& Group = PassGroups.emplace_back();
+        
+        (AddPassToGroup(Group, Specs.PassFlags, Move(Specs.Event), Specs.Descriptor, Forward<decltype(Specs.Executor)>(Specs.Executor)), ...);
     }
 }

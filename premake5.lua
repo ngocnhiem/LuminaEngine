@@ -28,6 +28,7 @@ workspace "Lumina"
         "IMGUI_IMPL_VULKAN_USE_VOLK",
         "SOL_DEFAULT_PASS_ON_ERROR",
 
+        "TRACY_ALLOW_SHADOW_WARNING",
         "TRACY_ENABLE",
     	"TRACY_CALLSTACK",
     	"TRACY_ON_DEMAND",

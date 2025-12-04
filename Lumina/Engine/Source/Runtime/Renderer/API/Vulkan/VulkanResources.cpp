@@ -127,23 +127,12 @@ namespace Lumina
     {
         switch (dimension)
         {
-        case EImageDimension::Texture2D:
-            return VK_IMAGE_VIEW_TYPE_2D;
-
-        case EImageDimension::Texture2DArray:
-            return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-
-        case EImageDimension::Texture3D:
-            return VK_IMAGE_VIEW_TYPE_3D;
-
-        case EImageDimension::TextureCube:
-            return VK_IMAGE_VIEW_TYPE_CUBE;
-
-        case EImageDimension::TextureCubeArray:
-            return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
-
-        case EImageDimension::Unknown:
-            LUMINA_NO_ENTRY()
+            case EImageDimension::Texture2D:        return VK_IMAGE_VIEW_TYPE_2D;
+            case EImageDimension::Texture2DArray:   return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+            case EImageDimension::Texture3D:        return VK_IMAGE_VIEW_TYPE_3D;
+            case EImageDimension::TextureCube:      return VK_IMAGE_VIEW_TYPE_CUBE;
+            case EImageDimension::TextureCubeArray: return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+            case EImageDimension::Unknown:          LUMINA_NO_ENTRY()
         }
 
         LUMINA_NO_ENTRY()
@@ -1226,10 +1215,8 @@ namespace Lumina
         SamplerTypesList.descriptorTypeCount = uint32(std::size(SamplerTypes));
         SamplerTypesList.pDescriptorTypes = SamplerTypes;
 
-        auto MutableDescriptorTypeList =
-            &CbvSrvUavTypes;
+        auto MutableDescriptorTypeList = &CbvSrvUavTypes;
 
-        // Is it bindless?
         if (bBindless)
         {
             CreateInfo.pNext = &ExtendedInfo;
@@ -1344,7 +1331,7 @@ namespace Lumina
             
             Resources.push_back(Item.ResourceHandle);
             
-            const VkDescriptorSetLayoutBinding VkBinding = Layout->Bindings[BindingIndex];
+            const VkDescriptorSetLayoutBinding& VkBinding = Layout->Bindings[BindingIndex];
 
             VkWriteDescriptorSet Write = {};
             Write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -1401,7 +1388,7 @@ namespace Lumina
 
                     if (!Image->PermanentState)
                     {
-                        BindingsRequiringTransitions.push_back((uint32)BindingIndex);
+                        BindingsRequiringTransitions.push_back((uint16)BindingIndex);
                     }
                     else
                     {
@@ -1422,7 +1409,7 @@ namespace Lumina
 
                     if (!Buffer->PermanentState)
                     {
-                        BindingsRequiringTransitions.push_back((uint32)BindingIndex);
+                        BindingsRequiringTransitions.push_back((uint16)BindingIndex);
                     }
                     else
                     {
@@ -1574,7 +1561,7 @@ namespace Lumina
         vkDestroyPipelineLayout(Device->GetDevice(), PipelineLayout, VK_ALLOC_CALLBACK);
     }
 
-    void FVulkanPipeline::CreatePipelineLayout(FString DebugName, const TFixedVector<FRHIBindingLayoutRef, 1>& BindingLayouts, VkShaderStageFlags& OutStageFlags)
+    void FVulkanPipeline::CreatePipelineLayout(const FString& DebugName, const TFixedVector<FRHIBindingLayoutRef, 1>& BindingLayouts, VkShaderStageFlags& OutStageFlags)
     {
         TFixedVector<VkDescriptorSetLayout, 2> Layouts;
         uint32 PushConstantSize = 0;
@@ -1692,7 +1679,7 @@ namespace Lumina
         RasterizationState.frontFace                    = RasterState.FrontCounterClockwise ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE;
         RasterizationState.depthClampEnable             = VK_FALSE; // (??)
         RasterizationState.depthBiasEnable              = RasterState.DepthBias ? VK_TRUE : VK_FALSE;
-        RasterizationState.depthBiasConstantFactor      = float(RasterState.DepthBias);
+        RasterizationState.depthBiasConstantFactor      = (float)RasterState.DepthBias;
         RasterizationState.depthBiasClamp               = RasterState.DepthBiasClamp;
         RasterizationState.depthBiasSlopeFactor         = RasterState.SlopeScaledDepthBias;
         RasterizationState.lineWidth                    = Device->GetFeatures10().wideLines ? RasterState.LineWidth : 1.0f;
@@ -1710,23 +1697,11 @@ namespace Lumina
 
         const FBlendState& BlendState = InDesc.RenderState.BlendState;
 
-        uint32 NumArraySlices = 0;
 
         TFixedVector<VkFormat, 8> ColorAttachmentFormats(RenderPassDesc.ColorAttachments.size());
         TFixedVector<VkPipelineColorBlendAttachmentState, 8> ColorBlendAttachmentStates(RenderPassDesc.ColorAttachments.size());
         for (size_t i = 0; i < ColorBlendAttachmentStates.size(); ++i)
         {
-            const FTextureSubresourceSet Subresource = RenderPassDesc.ColorAttachments[i].Subresources.Resolve(RenderPassDesc.ColorAttachments[i].Image->GetDescription(), true);
-
-            if (NumArraySlices)
-            {
-                LUM_ASSERT(NumArraySlices == Subresource.NumArraySlices)
-            }
-            else
-            {
-                NumArraySlices = Subresource.NumArraySlices;
-            }
-            
             EFormat AttachmentFormat = RenderPassDesc.ColorAttachments[i].Format == EFormat::UNKNOWN
                                        ? RenderPassDesc.ColorAttachments[i].Image->GetDescription().Format
                                        : RenderPassDesc.ColorAttachments[i].Format;
@@ -1754,19 +1729,9 @@ namespace Lumina
         VkFormat DepthAttachmentFormat = VK_FORMAT_UNDEFINED;
         if (RenderPassDesc.DepthAttachment.IsValid())
         {
-            const FTextureSubresourceSet Subresource = RenderPassDesc.DepthAttachment.Subresources.Resolve(RenderPassDesc.DepthAttachment.Image->GetDescription(), true);
-
             EFormat Format = RenderPassDesc.DepthAttachment.Format == EFormat::UNKNOWN
                                                     ? RenderPassDesc.DepthAttachment.Image->GetDescription().Format
                                                     : RenderPassDesc.DepthAttachment.Format;
-            if (NumArraySlices)
-            {
-                LUM_ASSERT(NumArraySlices == Subresource.NumArraySlices)
-            }
-            else
-            {
-                NumArraySlices = Subresource.NumArraySlices;
-            }
 
             DepthAttachmentFormat = ConvertFormat(Format);
         }
@@ -1781,7 +1746,7 @@ namespace Lumina
         RenderingCreateInfo.pColorAttachmentFormats         = ColorAttachmentFormats.data();
         RenderingCreateInfo.depthAttachmentFormat           = DepthAttachmentFormat;
         RenderingCreateInfo.stencilAttachmentFormat         = VK_FORMAT_UNDEFINED;
-        RenderingCreateInfo.viewMask = (NumArraySlices > 1) ? ((1u << NumArraySlices) - 1u) : 0u;
+        RenderingCreateInfo.viewMask                        = RenderPassDesc.ViewMask;
         
         VkGraphicsPipelineCreateInfo CreateInfo = {};
         CreateInfo.sType                        = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;

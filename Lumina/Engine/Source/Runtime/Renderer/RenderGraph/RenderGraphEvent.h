@@ -10,13 +10,12 @@ namespace Lumina
     public:
         FRGEvent() = default;
 
-        // Constructor for static string
         explicit FRGEvent(const char* InEventName)
             : StaticName(InEventName)
         {}
 
-        // Constructor with format
         template<typename... Args>
+        requires (sizeof ... (Args) > 0)
         FRGEvent(FStringView FormatString, Args&&... FormatArgs)
         {
             FormattedName = std::format(FormatString, std::forward<Args>(FormatArgs)...);
@@ -33,6 +32,7 @@ namespace Lumina
         }
 
     private:
+        
         const char* StaticName = nullptr;
         FString FormattedName;
     };

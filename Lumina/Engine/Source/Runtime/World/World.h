@@ -93,7 +93,22 @@ namespace Lumina
         void SetActive(bool bNewActive) { bActive = bNewActive; }
         bool IsSuspended() const { return !bActive; }
 
-        static CWorld* DuplicateWorldForPIE(CWorld* OwningWorld);
+        void SetSimulating(bool bSim)
+        {
+            bSimulating = bSim;
+            if (bSimulating)
+            {
+                PhysicsScene->OnWorldSimulate();
+            }
+            else
+            {
+                PhysicsScene->OnWorldStopSimulate();
+            }
+        }
+        
+        bool IsSimulating() const { return bSimulating; }
+
+        static CWorld* DuplicateWorld(CWorld* OwningWorld);
 
         IRenderScene* GetRenderer() const { return RenderScene.get(); }
 
@@ -163,8 +178,9 @@ namespace Lumina
         double                                          TimeSinceCreation = 0.0;
 
         uint32                                          bHasNewlyLoadedScripts:1 = true;
-        uint32                                          bPaused:1=1;
-        uint32                                          bActive:1=1;
-        uint32                                          bIsPlayWorld:1=0;
+        uint32                                          bPaused:1 = true;
+        uint32                                          bSimulating:1 = false;
+        uint32                                          bActive:1 = true;
+        uint32                                          bIsPlayWorld:1 = false;
     };
 }

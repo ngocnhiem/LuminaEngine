@@ -14,46 +14,46 @@ namespace Lumina
         GENERATED_BODY()
         ENTITY_COMPONENT(SCharacterComponent)
         
-        PROPERTY(Editable)
+        PROPERTY(Script, Editable)
         float MoveSpeed = 5.0f;
 
-        PROPERTY(Editable)
+        PROPERTY(Script, Editable)
         float JumpSpeed = 8.0f;
         
-        PROPERTY(Editable)
+        PROPERTY(Script, Editable)
         float HalfHeight = 1.8f;
 
-        PROPERTY(Editable)
+        PROPERTY(Script, Editable)
         float Radius = 0.3f;
         
-        PROPERTY(Editable)
+        PROPERTY(Script, Editable)
         float Gravity = -20.0f;
 
-        PROPERTY(Editable)
+        PROPERTY(Script, Editable)
         float Mass = 70.0f;
         
-        PROPERTY(Editable)
+        PROPERTY(Script, Editable)
         float MaxStrength = 100.0f;
         
-        PROPERTY(Editable)
+        PROPERTY(Script, Editable)
         float MaxSlopeAngle = 45.0f;
         
-        PROPERTY(Editable)
+        PROPERTY(Script, Editable)
         float StepHeight = 0.4f;
 
-        PROPERTY(Editable)
+        PROPERTY(Script, Editable)
         float Acceleration = 10.0f;
 
-        PROPERTY(Editable)
+        PROPERTY(Script, Editable)
         float Deceleration = 8.0f;
 
-        PROPERTY(Editable)
+        PROPERTY(Script, Editable)
         float AirControl = 0.3f;
 
-        PROPERTY(Editable)
+        PROPERTY(Script, Editable)
         float GroundFriction = 8.0f;
 
-        PROPERTY(Editable)
+        PROPERTY(Script, Editable)
         int MaxJumpCount = 1;
 
         FUNCTION(Script)

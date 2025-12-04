@@ -9,6 +9,7 @@
 #include "Core/Threading/Thread.h"
 #include "Memory/RefCounted.h"
 #include "Types/BitFlags.h"
+#include "Core/Math/Hash/CoreHashTypes.h"
 
 
 namespace Lumina
@@ -582,9 +583,9 @@ namespace Lumina
         bool operator ==(const FTextureSubresourceSet& other) const
         {
             return BaseMipLevel == other.BaseMipLevel &&
-                NumMipLevels == other.NumMipLevels &&
-                BaseArraySlice == other.BaseArraySlice &&
-                NumArraySlices == other.NumArraySlices;
+					NumMipLevels == other.NumMipLevels &&
+					BaseArraySlice == other.BaseArraySlice &&
+					NumArraySlices == other.NumArraySlices;
         }
         bool operator !=(const FTextureSubresourceSet& other) const { return !(*this == other); }
 
@@ -625,56 +626,89 @@ namespace Lumina
 	#define AM_MirrorOnce ESamplerAddressMode::MirrorOnce
 
 	struct FRenderPassDesc
-    {
-        struct alignas(16) FAttachment
-        {
-        	FTextureSubresourceSet	Subresources	= FTextureSubresourceSet(0, 1, 0 ,1);
-        	glm::vec4				ClearColor		= glm::vec4(0.0f);
-            FRHIImage*				Image			= nullptr;
-        	FRHIImage*				ResolveImage = nullptr;
-        	ERenderLoadOp			LoadOp			= ERenderLoadOp::Clear;
-        	ERenderStoreOp			StoreOp			= ERenderStoreOp::Store;
-        	EFormat					Format			= EFormat::UNKNOWN;
-        	bool					bReadOnly		= false;
+	{
+		struct alignas(16) FAttachment
+		{
+			FTextureSubresourceSet	Subresources	= FTextureSubresourceSet(0, 1, 0 ,1);
+			glm::vec4				ClearColor		= glm::vec4(0.0f);
+			FRHIImage*				Image			= nullptr;
+			FRHIImage*				ResolveImage	= nullptr;
+			ERenderLoadOp			LoadOp			= ERenderLoadOp::Clear;
+			ERenderStoreOp			StoreOp			= ERenderStoreOp::Store;
+			EFormat					Format			= EFormat::UNKNOWN;
+			bool					bReadOnly		= false;
 
-        	constexpr FAttachment& SetFormat(EFormat f) { Format = f; return *this; }
-        	constexpr FAttachment& SetImage(FRHIImage* t) { Image = t; return *this; }
-        	constexpr FAttachment& SetResolveImage(FRHIImage* Value) { ResolveImage = Value; return *this; }
-        	constexpr FAttachment& SetLoadOp(ERenderLoadOp Op) { LoadOp = Op; return *this; }
-        	constexpr FAttachment& SetStoreOp(ERenderStoreOp Op) { StoreOp = Op; return *this; }
-        	constexpr FAttachment& SetDepthClearValue(float Value) { ClearColor.r = Value; return *this; }
-        	constexpr FAttachment& SetClearColor(glm::vec4 Col) { ClearColor = Col; return *this; }
-        	constexpr FAttachment& SetSubresources(FTextureSubresourceSet value) { Subresources = value; return *this; }
-        	constexpr FAttachment& SetArraySlice(uint32 index) { Subresources.BaseArraySlice = index; Subresources.NumArraySlices = 1; return *this; }
-        	constexpr FAttachment& SetArraySliceRange(uint32 index, uint32 count) { Subresources.BaseArraySlice = index; Subresources.NumArraySlices = count; return *this; }
-        	constexpr FAttachment& SetMipLevel(uint32 level) { Subresources.BaseMipLevel = level; Subresources.NumMipLevels = 1; return *this; }
-        	constexpr FAttachment& SetReadOnly(bool ro) { bReadOnly = ro; return *this; }
+			FORCEINLINE constexpr FAttachment& SetFormat(EFormat f) { Format = f; return *this; }
+			FORCEINLINE constexpr FAttachment& SetImage(FRHIImage* t) { Image = t; return *this; }
+			FORCEINLINE constexpr FAttachment& SetResolveImage(FRHIImage* Value) { ResolveImage = Value; return *this; }
+			FORCEINLINE constexpr FAttachment& SetLoadOp(ERenderLoadOp Op) { LoadOp = Op; return *this; }
+			FORCEINLINE constexpr FAttachment& SetStoreOp(ERenderStoreOp Op) { StoreOp = Op; return *this; }
+			FORCEINLINE constexpr FAttachment& SetDepthClearValue(float Value) { ClearColor.r = Value; return *this; }
+			FORCEINLINE constexpr FAttachment& SetClearColor(glm::vec4 Col) { ClearColor = Col; return *this; }
+			FORCEINLINE constexpr FAttachment& SetSubresources(const FTextureSubresourceSet& Value) { Subresources = Value; return *this; }
+			FORCEINLINE constexpr FAttachment& SetArraySlice(uint32 index) { Subresources.BaseArraySlice = index; Subresources.NumArraySlices = 1; return *this; }
+			FORCEINLINE constexpr FAttachment& SetNumSlices(uint32 Value) { Subresources.NumArraySlices = Value; return *this; }
+			FORCEINLINE constexpr FAttachment& SetArraySliceRange(uint32 index, uint32 count) { Subresources.BaseArraySlice = index; Subresources.NumArraySlices = count; return *this; }
+			FORCEINLINE constexpr FAttachment& SetMipLevel(uint32 level) { Subresources.BaseMipLevel = level; Subresources.NumMipLevels = 1; return *this; }
+			FORCEINLINE constexpr FAttachment& SetReadOnly(bool ro) { bReadOnly = ro; return *this; }
         	
-        	FORCEINLINE bool IsValid() const { return Image != nullptr; }
-        };
+			FORCEINLINE bool IsValid() const { return Image != nullptr; }
+			FORCEINLINE explicit operator bool() const noexcept { return IsValid(); }
+		};
         
-        TFixedVector<FAttachment, 2>	ColorAttachments;
-        FAttachment						DepthAttachment;
+		TFixedVector<FAttachment, 2>	ColorAttachments;
+		FAttachment						DepthAttachment;
 		glm::uvec2						RenderArea;
-		uint16							SampleCount		= 1;
+		uint32							ViewMask = 0;
+		uint16							SampleCount = 1;
 
-		FRenderPassDesc& SetSampleCount(uint16 Count) { SampleCount = Count; return *this; }
-		FRenderPassDesc& SetRenderArea(const glm::uvec2& Area) { RenderArea = Area; return *this; }
-		FRenderPassDesc& AddColorAttachment(const FAttachment& a) { ColorAttachments.push_back(a); return *this; }
-		FRenderPassDesc& AddColorAttachment(FRHIImage* texture) { ColorAttachments.push_back(FAttachment().SetImage(texture)); return *this; }
-		FRenderPassDesc& AddColorAttachment(FRHIImage* texture, FTextureSubresourceSet subresources) { ColorAttachments.push_back(FAttachment().SetImage(texture).SetSubresources(subresources)); return *this; }
-		FRenderPassDesc& SetDepthAttachment(const FAttachment& d) { DepthAttachment = d; return *this; }
-		FRenderPassDesc& SetDepthAttachment(const FAttachment& d, FTextureSubresourceSet subresources) { DepthAttachment = d; DepthAttachment.SetSubresources(subresources); return *this; }
-		FRenderPassDesc& SetDepthAttachment(FRHIImage* texture) { DepthAttachment = FAttachment().SetImage(texture); return *this; }
-		FRenderPassDesc& SetDepthAttachment(FRHIImage* texture, FTextureSubresourceSet subresources) { DepthAttachment = FAttachment().SetImage(texture).SetSubresources(subresources); return *this; }
+		FORCEINLINE FRenderPassDesc& SetSampleCount(uint16 Count) { SampleCount = Count; return *this; }
+		FORCEINLINE FRenderPassDesc& SetViewMask(uint32 Mask) { ViewMask = Mask; return *this; }
+		FORCEINLINE FRenderPassDesc& SetRenderArea(const glm::uvec2& Area) { RenderArea = Area; return *this; }
+		FORCEINLINE FRenderPassDesc& AddColorAttachment(const FAttachment& a) { ColorAttachments.push_back(a); return *this; }
+		FORCEINLINE FRenderPassDesc& AddColorAttachment(FRHIImage* texture) { ColorAttachments.push_back(FAttachment().SetImage(texture)); return *this; }
+		FORCEINLINE FRenderPassDesc& AddColorAttachment(FRHIImage* texture, FTextureSubresourceSet subresources) { ColorAttachments.push_back(FAttachment().SetImage(texture).SetSubresources(subresources)); return *this; }
+		FORCEINLINE FRenderPassDesc& SetDepthAttachment(const FAttachment& Attachment) { DepthAttachment = Attachment; return *this; }
+		FORCEINLINE FRenderPassDesc& SetDepthAttachment(const FAttachment& Attachment, FTextureSubresourceSet Subresources) { DepthAttachment = Attachment; DepthAttachment.SetSubresources(Subresources); return *this; }
+		FORCEINLINE FRenderPassDesc& SetDepthAttachment(FRHIImage* Texture) { DepthAttachment.SetImage(Texture); return *this; }
+		FORCEINLINE FRenderPassDesc& SetDepthAttachment(FRHIImage* Texture, const FTextureSubresourceSet& Subresources) { DepthAttachment.SetImage(Texture).SetSubresources(Subresources); return *this; }
 
+		FORCEINLINE bool IsValid() const noexcept { return !ColorAttachments.empty() || DepthAttachment.IsValid(); }
+
+		static bool CompareAttachments(const FAttachment& A, const FAttachment& B)
+		{
+			if (A.Image != B.Image)
+			{
+				return false;
+			}
+			if (A.ResolveImage != B.ResolveImage)
+			{
+				return false;
+			}
+
+			return A.Subresources == B.Subresources &&
+				   A.LoadOp == B.LoadOp &&
+				   A.StoreOp == B.StoreOp &&
+				   A.Format == B.Format &&
+				   A.bReadOnly == B.bReadOnly &&
+				   A.ClearColor == B.ClearColor; 
+		}
+
+		bool operator!=(const FRenderPassDesc& Other) const
+		{
+			return !(*this == Other);
+		}
+		
 		bool operator==(const FRenderPassDesc& Other) const
 		{
 			if (SampleCount != Other.SampleCount)
 			{
 				return false;
 			}
-			
+			if (ViewMask != Other.ViewMask)
+			{
+				return false;
+			}
 			if (RenderArea != Other.RenderArea)
 			{
 				return false;
@@ -685,87 +719,30 @@ namespace Lumina
 				return false;
 			}
 
-			for (size_t i = 0; i < ColorAttachments.size(); ++i)
-			{
-				const auto& A = ColorAttachments[i];
-				const auto& B = Other.ColorAttachments[i];
-
-				if (A.Image != B.Image)
-				{
-					return false;
-				}
-				if (A.ResolveImage != B.ResolveImage)
-				{
-					return false; 
-				}
-				
-				if (A.Subresources != B.Subresources)
-				{
-					return false;
-				}
-				if (A.LoadOp != B.LoadOp)
-				{
-					return false;
-				}
-				if (A.StoreOp != B.StoreOp)
-				{
-					return false;
-				}
-				if (A.ClearColor != B.ClearColor)
-				{
-					return false;
-				}
-				if (A.bReadOnly != B.bReadOnly)
-				{
-					return false;
-				}
-			}
-
-			const auto& DA = DepthAttachment;
-			const auto& DB = Other.DepthAttachment;
-
-			if (DA.IsValid() != DB.IsValid())
+			const bool DepthValid = DepthAttachment.IsValid();
+			const bool OtherDepthValid = Other.DepthAttachment.IsValid();
+    
+			if (DepthValid != OtherDepthValid)
 			{
 				return false;
 			}
 
-			if (DA.IsValid())
+			if (DepthValid && !CompareAttachments(DepthAttachment, Other.DepthAttachment))
 			{
-				if (DA.Image != DB.Image)
-				{
-					return false;
-				}
-				if (DA.Subresources != DB.Subresources)
-				{
-					return false;
-				}
-				if (DA.LoadOp != DB.LoadOp)
-				{
-					return false;
-				}
-				if (DA.StoreOp != DB.StoreOp)
-				{
-					return false;
-				}
-				if (DA.ClearColor != DB.ClearColor)
-				{
-					return false;
-				}
-				if (DA.bReadOnly != DB.bReadOnly)
+				return false;
+			}
+    
+			for (size_t i = 0; i < ColorAttachments.size(); ++i)
+			{
+				if (!CompareAttachments(ColorAttachments[i], Other.ColorAttachments[i]))
 				{
 					return false;
 				}
 			}
-
+    
 			return true;
 		}
-		
-        bool IsValid() const
-        {
-            return (!ColorAttachments.empty()) || DepthAttachment.IsValid();
-        }
-    };
-
+	};
 
 	enum class LUMINA_API ESamplerReductionType : uint8
 	{
@@ -1410,7 +1387,7 @@ namespace Lumina
 	
 	struct LUMINA_API FBindingSetItem
 	{
-		FBindingSetItem() { } // NOLINT(cppcoreguidelines-pro-type-member-init, modernize-use-equals-default)
+		FBindingSetItem() noexcept { } // NOLINT(cppcoreguidelines-pro-type-member-init, modernize-use-equals-default)
 		
 		IRHIResource* ResourceHandle;
 		uint32 Slot;
@@ -1792,6 +1769,58 @@ namespace eastl
 			Hash::HashCombine(hash, Item.Offset);
 
 			return hash;
+		}
+	};
+
+	template<>
+	struct hash<FTextureSubresourceSet>
+	{
+		size_t operator()(const FTextureSubresourceSet& Item) const
+		{
+			size_t Hash = 0;
+			Hash::HashCombine(Hash, Item.BaseArraySlice);
+			Hash::HashCombine(Hash, Item.NumArraySlices);
+			Hash::HashCombine(Hash, Item.BaseMipLevel);
+			Hash::HashCombine(Hash, Item.NumMipLevels);
+
+			return Hash;
+		}
+	};
+
+	template<>
+	struct hash<FRenderPassDesc::FAttachment>
+	{
+		size_t operator()(const FRenderPassDesc::FAttachment& Item) const
+		{
+			size_t Hash = 0;
+			Hash::HashCombine(Hash, Item.bReadOnly);
+			Hash::HashCombine(Hash, Item.ClearColor);
+			Hash::HashCombine(Hash, Item.Format);
+			Hash::HashCombine(Hash, Item.Image);
+			Hash::HashCombine(Hash, Item.LoadOp);
+			Hash::HashCombine(Hash, Item.ResolveImage);
+			Hash::HashCombine(Hash, Item.StoreOp);
+			Hash::HashCombine(Hash, Item.Subresources);
+			return Hash;
+		}
+	};
+
+	template<>
+	struct hash<FRenderPassDesc>
+	{
+		size_t operator()(const FRenderPassDesc& Item) const
+		{
+			
+			size_t Hash = 0;
+			Hash::HashCombine(Hash, Item.ViewMask);
+			Hash::HashCombine(Hash, Item.SampleCount);
+			Hash::HashCombine(Hash, Item.RenderArea);
+			for (const FRenderPassDesc::FAttachment& Attachment : Item.ColorAttachments)
+			{
+				Hash::HashCombine(Hash, Attachment);
+			}
+			Hash::HashCombine(Hash, Item.DepthAttachment);
+			return Hash;
 		}
 	};
 	

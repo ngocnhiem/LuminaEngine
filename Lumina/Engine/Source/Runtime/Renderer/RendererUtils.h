@@ -1,6 +1,8 @@
 ﻿#pragma once
 
 #include <algorithm>
+
+#include "Containers/Array.h"
 #include "Platform/GenericPlatform.h"
 
 namespace Lumina::RenderUtils
@@ -26,4 +28,21 @@ namespace Lumina::RenderUtils
     {
         return (ThreadCount + LocalSize - 1) / LocalSize;
     };
+
+    constexpr uint32 CreateViewMask(TSpan<uint32> Layers)
+    {
+        uint32 Mask = 0;
+        for(uint32_t layer : Layers)
+        {
+            Mask |= (1u << layer);
+        }
+        return Mask;
+    }
+
+    template<uint32... Layers>
+    requires ((Layers < 32) && ...)
+    constexpr uint32 CreateViewMask()
+    {
+        return ((1u << Layers) | ...);
+    }
 }

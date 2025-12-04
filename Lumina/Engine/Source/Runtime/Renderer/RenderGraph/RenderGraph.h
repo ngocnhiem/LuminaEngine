@@ -1,8 +1,6 @@
 ﻿#pragma once
 #include "RenderGraphContext.h"
 #include "RenderGraphEvent.h"
-#include "RenderGraphResourceRegistry.h"
-#include "RenderGraphResources.h"
 #include "RenderGraphTypes.h"
 #include "Containers/Array.h"
 #include "Memory/Allocators/Allocator.h"
@@ -22,6 +20,23 @@ namespace Lumina
 {
     template <typename ExecutorType>
     concept ExecutorConcept = (sizeof(ExecutorType) <= 1024) && eastl::is_invocable_v<ExecutorType, ICommandList&>;
+
+    template<ExecutorConcept ExecutorType>
+    struct RGParallelPassSpec
+    {
+        RGParallelPassSpec(ERGPassFlags InPassFlags, FRGEvent&& InEvent, const FRGPassDescriptor* InParameters, ExecutorType&& InExecutor)
+            : PassFlags(InPassFlags)
+            , Event(Forward<FRGEvent>(InEvent))
+            , Descriptor(InParameters)
+            , Executor(Forward<ExecutorType>(InExecutor))
+        {}
+        
+        ERGPassFlags PassFlags;
+        FRGEvent Event;
+        const FRGPassDescriptor* Descriptor;
+        ExecutorType Executor;
+    };
+
     
     class LUMINA_API FRenderGraph
     {
@@ -29,61 +44,35 @@ namespace Lumina
 
         FRenderGraph();
         
-        template <ERGPassFlags PassFlags, ExecutorConcept ExecutorType>
-        FRGPassHandle AddPass(FRGEvent&& Event, const FRGPassDescriptor* Parameters, ExecutorType&& Executor);
+        template <ExecutorConcept ExecutorType>
+        FRGPassHandle AddPass(ERGPassFlags PassFlags, FRGEvent&& Event, const FRGPassDescriptor* Parameters, ExecutorType&& Executor);
+
+        template<typename ... TSpecs>
+        void AddParallelPasses(TSpecs&&... Specs);
+        
 
         FRGPassDescriptor* AllocDescriptor();
-        
+
         void Execute();
-        void Compile();
-
-        void AllocateTransientResources();
-
-
         
         template<typename T, typename... TArgs>
         T* Alloc(TArgs&&... Args)
         {
             return GraphAllocator.TAlloc<T>(Forward<TArgs>(Args)...);
         }
+    
+    
+    private:
 
-        template<typename TResource, typename TDescription>
-        TResource* AllocResource(TDescription&& Desc)
-        {
-            TResource* NewResource = nullptr;
-            if constexpr (std::is_same_v<TResource, FRGBuffer>)
-            {
-                NewResource = CreateBuffer(std::forward<TDescription>(Desc));
-            }
-            else if constexpr (std::is_same_v<TResource, FRGImage>)
-            {
-                NewResource = CreateImage(std::forward<TDescription>(Desc));
-            }
-
-            return NewResource;
-        }
+        template <ExecutorConcept ExecutorType>
+        FRGPassHandle AddPassToGroup(TVector<FRGPassHandle>& Group, ERGPassFlags PassFlags, FRGEvent&& Event, const FRGPassDescriptor* Parameters, ExecutorType&& Executor);
+        
 
     private:
         
-        template<typename ExecutorType>
-        FRGPassHandle AddPassInternal(FRGEvent&& Event, const FRGPassDescriptor* Parameters, ERGPassFlags Flags, ExecutorType&& Executor);
-
-
-        FRGBuffer* CreateBuffer(const FRHIBufferDesc& Desc);
-        FRGImage* CreateImage(const FRHIImageDesc& Desc);
-    
-
-    private:
-
-        TRGHandleRegistry<FRGBuffer>    BufferRegistry;
-        TRGHandleRegistry<FRGImage>     ImageRegistry;
         
         FBlockLinearAllocator           GraphAllocator;
-        TVector<FRGPassHandle>          Passes;
-        TVector<FRGPassGroup>           ParallelGroups;
-
-        uint32                          HighestGroupCount = 0;
-        uint32                          TotalPasses = 0;
+        TVector<TVector<FRGPassHandle>> PassGroups;
     };
 }
 

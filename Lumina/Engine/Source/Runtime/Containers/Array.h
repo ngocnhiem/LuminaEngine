@@ -6,9 +6,12 @@
 #include "EASTL/fixed_hash_map.h"
 #include "EASTL/fixed_hash_set.h"
 #include "EASTL/fixed_list.h"
+#include "EASTL/priority_queue.h"
 #include "EASTL/vector_map.h"
 #include "EASTL/bonus/fixed_ring_buffer.h"
+#include "EASTL/bonus/fixed_tuple_vector.h"
 #include "EASTL/bonus/ring_buffer.h"
+#include "EASTL/bonus/tuple_vector.h"
 #include "Platform/GenericPlatform.h"
 #include "Platform/Platform.h"
 
@@ -61,6 +64,12 @@ namespace Lumina
     using TBitSet = eastl::bitset<N>;
     
     using TBitVector = eastl::bitvector<>;
+
+    template<typename ... Ts>
+    using TTupleVector = eastl::tuple_vector<Ts...>;
+
+    template<size_t Size, bool bAllowOverflow = true, typename ... Ts>
+    using TFixedTupleVector = eastl::fixed_tuple_vector<Size, bAllowOverflow, Ts...>;
     
     template <typename T, typename TAllocator = EASTLAllocatorType>
     using TVector = eastl::vector<T, TAllocator>;
@@ -113,6 +122,9 @@ namespace Lumina
 
     template <typename T>
     using TQueue = eastl::queue<T>;
+
+    template<typename T>
+    using TPriorityQueue = eastl::priority_queue<T>;
 
     template<typename T, typename Traits = moodycamel::ConcurrentQueueDefaultTraits>
     using TConcurrentQueue = moodycamel::ConcurrentQueue<T, Traits>;

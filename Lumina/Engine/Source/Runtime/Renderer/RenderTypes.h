@@ -437,8 +437,16 @@ namespace Lumina
 
     static_assert(std::is_trivially_copyable_v<FIndexBufferBinding>);
 
-    struct FViewportState
+    struct alignas(16) FViewportState
     {
+        FViewportState() = default;
+        
+        FViewportState(const FViewport& InViewport, const FRect& Scissor)
+        {
+            Viewports.push_back(InViewport);
+            Scissors.push_back(Scissor);
+        }
+        
         TFixedVector<FViewport, 1>   Viewports;
         TFixedVector<FRect, 1>       Scissors;
     };

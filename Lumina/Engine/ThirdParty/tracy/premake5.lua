@@ -11,6 +11,7 @@ project "Tracy"
 	defines
 	{
 		"TRACY_EXPORTS",
+		"TRACY_ALLOW_SHADOW_WARNING",
 	}
 
 	files

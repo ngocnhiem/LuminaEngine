@@ -1,5 +1,5 @@
 #pragma once
-
+#if 0
 #include "entt/entt.hpp"
 #include "Renderer/RenderResource.h"
 #include "Renderer/RenderTypes.h"
@@ -183,3 +183,4 @@ namespace Lumina
     };
     
 }
+#endif

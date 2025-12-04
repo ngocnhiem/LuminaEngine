@@ -11,7 +11,6 @@ namespace Lumina
 
 namespace Lumina
 {
-
     using FRGPassHandle = FRenderGraphPass*;
 
     struct FRGPassResourceAccess

@@ -257,11 +257,9 @@ namespace Lumina
         LUMINA_PROFILE_SCOPE();
         
         auto Submissions = Move(CommandBuffersInFlight);
-        CommandBuffersInFlight.clear();
-
         uint64 LastFinish = UpdateLastFinishID();
         
-        for (auto& Submission : Submissions)
+        for (const TRefCountPtr<FTrackedCommandBuffer>& Submission : Submissions)
         {
             if (Submission->SubmissionID <= LastFinish)
             {
@@ -286,7 +284,7 @@ namespace Lumina
         TFixedVector<VkCommandBuffer, 4> CommandBuffers(NumCommandLists);
         
         LastSubmittedID++;
-
+        
         for (uint32 i = 0; i < NumCommandLists; ++i)
         {
             FVulkanCommandList* VulkanCommandList = static_cast<FVulkanCommandList*>(CommandLists[i]);
@@ -297,14 +295,14 @@ namespace Lumina
                 continue;
             }
             
-            auto& TrackedBuffer = VulkanCommandList->CurrentCommandBuffer;
-
+            TRefCountPtr<FTrackedCommandBuffer>& TrackedBuffer = VulkanCommandList->CurrentCommandBuffer;
             Assert(TrackedBuffer->Queue == this)
+
 
             CommandBuffers[i] = TrackedBuffer->CommandBuffer;
             CommandBuffersInFlight.push_back(TrackedBuffer);
 
-            for (const auto& Buffer : TrackedBuffer->ReferencedStagingResources)
+            for (const TRefCountPtr<FRHIBuffer>& Buffer : TrackedBuffer->ReferencedStagingResources)
             {
                 FVulkanBuffer* VkBuf = Buffer.As<FVulkanBuffer>();
                 VkBuf->LastUseQueue = Type;
@@ -324,6 +322,9 @@ namespace Lumina
             TimelineSubmitInfo.waitSemaphoreValueCount = (uint32)WaitSemaphoreValues.size();
             TimelineSubmitInfo.pWaitSemaphoreValues = WaitSemaphoreValues.data();
         }
+
+        LUMINA_PROFILE_TAG(std::format("Last Submit ID: {} - Num Command Lists {}", LastSubmittedID, NumCommandLists).c_str());
+
         
         VkSubmitInfo SubmitInfo         = {};
         SubmitInfo.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -391,6 +392,7 @@ namespace Lumina
     bool FQueue::WaitCommandList(uint64 CommandListID, uint64 Timeout)
     {
         LUMINA_PROFILE_SCOPE_COLORED(tracy::Color::Green);
+
         if (CommandListID > LastSubmittedID || CommandListID == 0)
         {
             return false;
@@ -406,6 +408,8 @@ namespace Lumina
         WaitInfo.semaphoreCount = 1;
         WaitInfo.pSemaphores = &TimelineSemaphore;
         WaitInfo.pValues = &CommandListID;
+
+        LUMINA_PROFILE_TAG(std::format("Waiting on command list ID: {} | Last Submitted ID {}", CommandListID, LastSubmittedID).c_str());
 
         {
             LUMINA_PROFILE_SECTION("vkWaitSemaphores");
@@ -474,20 +478,14 @@ namespace Lumina
     bool FVulkanRenderContext::Initialize(const FRenderContextDesc& Desc)
     {
         LUMINA_PROFILE_SCOPE();
-
-        Description = Desc;
-        
         AssertMsg(glfwVulkanSupported(), "Vulkan Is Not Supported!");
-        GVulkanAllocationCallbacks.pfnAllocation = VulkanAlloc;
-        GVulkanAllocationCallbacks.pfnFree = VulkanFree;
-        GVulkanAllocationCallbacks.pfnReallocation = VulkanRealloc;
-
-        if (volkInitialize() != VK_SUCCESS)
-        {
-            LOG_CRITICAL("Volk failed to initialize!");
-            return false;
-        }
-
+        AssertMsg(volkInitialize() == VK_SUCCESS, "Volk failed to initialize");
+        
+        Description = Desc;
+        GVulkanAllocationCallbacks.pfnAllocation    = VulkanAlloc;
+        GVulkanAllocationCallbacks.pfnFree          = VulkanFree;
+        GVulkanAllocationCallbacks.pfnReallocation  = VulkanRealloc;
+        
         
         vkb::InstanceBuilder Builder;
         Builder
@@ -511,7 +509,7 @@ namespace Lumina
 
         if (!InstBuilder.has_value())
         {
-            LOG_CRITICAL("A critical error occured while trying to create a Vulkan instance");
+            LOG_CRITICAL("A critical error occured while trying to create a Vulkan instance: {}", InstBuilder.error().message());
             return false;
         }
 
@@ -530,9 +528,9 @@ namespace Lumina
         volkLoadDevice(VulkanDevice->GetDevice());
         
         uint32 APIVer = GetDevice()->GetPhysicalDeviceProperties().apiVersion;
-        uint32 Major = VK_VERSION_MAJOR(APIVer);
-        uint32 Minor = VK_VERSION_MINOR(APIVer);
-        uint32 Patch = VK_VERSION_PATCH(APIVer);
+        uint32 Major = VK_API_VERSION_MAJOR(APIVer);
+        uint32 Minor = VK_API_VERSION_MINOR(APIVer);
+        uint32 Patch = VK_API_VERSION_PATCH(APIVer);
         
         LOG_TRACE("Vulkan Render Context - {} - API: {}.{}.{} - Validation: {}", GetDevice()->GetPhysicalDeviceProperties().deviceName, Major, Minor, Patch, Description.bValidation);
         
@@ -625,9 +623,7 @@ namespace Lumina
         LUMINA_PROFILE_SCOPE();
 
         FRGPassDescriptor* Descriptor = RenderGraph.AllocDescriptor();
-        Descriptor->AddRawRead(GEngine->GetEngineViewport()->GetRenderTarget());
-        Descriptor->AddRawWrite(Swapchain->GetCurrentImage());
-        RenderGraph.AddPass<RG_Raster>(FRGEvent("Swapchain Copy"), Descriptor, [&](ICommandList& CmdList)
+        RenderGraph.AddPass(RG_Raster, FRGEvent("Swapchain Copy"), Descriptor, [&](ICommandList& CmdList)
         {
             CmdList.CopyImage(GEngine->GetEngineViewport()->GetRenderTarget(), FTextureSlice(), Swapchain->GetCurrentImage(), FTextureSlice());
         });
@@ -701,6 +697,7 @@ namespace Lumina
         DeviceFeatures.multiViewport                        = VK_TRUE;
         DeviceFeatures.multiDrawIndirect                    = VK_TRUE;
         DeviceFeatures.shaderStorageImageWriteWithoutFormat = VK_TRUE;
+        DeviceFeatures.drawIndirectFirstInstance            = VK_TRUE;
 
         VkPhysicalDeviceVulkan11Features Features11 = {};
         Features11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;

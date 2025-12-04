@@ -3,7 +3,6 @@
 #include "imgui_internal.h"
 #include "ToolFlags.h"
 #include "EASTL/sort.h"
-#include "TaskSystem/TaskSystem.h"
 #include "Tools/UI/ImGui/ImGuiX.h"
 #include "World/WorldManager.h"
 #include "World/Entity/Components/CameraComponent.h"

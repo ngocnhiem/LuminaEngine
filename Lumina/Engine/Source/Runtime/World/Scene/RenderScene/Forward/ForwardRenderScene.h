@@ -9,6 +9,10 @@
 namespace Lumina
 {
     class CWorld;
+
+    /**
+     * Scene rendering via Clustered Forward Rendering.
+     */
     class FForwardRenderScene : public IRenderScene
     {
     
@@ -30,7 +34,6 @@ namespace Lumina
         void DepthPyramidPass(FRenderGraph& RenderGraph);
         void ClusterBuildPass(FRenderGraph& RenderGraph, const FViewVolume& View);
         void LightCullPass(FRenderGraph& RenderGraph, const FViewVolume& View);
-        void ClearShadowPass(FRenderGraph& RenderGraph);
         void PointShadowPass(FRenderGraph& RenderGraph);
         void SpotShadowPass(FRenderGraph& RenderGraph);
         void DirectionalShowPass(FRenderGraph& RenderGraph);
