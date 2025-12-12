@@ -35,8 +35,6 @@ project "Lumina"
     }
     prebuildmessage "======== Running Lumina Reflection Tool ========"
 
-
-
     postbuildcommands
     {
         '{COPYFILE} "%{LuminaEngineDirectory}/External/RenderDoc/renderdoc.dll" "%{cfg.targetdir}"',

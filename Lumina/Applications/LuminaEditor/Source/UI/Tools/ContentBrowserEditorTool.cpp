@@ -58,8 +58,7 @@ namespace Lumina
 
             for (const FString& Path : FileEvent.GetPaths())
             {
-                PendingActions.get<FPendingOSDrop>()
-                PendingActions.emplace_back(FPendingOSDrop{ Path, DropCursor });
+                EmplaceAction<FPendingOSDrop>(FPendingOSDrop{ Path, DropCursor });
             }
 
             return true;
@@ -359,8 +358,7 @@ namespace Lumina
     {
         bool bWroteSomething = false;
         
-
-        for (const FPendingDestroy& Destroy : PendingActions.get<FPendingDestroy>())
+        PendingActions.view<FPendingDestroy>().each([&](FPendingDestroy& Destroy)
         {
             try
             {
@@ -370,7 +368,7 @@ namespace Lumina
                     {
                         std::filesystem::remove(Destroy.PendingDestroy.c_str());
                         bWroteSomething = true;
-                        
+
                         ImGuiX::Notifications::NotifySuccess("Deleted Directory {0}", Destroy.PendingDestroy.c_str());
                     }
                 }
@@ -399,20 +397,20 @@ namespace Lumina
                 LOG_ERROR("Failed to delete file: {0}", e.what());
                 ImGuiX::Notifications::NotifyError("Deletion failed: {0}", e.what());
             }
-        }
-
-        for (const FPendingRename& Rename : PendingActions.get<FPendingRename>())
-        {
-            
-        }
+		});
+        
+        //for (const FPendingRename& Rename : PendingActions.get<FPendingRename>())
+        //{
+        //    
+        //}
         
         if (bWroteSomething)
         {
             RefreshContentBrowser();
         }
 
-        PendingDestroy.clear();
-        PendingRenames.clear();
+        PendingActions.clear<FPendingDestroy>();
+		PendingActions.clear<FPendingRename>();
     }
     
     void FContentBrowserEditorTool::InitializeDockingLayout(ImGuiID InDockspaceID, const ImVec2& InDockspaceSize) const
@@ -489,7 +487,7 @@ namespace Lumina
         if (Dialogs::Confirmation("Confirm Deletion", "Are you sure you want to delete \"{0}\"?\n""\nThis action cannot be undone.", Item->GetFileName()))
         {
             Callback(EYesNo::Yes);
-            PendingDestroy.emplace_back(FPendingDestroy{Item->GetPath()});
+			EmplaceAction<FPendingDestroy>(FPendingDestroy{ Item->GetPath() });
         }
 
         Callback(EYesNo::No);
@@ -699,7 +697,7 @@ namespace Lumina
             if (bSubmitted && bIsValid)
             {
                 FString NewPath = Paths::Parent(ContentItem->GetPath()) + "/" + RenameState->Buffer;
-                PendingRenames.emplace_back(FPendingRename{ContentItem->GetPath(), NewPath});
+				EmplaceAction<FPendingRename>(FPendingRename{ ContentItem->GetPath(), NewPath });
                 RenameState->Reset();
                 return true;
             }
@@ -737,7 +735,7 @@ namespace Lumina
                 if (bIsValid)
                 {
                     FString NewPath = Paths::Parent(ContentItem->GetPath()) + "/" + RenameState->Buffer;
-                    PendingRenames.emplace_back(FPendingRename{ContentItem->GetPath(), NewPath});
+					EmplaceAction<FPendingRename>(FPendingRename{ ContentItem->GetPath(), NewPath });
                     RenameState->Reset();
                     return true;
                 }
@@ -887,15 +885,16 @@ namespace Lumina
         
         ImRect Rect(ChildMin, ChildMax);
 
-        for (FPendingOSDrop& Drop : PendingActions.get<FPendingOSDrop>())
+        PendingActions.view<FPendingOSDrop>().each([&](FPendingOSDrop& Drop)
         {
             if (Rect.Contains(Drop.MousePos))
             {
                 TryImport(Drop.Path);
             }
-        }
+		});
 
-        PendingDrops.clear();
+
+        PendingActions.clear<FPendingOSDrop>();
         
         ImGui::EndChild();
     

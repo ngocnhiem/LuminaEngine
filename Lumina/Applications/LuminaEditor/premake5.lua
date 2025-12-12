@@ -6,10 +6,7 @@ project "Editor"
     targetdir ("%{wks.location}/Binaries/" .. outputdir)
     objdir ("%{wks.location}/Intermediates/Obj/" .. outputdir .. "/%{prj.name}")   
 
-	prebuildcommands 
-    {
-        'python "%{LuminaEngineDirectory}/Scripts/RunReflection.py" "%{wks.location}\\Lumina.sln"'
-    }
+	dependson { "Lumina", "ImGui", "EA", "Tracy", "lua54" }
 	
     libdirs
     {
