@@ -17,7 +17,7 @@ end
 
 -- Include directories
 IncludeDir = {}
-IncludeDir["Main"]                  = enginePath("Lumina/Engine/ThirdParty/")
+IncludeDir["Main"]                  = enginePath("Lumina/Engine/ThirdParty")
 IncludeDir["spdlog"]                = enginePath("Lumina/Engine/ThirdParty/spdlog/include")
 IncludeDir["glfw"]                  = enginePath("Lumina/Engine/ThirdParty/GLFW/include")
 IncludeDir["glm"]                   = enginePath("Lumina/Engine/ThirdParty/GLM")

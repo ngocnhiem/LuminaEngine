@@ -18,7 +18,7 @@ project "ImGui"
 		".",
 		"backends",
 		"%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/glfw/include/",
-		"%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/volk/",
+		"%{LuminaEngineDirectory}/Lumina/Engine/ThirdParty/",
 		"%{VULKAN_SDK}/Include/",
 	}
 
@@ -44,20 +44,3 @@ project "ImGui"
 		"backends/imgui_impl_vulkan.cpp",
         "imgui_tables.cpp",
 	}
-
-	filter "system:windows"
-		systemversion "latest"
-		cppdialect "C++20"
-
-	filter "system:linux"
-		pic "On"
-		systemversion "latest"
-		cppdialect "C++20"
-
-	filter "configurations:Debug"
-		runtime "Debug"
-		symbols "on"
-
-	filter "configurations:Release"
-		runtime "Release"
-		optimize "on"
