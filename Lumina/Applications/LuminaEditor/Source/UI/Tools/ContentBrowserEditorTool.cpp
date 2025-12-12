@@ -257,14 +257,15 @@ namespace Lumina
                 TFixedVector<FString, 8> DirectoryPaths;
                 TFixedVector<FString, 6> FilePaths;
 
-                for (auto& Directory : std::filesystem::directory_iterator(SelectedPath.c_str()))
+                for (const std::filesystem::directory_entry& Directory : std::filesystem::directory_iterator(SelectedPath.c_str()))
                 {
+					std::filesystem::path Path = Directory.path();
                     if (std::filesystem::is_directory(Directory))
                     {
                         FString VirtualPath = Paths::ConvertToVirtualPath(Directory.path().generic_string().c_str());
                         DirectoryPaths.push_back(Directory.path().generic_string().c_str());
                     }
-                    else
+					else if (Path.extension() == ".lasset" || Path.extension() == ".lua")
                     {
                         FilePaths.push_back(Directory.path().generic_string().c_str());
                     }
