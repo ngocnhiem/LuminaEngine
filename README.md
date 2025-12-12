@@ -115,7 +115,9 @@ Performance profiling - Built-in Lua script profiling with Tracy
 
 ### Installation
 
-** Disclaimer and tips **
+**Disclaimer and tips**
+
+
 Lumina's installation is being worked on, at the moment a majority of it's steps are compiled down into just running Setup.py.
 However I've noticed some issues with UTF-8 chars on Window's terminals, if the terminal opens and closes quickly, keep trying.
 
@@ -136,6 +138,7 @@ https://www.dropbox.com/scl/fi/suigjbqj75pzcpxcqm6hv/External.7z?rlkey=ebu8kiw4g
 -- If you encounter **any** other build issues during the installation of Lumina Engine, **please** reach out to me on Discord, or submit a Github Issue, that is the only way I am able to track these issues and fix them in  a timely manner.
 
 Thank you!
+
 
 ```
 
