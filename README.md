@@ -115,11 +115,27 @@ Performance profiling - Built-in Lua script profiling with Tracy
 
 ### Installation
 
+** Disclaimer and tips **
 Lumina's installation is being worked on, at the moment a majority of it's steps are compiled down into just running Setup.py.
 However I've noticed some issues with UTF-8 chars on Window's terminals, if the terminal opens and closes quickly, keep trying.
 
-During the setup process, Lumina will attempt to download from Dropbox, if for some reason this fails. You can get the .7z file here, and extract it yourself into the engine install directory
+There are also occasional issues I've noticed with Visual Studio where it will not pickup newly generated headers created by the Lumina Reflection Tool (LRT), if this happens and you 
+receive a "cannot find XXX.generated.h" error, just try building again, it should pick up the file the second time.
+
+Lumina relies on Python pretty heavily, including use of the "python" command line action, if you installed Python without selecting the option to add Python to your "PATH" system variable, the reflection tool will not,
+be able to run automatically and you will encounter a build error. Please see above images to confirm this action has been done correctly.
+
+Those of you who are newly installing Visual Studio 2026, without having installed Visual Studio 2022, by default the toolset Microsoft downloads for MSVC is to new for Lumina as it's only *officially* supported on v143. 
+However, as long as you manually download the correct toolset from the Visual Studio Installer, there should be no issues. If you do forget to do this, when building Lumina you will get an error that prompts you to either -
+retarget the project, or download the toolset. If you select the option to retarget, Visual Studio will give you the option to also install the missing v143, this is the option you should select, and should allievate this build issue,
+from happening to you in the future.
+
+During the setup process, Lumina will attempt to download from Dropbox, if for some reason this fails. You can get the .7z file here, and extract it yourself into the engine install directory (same directory as Setup.py)
 https://www.dropbox.com/scl/fi/suigjbqj75pzcpxcqm6hv/External.7z?rlkey=ebu8kiw4gswtvj5mclg6wa1lu&st=759m2aj0&dl=0
+
+-- If you encounter **any** other build issues during the installation of Lumina Engine, **please** reach out to me on Discord, or submit a Github Issue, that is the only way I am able to track these issues and fix them in  a timely manner.
+
+Thank you!
 
 ```
 
